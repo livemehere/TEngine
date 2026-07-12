@@ -54,6 +54,9 @@ void Window::create_window(int w, int h, const std::string &title, bool vsync) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
 
+    this->w = w;
+    this->h = h;
+
     window = glfwCreateWindow(w, h, title.c_str(), nullptr, nullptr);
     if (!window) {
         glfwDestroyWindow(window);
@@ -72,14 +75,28 @@ bool Window::should_close() const {
     return glfwWindowShouldClose(window);
 }
 
-void Window::before_update() const {
+void Window::before_update() {
+    // update window size
+    glfwGetWindowSize(window, &w, &h);
+    glfwGetFramebufferSize(window, &fb_w, &fb_h);
+    glViewport(0,0, fb_w, fb_h);
+
+    glClear(GL_COLOR_BUFFER_BIT);
     glfwPollEvents();
     imgui_new_frame();
 }
 
 void Window::update() const {
-    glClear(GL_COLOR_BUFFER_BIT);
     imgui_render();
     glfwSwapBuffers(window);
+}
+
+Size Window::get_size() const {
+    return {
+        w,
+        h,
+        fb_w,
+        fb_h
+    };
 }
 
