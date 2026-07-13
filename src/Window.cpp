@@ -99,4 +99,3 @@ Size Window::get_size() const {
         fb_h
     };
 }
-

@@ -8,12 +8,22 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 
+
+
 add_executable(Elementals src/main.cpp
         src/Window.cpp
-        src/Window.h)
+        src/Window.h
+        src/World.cpp
+        src/World.h
+        src/utils.h)
 
 target_link_libraries(Elementals PRIVATE
         glfw
         glad::glad
         imgui::imgui
 )
+
+target_compile_definitions(Elementals PRIVATE
+        ASSET_ROOT="${CMAKE_SOURCE_DIR}/assets"
+)
+
