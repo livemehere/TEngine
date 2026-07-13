@@ -9,8 +9,9 @@ World::World() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    auto vsSrc = utils::read_file(utils::asset_path("shaders/basic.vert"));
-    std::cout << vsSrc << "\n";
+    // shader
+     GLint vs = utils::compile_shader(GL_VERTEX_SHADER,"shaders/basic.vert");
+
 
 }
 
