@@ -49,10 +49,14 @@ namespace utils {
         glGetShaderInfoLog(shader, logLength, &written, log.data());
         log.resize(written);
 
+        glDeleteShader(shader);
+
         throw std::runtime_error(std::format("[{} SHADER] {}",shaderTypeStr, log));
     }
 
     inline GLuint create_shader_program(const std::string& vsPath, const std::string& fsPath) {
+        // TODO: convert shader to RAII to cleanup each stage.
+        // if vs compile success and fs failed then vs doesn't cleanup it self.
         GLuint vs = compile_shader(GL_VERTEX_SHADER,vsPath);
         GLuint fs = compile_shader(GL_FRAGMENT_SHADER,fsPath);
 
