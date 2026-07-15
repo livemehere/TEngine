@@ -23,6 +23,9 @@ World::World() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
 
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uvCoord));
+    glEnableVertexAttribArray(1);
+
     // shader
     program = utils::create_shader_program("shaders/basic.vert", "shaders/basic.frag");
     glUseProgram(program);
