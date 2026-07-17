@@ -5,7 +5,7 @@
 
 class ShaderProgram {
 private:
-    GLuint id_;
+    GLuint id_ = 0;
 public:
     ShaderProgram(const std::string& vsPath, const std::string& fsPath);
     ~ShaderProgram() {

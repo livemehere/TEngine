@@ -85,7 +85,7 @@ void World::update(const glm::mat4& view, const glm::mat4& projection) {
 }
 
 void World::render() {
-    texture.bind();
+    texture.bind(0);
     shader.use();
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(),GL_UNSIGNED_INT,0);

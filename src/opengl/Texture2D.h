@@ -6,7 +6,7 @@
 /* RGBA support only for simplicity */
 class Texture2D {
 private:
-   GLuint id_;
+   GLuint id_ = 0;
    int width_ = 0;
    int height_ = 0;
 public:
@@ -20,7 +20,8 @@ public:
    Texture2D(const Texture2D&) = delete;
    Texture2D&operator=(const Texture2D&) = delete;
 
-   void bind() const {
+   void bind(GLuint slot = 0) const {
+      glActiveTexture(GL_TEXTURE0 + slot);
       glBindTexture(GL_TEXTURE_2D, id_);
   }
 };

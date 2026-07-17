@@ -5,9 +5,9 @@
 
 class Shader {
 private:
-    GLuint id_;
+    GLuint id_ = 0;
 public:
-    Shader(const GLenum type, const std::string &filepath);
+    Shader(GLenum type, const std::string &filepath);
     ~Shader() {
         if (id_ != 0) {
             glDeleteShader(id_);

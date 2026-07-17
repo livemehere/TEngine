@@ -5,7 +5,7 @@
 
 #include "../utils.h"
 
-Shader::Shader(const GLenum type, const std::string &filepath) {
+Shader::Shader(GLenum type, const std::string &filepath) {
     const std::string sourcePath = utils::asset_path(filepath);
     const std::string sourceString = utils::read_file(sourcePath);
     const char* shaderSource = sourceString.c_str();
