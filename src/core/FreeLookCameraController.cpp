@@ -28,16 +28,18 @@ void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
         moveInput = glm::normalize(moveInput);
     }
 
-    camera.transform.position += camera.viewForward * moveInput.y * dt;
-    camera.transform.position += camera.viewRight * moveInput.x * dt;
+    float applySpeed = input.isKeyDown(Key::LeftShift) ? sprintSpeed : speed;
+
+    camera.transform.position += camera.viewForward * moveInput.y * applySpeed * dt;
+    camera.transform.position += camera.viewRight * moveInput.x * applySpeed * dt;
 
     // up, down
     if (input.isKeyDown(Key::E)) {
-        camera.transform.position += glm::vec3(0.0f, 1.0f,0.0f) * speed * dt;
+        camera.transform.position += glm::vec3(0.0f, 1.0f,0.0f) * applySpeed * dt;
     }
 
     if (input.isKeyDown(Key::Q)) {
-        camera.transform.position += glm::vec3(0.0f, -1.0f,0.0f) * speed * dt;
+        camera.transform.position += glm::vec3(0.0f, -1.0f,0.0f) * applySpeed * dt;
     }
 
 
