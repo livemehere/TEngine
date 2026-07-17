@@ -1,14 +1,12 @@
 #include "Texture2D.h"
 
 Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels) {
-
-    const size_t expectedSize = width * height * 4;
-    if (pixels.size() != expectedSize) {
+    if (const size_t expectedSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4; pixels.size() != expectedSize) {
         throw std::invalid_argument("Invalid RGBA pixel data size");
     }
 
     glGenTextures(1, &id_);
-    bind();
+    glBindTexture(GL_TEXTURE_2D, id_);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
