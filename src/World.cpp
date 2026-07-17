@@ -181,8 +181,8 @@ void World::update() {
         inputVector = glm::normalize(inputVector);
     }
 
-    viewForward = viewQuat * glm::vec3(0.0f, 0.0f, -1.0f) ;
-    viewRight = viewQuat * glm::vec3(1.0f, 0.0f, 0.0f) ;
+    viewForward = viewQuat * glm::vec3(0.0f, 0.0f, -1.0f);
+    viewRight = viewQuat * glm::vec3(1.0f, 0.0f, 0.0f);
 
     viewTransform.position += viewForward * inputVector.y * moveSpeed * deltaTime;
     viewTransform.position += viewRight * inputVector.x * moveSpeed * deltaTime;
