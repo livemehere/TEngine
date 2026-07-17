@@ -30,6 +30,8 @@ add_executable(Elementals src/main.cpp
         src/opengl/ShaderProgram.h
         src/opengl/Texture2D.cpp
         src/opengl/Texture2D.h
+        src/opengl/Mesh.cpp
+        src/opengl/Mesh.h
 )
 
 target_link_libraries(Elementals PRIVATE
