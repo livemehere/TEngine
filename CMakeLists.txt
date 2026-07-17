@@ -20,10 +20,10 @@ add_executable(Elementals src/main.cpp
         src/Input.cpp
         src/Input.h
         src/common.h
-        src/core/Camera.cpp
-        src/core/Camera.h
-        src/core/FreeLookCameraController.cpp
-        src/core/FreeLookCameraController.h
+        src/camera/Camera.cpp
+        src/camera/Camera.h
+        src/camera/FreeLookCameraController.cpp
+        src/camera/FreeLookCameraController.h
 )
 
 target_link_libraries(Elementals PRIVATE

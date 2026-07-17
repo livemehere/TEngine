@@ -7,8 +7,8 @@
 #include "Input.h"
 #include "Window.h"
 #include "World.h"
-#include "core/Camera.h"
-#include "core/FreeLookCameraController.h"
+#include "camera/Camera.h"
+#include "camera/FreeLookCameraController.h"
 
 
 int main() {
