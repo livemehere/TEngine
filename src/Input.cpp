@@ -13,23 +13,27 @@ void Input::update() {
     glfwGetCursorPos(nativeWindow, &x, &y);
     mouseState_.x = (float)x * size.fb_w / size.w;
     mouseState_.y = (float)y * size.fb_h / size.h;
-    mouseState_.deltaX = mouseState_.x - mouseState_.prevX;
-    mouseState_.deltaY = mouseState_.y - mouseState_.prevY;
-    mouseState_.prevX = mouseState_.x;
-    mouseState_.prevY = mouseState_.y;
+    if (firstMouseUpdate_) {
+        mouseState_.deltaX = 0.0f;
+        mouseState_.deltaY = 0.0f;
+        mouseState_.prevX = mouseState_.x;
+        mouseState_.prevY = mouseState_.y;
+        firstMouseUpdate_ = false;
+    } else {
+        mouseState_.deltaX = mouseState_.x - mouseState_.prevX;
+        mouseState_.deltaY = mouseState_.y - mouseState_.prevY;
+        mouseState_.prevX = mouseState_.x;
+        mouseState_.prevY = mouseState_.y;
+    }
 
     /* MOUSE BUTTONS */
-    int leftBtnState = glfwGetMouseButton(nativeWindow, GLFW_MOUSE_BUTTON_LEFT);
-    if (leftBtnState == GLFW_PRESS) {
-        mouseState_.leftBtnPressed = true;
-    } else {
-        mouseState_.leftBtnPressed = false;
-    }
+    const int leftBtnDown = glfwGetMouseButton(nativeWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    mouseState_.leftBtnPressed = leftBtnDown && !mouseState_.leftBtnDown;
+    mouseState_.leftBtnDown = leftBtnDown;
 
-    int rightBtnState = glfwGetMouseButton(nativeWindow, GLFW_MOUSE_BUTTON_RIGHT);
-    if (rightBtnState == GLFW_PRESS) {
-        mouseState_.rightBtnPressed = true;
-    } else {
-        mouseState_.rightBtnPressed = false;
-    }
+    const int rightBtnDown = glfwGetMouseButton(nativeWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    mouseState_.rightBtnPressed = rightBtnDown && !mouseState_.rightBtnDown;
+    mouseState_.rightBtnDown = rightBtnDown;
+
+
 }

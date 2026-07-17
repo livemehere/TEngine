@@ -9,13 +9,16 @@ struct MouseState {
     float prevY;
     float deltaX;
     float deltaY;
+    bool leftBtnDown;
+    bool rightBtnDown;
     bool leftBtnPressed;
     bool rightBtnPressed;
 };
 
 class Input {
     Window& window_;
-    MouseState mouseState_;
+    MouseState mouseState_{};
+    bool firstMouseUpdate_ = true;
 
 public:
     Input(Window &window);
