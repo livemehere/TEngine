@@ -8,9 +8,7 @@
 #include "opengl/Mesh.h"
 #include "opengl/Shader.h"
 #include "opengl/Texture2D.h"
-
-
-
+#include "render/RenderObject.h"
 
 constexpr std::array<uint8_t,16> pixels = {
     255,0,0,80,
@@ -36,23 +34,13 @@ private:
 
     // model
     GLuint modelLocation;
-    glm::mat4 model;
-    Transform transform {
-        .position = {0.0f,0.0f,0.0f},
-        .rotation = {0.0f,0.0f,0.0f},
-        .scale = {1.0f,1.0f,1.0f},
-    };
-
-    // view
     GLuint viewLocation;
-
-    // projection
     GLuint projectionLocation;
-    glm::mat4 projection;
-
 
     Shader shader{"shaders/basic.vert", "shaders/basic.frag"};
     Texture2D texture{2,2,pixels };
+
+    std::vector<RenderObject> objects;
 
 public:
     World();

@@ -32,7 +32,6 @@ add_executable(Elementals src/main.cpp
         src/opengl/Texture2D.h
         src/opengl/Mesh.cpp
         src/opengl/Mesh.h
-        src/render/RenderObject.cpp
         src/render/RenderObject.h
 )
 

@@ -23,41 +23,55 @@ World::World()  {
     // glFrontFace(GL_CCW);
     // glCullFace(GL_BACK);
 
+    /* setup objects */
+    objects.push_back({
+        .transform = {
+            .position = {-1.0f,0.0f,0.0f},
+            .rotation = {0.0f,0.0f,0.0f},
+            .scale = {1.0f,1.0f,1.0f},
+        },
+        .mesh = &quadMesh,
+        .shader = &shader,
+        .texture = &texture
+    });
+
+    objects.push_back({
+    .transform = {
+        .position = {1.0f,0.0f,0.0f},
+        .rotation = {0.0f,0.0f,0.0f},
+        .scale = {1.0f,1.0f,1.0f},
+    },
+    .mesh = &quadMesh,
+    .shader = &shader,
+    .texture = &texture
+});
+
 }
 
 World::~World() {
 
 }
 
-
 void World::update(const glm::mat4& view, const glm::mat4& projection) {
 
-    // for 3D
-    transform.position.z = -1.0f;
+    shader.use();
+    texture.bind(0);
 
-    /* MODEL */
-    model = glm::mat4(1.0f);
-
-    // position
-    model = glm::translate(model, transform.position);
-
-    // rotation
-
-    model = glm::rotate(model,glm::radians(transform.rotation.x),glm::vec3(1.0f,0.0f,0.0f));
-    model = glm::rotate(model,glm::radians(transform.rotation.y),glm::vec3(0.0f,1.0f,0.0f));
-    model = glm::rotate(model,glm::radians(transform.rotation.z),glm::vec3(0.0f,0.0f,1.0f));
-
-    // scale
-    model = glm::scale(model, transform.scale);
-
-    glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+    for (auto& obj : objects) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, obj.transform.position);
+        glm::mat4 quatMat = glm::mat4_cast(glm::quat(glm::radians(obj.transform.rotation)));
+        model *= quatMat;
+        model = glm::scale(model, obj.transform.scale);
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        obj.mesh->draw();
+    }
+
 
 }
 
 void World::render() {
-    texture.bind(0);
-    shader.use();
-    quadMesh.draw();
 }
