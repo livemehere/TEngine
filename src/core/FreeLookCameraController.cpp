@@ -5,6 +5,7 @@ void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
     // cursor lock control
     if (mouseState.leftBtnPressed) {
         input.setCursorLockState(true);
+        return; // return current frame, prevent spark
     } else if (input.isKeyDown(Key::ESC)) {
         input.setCursorLockState(false);
     }

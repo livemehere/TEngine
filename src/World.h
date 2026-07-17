@@ -5,9 +5,6 @@
 
 #include <glm/glm.hpp>
 
-#include "Input.h"
-#include "Window.h"
-
 struct Position {
     float x;
     float y;

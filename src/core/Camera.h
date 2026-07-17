@@ -2,7 +2,7 @@
 
 #include <variant>
 #include <glm/glm.hpp>
-#include <glm/detail/type_quat.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "../common.h"
 #include "../Window.h"
