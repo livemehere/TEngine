@@ -34,10 +34,6 @@ int main() {
             lastFrameTime = currentFrameTime;
             const WindowSize& size = win.get_size();
             const MouseState& mouseState = input.getMouseState();
-            RenderContext ctx{
-                camera.getViewMatrix(),
-                camera.getProjectionMatrix(size)
-            };
 
             /* update */
             win.pollEvents();
@@ -47,6 +43,11 @@ int main() {
             world.update(dt);
 
             /* render */
+            RenderContext ctx{
+               .view = camera.getViewMatrix(),
+               .projection = camera.getProjectionMatrix(size)
+            };
+
             world.render(ctx);
 
             /* render debug */
