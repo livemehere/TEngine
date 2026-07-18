@@ -10,11 +10,8 @@
 #include "graphics/Texture2D.h"
 #include "renderer/RenderObject.h"
 
-constexpr std::array<uint8_t,16> pixels = {
-    255,0,0,80,
-    0,255,0,80,
-    0,0,255,80,
-    80,80,80,80,
+constexpr std::array<uint8_t,4> pixels = {
+    255,255,255,255,
 };
 
 class World {
@@ -32,13 +29,8 @@ private:
          }
     };
 
-    // model
-    GLuint modelLocation;
-    GLuint viewLocation;
-    GLuint projectionLocation;
-
     Shader shader{"shaders/basic.vert", "shaders/basic.frag"};
-    Texture2D texture{2,2,pixels };
+    Texture2D texture{1,1,pixels};
 
     std::vector<RenderObject> objects;
 

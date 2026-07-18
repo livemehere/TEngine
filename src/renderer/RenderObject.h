@@ -10,4 +10,5 @@ struct RenderObject {
     Mesh* mesh;
     Shader* shader;
     Texture2D* texture;
+    glm::vec4 color;
 };

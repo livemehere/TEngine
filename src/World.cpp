@@ -7,13 +7,6 @@
 #include "graphics/Shader.h"
 
 World::World()  {
-    // shader
-    shader.use();
-    modelLocation = glGetUniformLocation(shader.getId(), "uModel");
-    viewLocation = glGetUniformLocation(shader.getId(), "uView");
-    projectionLocation = glGetUniformLocation(shader.getId(), "uProjection");
-
-
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // render as wireframe
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -32,7 +25,8 @@ World::World()  {
         },
         .mesh = &quadMesh,
         .shader = &shader,
-        .texture = &texture
+        .texture = &texture,
+        .color = glm::vec4{1.0f, 0.0f, 0.0f, 1.0f}
     });
 
     objects.push_back({
@@ -43,7 +37,8 @@ World::World()  {
     },
     .mesh = &quadMesh,
     .shader = &shader,
-    .texture = &texture
+    .texture = &texture,
+    .color = glm::vec4{0.8f, 0.8f, 0.0f, 1.0f}
 });
 
 }
@@ -54,19 +49,19 @@ World::~World() {
 
 void World::update(const glm::mat4& view, const glm::mat4& projection) {
 
-    shader.use();
-    texture.bind(0);
-
-    glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-
     for (auto& obj : objects) {
+        obj.texture->bind(0);
+        obj.shader->use();
+        obj.shader->setInt("uTexture",0);
+        obj.shader->setVec4("uColor",obj.color);
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, obj.transform.position);
         glm::mat4 quatMat = glm::mat4_cast(glm::quat(glm::radians(obj.transform.rotation)));
         model *= quatMat;
         model = glm::scale(model, obj.transform.scale);
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        obj.shader->setMat4("uModel",model);
+        obj.shader->setMat4("uView",view);
+        obj.shader->setMat4("uProjection",projection);
         obj.mesh->draw();
     }
 

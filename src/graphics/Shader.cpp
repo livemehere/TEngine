@@ -2,6 +2,7 @@
 
 #include <format>
 #include <stdexcept>
+#include <glm/gtc/type_ptr.inl>
 
 #include "ShaderStage.h"
 
@@ -33,5 +34,20 @@ Shader::Shader(const std::string &vsPath, const std::string &fsPath) {
     glDetachShader(id_, vs.getId());
     glDetachShader(id_, fs.getId());
 
+}
+
+void Shader::setInt(const char *name, const int value) const {
+    const GLint loc = glGetUniformLocation(id_, name);
+    glUniform1i(loc, value);
+}
+
+void Shader::setVec4(const char *name, glm::vec4 value) const {
+    const GLint loc = glGetUniformLocation(id_, name);
+    glUniform4fv(loc, 1, glm::value_ptr(value));
+}
+
+void Shader::setMat4(const char *name, glm::mat4 value) const {
+    const GLint loc = glGetUniformLocation(id_, name);
+    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 
