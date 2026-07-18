@@ -24,8 +24,7 @@ World::World()  {
             .scale = {1.0f,1.0f,1.0f},
         },
         .mesh = &quadMesh,
-        .material = &material,
-        .color = glm::vec4{0.6f, 0.8f, 0.0f, 1.0f}
+        .material = &white,
     });
 
     objects.push_back({
@@ -35,8 +34,7 @@ World::World()  {
         .scale = {1.0f,1.0f,1.0f},
     },
     .mesh = &quadMesh,
-    .material = &material,
-    .color = glm::vec4{0.8f, 0.8f, 0.0f, 1.0f}
+    .material = &green,
 });
 
 }

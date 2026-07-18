@@ -8,6 +8,5 @@ struct RenderObject {
     Transform transform;
     Mesh* mesh;
     Material* material;
-    glm::vec4 color;
 };
 

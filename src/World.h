@@ -32,7 +32,8 @@ private:
 
     Shader shader{"shaders/basic.vert", "shaders/basic.frag"};
     Texture2D texture{1,1,pixels};
-    BasicMaterial material{shader,texture};
+    BasicMaterial white{shader,texture};
+    BasicMaterial green{shader,texture, {0.0f, 0.9f, 0.0f,1.0f}};
 
     std::vector<RenderObject> objects;
 
