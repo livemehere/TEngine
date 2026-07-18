@@ -12,9 +12,9 @@ World::World(ResourceManager& resourceManager) : resourceManager_(resourceManage
 
     // Back-face culling (enable for one-sided meshes)
     // NOTE: keep disabled when both sides of a surface must be visible.
-    // glEnable(GL_CULL_FACE);
-    // glFrontFace(GL_CCW);
-    // glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
 
     /* setup objects */
     meshObjects.push_back({
