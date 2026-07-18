@@ -19,9 +19,9 @@ namespace PrimitiveMeshes {
     MeshData createCube() {
         std::vector<GLuint> indices;
 
-        const int faceCount = 2;
-        const int indexGroupCount = 4;
-        for (int i = 0; i < faceCount * indexGroupCount; i += indexGroupCount) {
+        const int faceCount = 3;
+        const int indexGap = 4;
+        for (int i = 0; i < faceCount * indexGap; i += indexGap) {
            indices.push_back(i);
            indices.push_back(i + 1);
            indices.push_back(i + 2);
@@ -43,7 +43,12 @@ namespace PrimitiveMeshes {
                 {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
                 {{ -0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // TL
                 {{ 0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // TR
-            },
+                // bottom
+                {{ -0.5f, -0.5f, -0.5f}, {0.0f,0.0f}}, // BL
+                {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
+                {{ -0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // TL
+                {{ 0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // TR
+},
             .indices = std::move(indices)
         };
     }

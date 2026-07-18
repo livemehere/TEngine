@@ -22,7 +22,8 @@ int main() {
         ResourceManager resourceManager;
         Input input{win};
         Camera camera;
-        camera.transform.position.z = 5.0f;
+        camera.transform.position.x = 3.0f;
+        camera.transform.position.z = 3.0f;
         camera.transform.position.y = 3.0f;
         camera.lookAt(glm::vec3(0.0f));
         // camera.projection = OrthoGraphicProjection{};
