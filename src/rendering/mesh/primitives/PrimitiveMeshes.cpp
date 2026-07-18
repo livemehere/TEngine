@@ -19,8 +19,10 @@ namespace PrimitiveMeshes {
     MeshData createCube() {
         std::vector<GLuint> indices;
 
-        const int faceCount = 3;
+        const int faceCount = 6;
         const int indexGap = 4;
+
+        indices.reserve(faceCount * 6);
         for (int i = 0; i < faceCount * indexGap; i += indexGap) {
            indices.push_back(i);
            indices.push_back(i + 1);
@@ -39,15 +41,30 @@ namespace PrimitiveMeshes {
                 {{ -0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}}, // TL
                 {{ 0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}, // TR
                 // back
-                {{ -0.5f, -0.5f, -0.5f}, {0.0f,0.0f}}, // BL
-                {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
-                {{ -0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // TL
-                {{ 0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // TR
+                {{ 0.5f, -0.5f, -0.5f}, {0.0f,0.0f}}, // BL
+                {{ -0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
+                {{ 0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // TL
+                {{ -0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // TR
                 // bottom
                 {{ -0.5f, -0.5f, -0.5f}, {0.0f,0.0f}}, // BL
                 {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
                 {{ -0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // TL
                 {{ 0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // TR
+                // top
+                {{ -0.5f, 0.5f, 0.5f}, {0.0f,0.0f}}, // BL
+                {{ 0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // BR
+                {{ -0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // TL
+                {{ 0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // TR
+                // left
+                {{ -0.5f, -0.5f, -0.5f}, {0.0f,0.0f}}, // BL
+                {{ -0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}}, // BR
+                {{ -0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // TL
+                {{ -0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}, // TL
+                // right
+               {{ 0.5f, -0.5f, 0.5f}, {0.0f,0.0f}}, // BL
+               {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}}, // BR
+               {{ 0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}}, // TL
+               {{ 0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // TR               {{ -0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}, // TR
 },
             .indices = std::move(indices)
         };

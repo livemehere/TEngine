@@ -71,7 +71,9 @@ void Window::create_window(int w, int h, const std::string &title, bool vsync) {
     }
 
     glfwMakeContextCurrent(window);
-    gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
+    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
+        throw std::runtime_error("Failed to initialize GLAD");
+    }
     glfwSwapInterval(vsync ? 1 : 0);
 
     // imgui
@@ -80,6 +82,7 @@ void Window::create_window(int w, int h, const std::string &title, bool vsync) {
     // OpenGL setup
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
 
 }
 
@@ -95,7 +98,7 @@ void Window::pollEvents() {
     glfwGetFramebufferSize(window, &fb_w, &fb_h);
     glViewport(0,0, fb_w, fb_h);
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwPollEvents();
     imgui_new_frame();
 }

@@ -14,7 +14,7 @@ World::World(ResourceManager& resourceManager) : resourceManager_(resourceManage
     // NOTE: if two size object needed, turn of culling
     // glEnable(GL_CULL_FACE);
     // glFrontFace(GL_CCW);
-    // glCullFace(GL_BACK);
+    // glCullFace(GL_FRONT);
 
     /* setup objects */
     meshObjects.push_back({
