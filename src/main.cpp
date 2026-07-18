@@ -26,26 +26,30 @@ int main() {
 
         float lastFrameTime = static_cast<float>(glfwGetTime());
         while (!win.should_close()) {
-            win.before_update();
 
+            /* currentFrame info */
             float currentFrameTime = static_cast<float>(glfwGetTime());
             float dt = (currentFrameTime - lastFrameTime);
             // dt = std::min(dt, 0.1f); // prevent spark when replay after paused(debugging..)
             lastFrameTime = currentFrameTime;
-
             const WindowSize& size = win.get_size();
             const MouseState& mouseState = input.getMouseState();
-
+            RenderContext ctx{
+                camera.getViewMatrix(),
+                camera.getProjectionMatrix(size)
+            };
 
             /* update */
+            win.pollEvents();
             input.update();
             cameraController.update(camera, input, dt);
             camera.update();
-            world.update(camera.getViewMatrix(), camera.getProjectionMatrix(size));
+            world.update(dt);
 
             /* render */
-            world.render();
+            world.render(ctx);
 
+            /* render debug */
             ImGui::SetNextWindowSize(ImVec2(250,150), ImGuiCond_Once);
             ImGui::Begin("Debug");
             ImGui::Text("FPS %.1f FPS", ImGui::GetIO().Framerate);
@@ -77,8 +81,6 @@ int main() {
             }
 
             ImGui::End();
-
-
             win.update();
         }
 

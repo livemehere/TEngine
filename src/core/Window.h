@@ -28,7 +28,7 @@ public:
     void create_window(int w, int h, const std::string& title, bool vsync = true);
 
     bool should_close() const;
-    void before_update();
+    void pollEvents();
     void update() const ;
 
     WindowSize get_size() const;

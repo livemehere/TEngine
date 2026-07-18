@@ -42,6 +42,6 @@ public:
     World();
     ~World() = default;
 
-    void update(const glm::mat4& view, const glm::mat4& projection);
-    void render();
+    void update(float dt);
+    void render(const RenderContext& context);
 };

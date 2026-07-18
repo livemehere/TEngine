@@ -39,11 +39,14 @@ World::World()  {
 
 }
 
-void World::update(const glm::mat4& view, const glm::mat4& projection) {
+void World::update(float dt) {
     for (auto& obj : meshObjects) {
-        meshRenderer.render({view, projection}, obj);
+        // update game logic
     }
 }
 
-void World::render() {
+void World::render(const RenderContext& context) {
+    for (auto& obj : meshObjects) {
+        meshRenderer.render(context, obj);
+    }
 }

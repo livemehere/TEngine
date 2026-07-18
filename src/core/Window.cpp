@@ -87,7 +87,9 @@ bool Window::should_close() const {
     return glfwWindowShouldClose(window);
 }
 
-void Window::before_update() {
+void Window::pollEvents() {
+    // TODO: move to renderer.beginFrame()
+    // and beginFrame control chunk, batching.., renderer.endFrame() will flush it.
     // update window size
     glfwGetWindowSize(window, &w, &h);
     glfwGetFramebufferSize(window, &fb_w, &fb_h);
