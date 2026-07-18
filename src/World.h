@@ -5,10 +5,10 @@
 
 #include <glm/glm.hpp>
 
-#include "renderer/Mesh.h"
+#include "meshRenderer/Mesh.h"
 #include "graphics/Shader.h"
 #include "graphics/Texture2D.h"
-#include "renderer/RenderObject.h"
+#include "meshRenderer/RenderObject.h"
 
 constexpr std::array<uint8_t,4> pixels = {
     255,255,255,255,

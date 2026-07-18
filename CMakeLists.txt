@@ -30,10 +30,10 @@ add_executable(Elementals src/main.cpp
         src/graphics/Shader.h
         src/graphics/Texture2D.cpp
         src/graphics/Texture2D.h
-        src/renderer/Mesh.cpp
-        src/renderer/Mesh.h
-        src/renderer/RenderObject.h
-        src/renderer/Transform.h
+        src/meshRenderer/Mesh.cpp
+        src/meshRenderer/Mesh.h
+        src/meshRenderer/RenderObject.h
+        src/meshRenderer/Transform.h
 )
 
 target_link_libraries(Elementals PRIVATE
