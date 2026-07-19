@@ -3,10 +3,13 @@
 void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
     auto& mouseState = input.getMouseState();
     // cursor lock control
-    if (mouseState.leftBtnPressed) {
+    if (mouseState.rightBtnDown) {
         input.setCursorLockState(true);
-        return; // return current frame, prevent spark
-    } else if (input.isKeyDown(Key::ESC)) {
+        // view rotation
+        camera.transform.rotation.y -= mouseState.deltaX * hSensitivity;
+        camera.transform.rotation.x -= mouseState.deltaY * vSensitivity;
+        camera.transform.rotation.x = glm::clamp(camera.transform.rotation.x, -89.0f, 89.0f);
+    } else {
         input.setCursorLockState(false);
     }
 
@@ -44,10 +47,7 @@ void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
     }
 
 
-    // view rotation
-    camera.transform.rotation.y -= mouseState.deltaX * hSensitivity;
-    camera.transform.rotation.x -= mouseState.deltaY * vSensitivity;
-    camera.transform.rotation.x = glm::clamp(camera.transform.rotation.x, -89.0f, 89.0f);
+
 
 
 }
