@@ -66,12 +66,12 @@ int main() {
        });
 
         // light
-        scene.pointLights.push_back({
-            .position = {1.0f, 1.0f,0.0f},
-            .color = {1.0f,1.0f,1.0f},
-            .intensity = 1.0f,
-            .range = 10.0f
-        });
+        // scene.pointLights.push_back({
+        //     .position = {1.0f, 1.0f,0.0f},
+        //     .color = {1.0f,1.0f,1.0f},
+        //     .intensity = 1.0f,
+        //     .range = 10.0f
+        // });
         /* ---------- */
 
         glm::vec3 lightPos(1.0f, 1.0f, 0.0f);
@@ -93,7 +93,7 @@ int main() {
             cameraController.update(scene.camera, input, dt);
 
             scene.update(dt);
-            renderer.beginFrame(scene.camera, size);
+            renderer.beginFrame(scene, size);
             renderer.render(scene);
             renderer.endFrame();
 
@@ -130,7 +130,7 @@ int main() {
             }
 
             ImGui::SeparatorText("Light");
-            ImGui::DragFloat3("light.position", glm::value_ptr(lightPos), 0.1f);
+            ImGui::DragFloat("ambientLight.intensity", &scene.ambientLight.intensity, 0.1f);
 
             ImGui::End();
             win.update();

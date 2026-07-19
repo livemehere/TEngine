@@ -32,28 +32,40 @@ Renderer::Renderer() {
    glBindBuffer(GL_UNIFORM_BUFFER,0);
 }
 
-void Renderer::updateCameraBuffer(Camera &camera, const WindowSize& windowSize) {
+void Renderer::updateCameraBuffer(Scene& scene, const WindowSize& windowSize) {
    glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
    const GPUCameraData data{
-      .viewMatrix = camera.getViewMatrix(),
-      .projectionMatrix = camera.getProjectionMatrix(windowSize),
-      .position = glm::vec4(camera.transform.position, 1.0f)
+      .viewMatrix = scene.camera.getViewMatrix(),
+      .projectionMatrix = scene.camera.getProjectionMatrix(windowSize),
+      .position = glm::vec4(scene.camera.transform.position, 1.0f)
    };
    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUCameraData), &data);
    glBindBuffer(GL_UNIFORM_BUFFER,0);
 }
 
-void Renderer::updateLightsBuffer() {
+void Renderer::updateLightsBuffer(Scene& scene) {
    glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO);
-   const GPULightingData data{
-      // TODO:
-   };
+   GPULightingData data{};
+   data.ambientLightColorIntensity = glm::vec4(scene.ambientLight.color, scene.ambientLight.intensity);
+   data.lightCounts = glm::ivec4(
+      0,
+      static_cast<int>(scene.pointLights.size()),
+      0,
+      0
+   );
+   for (int i=0; i<scene.pointLights.size(); i++) {
+      const PointLight& source = scene.pointLights[i];
+      data.pointLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
+      data.pointLights[i].positionRange = glm::vec4(source.position, source.range);
+   }
+
    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPULightingData), &data);
    glBindBuffer(GL_UNIFORM_BUFFER,0);
 }
 
-void Renderer::beginFrame(Camera& camera, const WindowSize& windowSize) {
-   updateCameraBuffer(camera, windowSize);
+void Renderer::beginFrame(Scene& scene, const WindowSize& windowSize) {
+   updateCameraBuffer(scene, windowSize);
+   updateLightsBuffer(scene);
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
