@@ -1,10 +1,10 @@
 #version 410 core
 
 layout (std140) uniform CameraData {
-    mat4 uView;
-    mat4 uProjection;
-    vec4 uCameraPosition;
-};
+    mat4 view;
+    mat4 projection;
+    vec4 position;
+} camera;
 
 in vec2 vTexCoord;
 in vec3 vNormal;

@@ -1,10 +1,10 @@
 #version 410 core
 
 layout (std140) uniform CameraData {
-    mat4 uView;
-    mat4 uProjection;
-    vec4 uCameraPosition;
-};
+    mat4 view;
+    mat4 projection;
+    vec4 position;
+} camera;
 
 in vec2 vTexCoord;
 in vec3 vNormal;
@@ -27,7 +27,7 @@ void main()
 
     // Phong Light
     vec3 lightDir = normalize(uLightPos - vPos);
-    vec3 viewDir = normalize(uCameraPosition.xyz - vPos);
+    vec3 viewDir = normalize(camera.position.xyz - vPos);
     vec3 reflectDir = reflect(-lightDir, normal);
 
     vec4 ambient = vec4(lightColor * lightIntensity, 1.0);
