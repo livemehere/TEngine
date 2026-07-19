@@ -7,3 +7,5 @@
 ![img.png](docs/2.mesh-wire.png)
 
 ![img.png](docs/3.mesh-normal.png)
+
+![phong-light.gif](docs/phong-light.gif)
