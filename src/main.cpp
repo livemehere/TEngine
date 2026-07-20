@@ -9,7 +9,8 @@
 #include "camera/FreeLookCameraController.h"
 #include "graphics/Texture2D.h"
 #include "rendering/Renderer.h"
-#include "rendering/mesh/materials/BasicMaterial.h"
+#include "rendering/mesh/materials/LitMaterial.h"
+#include "rendering/mesh/materials/UnlitMaterial.h"
 #include "resources/ResourceManager.h"
 
 
@@ -36,12 +37,19 @@ int main() {
         std::array<uint8_t,4> pixels = {
             255,255,255,255,
         };
-        Shader basicShader{"shaders/basic.vert", "shaders/basic.frag"};
-        Shader lightShader{"shaders/basic.vert", "shaders/light.frag"};
         Texture2D whiteTexture{1,1,pixels};
-        BasicMaterial lightMaterial{lightShader,whiteTexture};
-        BasicMaterial green{basicShader,whiteTexture, {0.2f, 0.5f, 0.1f,1.0f}};
-        BasicMaterial orange{basicShader,whiteTexture, {1.0f, 0.5f, 0.3f,1.0f}};
+
+        /* lit */
+        Shader litShader{"shaders/lit.vert", "shaders/lit.frag"};
+        LitMaterial green{litShader,whiteTexture, {0.2f, 0.5f, 0.1f,1.0f}};
+        LitMaterial orange{litShader,whiteTexture, {1.0f, 0.5f, 0.3f,1.0f}};
+        /* all shader global */
+        litShader.bindUniformBlock("CameraData", UniformBinding::Camera);
+        litShader.bindUniformBlock("LightsData", UniformBinding::Lights);
+
+        /* unlit */
+        Shader unlitShader{"shaders/lit.vert", "shaders/unlit.frag"};
+        UnlitMaterial unlitMaterial{unlitShader,whiteTexture};
 
         // ground
         scene.meshObjects.push_back({
@@ -62,7 +70,7 @@ int main() {
                .scale = {1.0f,1.0f,1.0f},
            },
            .mesh = &resourceManager.getCubeMesh(),
-           .material = &orange,
+           .material = &unlitMaterial,
        });
 
         // light

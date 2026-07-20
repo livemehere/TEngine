@@ -29,8 +29,10 @@ in vec2 vTexCoord;
 in vec3 vNormal;
 in vec3 vPos;
 
-uniform sampler2D uTexture;
-uniform vec4 uColor;
+uniform sampler2D uAlbedoTexture;
+uniform vec4 uBaseColor;
+uniform float uShiniess = 32.0;
+uniform float uSpecularStrength = 1.0;
 
 out vec4 FragColor;
 
@@ -44,6 +46,9 @@ vec3 calculateAmbient(vec3 albedo)
 vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDir)
 {
     /** diffuse */
+    vec3 color = light.colorIntensity.rgb;
+    float intensity = light.colorIntensity.w;
+
     vec3 position = light.positionRange.rgb;
     float range = light.positionRange.w;
     vec3 toLight = position - vPos;
@@ -54,31 +59,26 @@ vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDi
     }
 
     vec3 lightDir = toLight / max(distance, 0.0001);
-    float diff = max(dot(normal, lightDir),0);
-    float attenuation = clamp(1.0 - distance / range, 0.0, 1.0);
-    attenuation *=attenuation;
+    float diffuseFactor = max(dot(normal, lightDir), 0);
+    float distanceNormal = distance / range;
+    float attenuation = 1.0 - smoothstep(0.0, 1.0, distanceNormal);
 
-    vec3 color = light.colorIntensity.rgb;
-    float intensity = light.colorIntensity.w;
-
-    vec3 diffuse = albedo * color * intensity * diff * attenuation;
+    vec3 diffuse = albedo * color * intensity * diffuseFactor * attenuation;
 
     /** specular */
-    float shiniess = 32.0;
-    float specularStrength = 1.0;
     vec3 reflectDir = reflect(-lightDir, normal);
     float specularAngle = max(dot(viewDir, reflectDir),0.0);
-    float specularFactor = pow(specularAngle, shiniess);
+    float specularFactor = pow(specularAngle, uShiniess);
 
-    vec3 specular = color * intensity * attenuation * specularFactor * specularStrength;
+    vec3 specular = color * intensity * attenuation * specularFactor * uSpecularStrength;
 
     return diffuse + specular;
 }
 
 void main()
 {
-    vec4 textureColor = texture(uTexture, vTexCoord);
-    vec3 albedo = textureColor.rgb * uColor.rgb;
+    vec4 textureColor = texture(uAlbedoTexture, vTexCoord);
+    vec3 albedo = textureColor.rgb * uBaseColor.rgb;
 
     /** ambient light */
     vec3 result = calculateAmbient(albedo);
@@ -99,7 +99,7 @@ void main()
 //    float spec = pow(max(dot(viewDir, reflectDir),0.0),32);
 //    vec4 specular = vec4(specularIntensity * spec * lights.ambientLightColorIntensity.rgb, 1.0);
 
-    float alpha = textureColor.a * uColor.a;
+    float alpha = textureColor.a * uBaseColor.a;
     FragColor = vec4(result, alpha);
     /** for normal direction debug */
 //     FragColor = vec4(vNormal * 0.5 + 0.5, 0.8);

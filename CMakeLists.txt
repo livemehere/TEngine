@@ -35,8 +35,8 @@ add_executable(TEngine src/main.cpp
         src/rendering/mesh/MeshRenderObject.h
         src/rendering/Transform.h
         src/rendering/mesh/materials/Material.h
-        src/rendering/mesh/materials/BasicMaterial.cpp
-        src/rendering/mesh/materials/BasicMaterial.h
+        src/rendering/mesh/materials/LitMaterial.cpp
+        src/rendering/mesh/materials/LitMaterial.h
         src/rendering/mesh/MeshRenderer.cpp
         src/rendering/mesh/MeshRenderer.h
         src/resources/ResourceManager.cpp
@@ -48,6 +48,8 @@ add_executable(TEngine src/main.cpp
         src/rendering/Lights.h
         src/rendering/Renderer.cpp
         src/rendering/Renderer.h
+        src/rendering/mesh/materials/UnlitMaterial.cpp
+        src/rendering/mesh/materials/UnlitMaterial.h
 )
 
 target_link_libraries(TEngine PRIVATE
