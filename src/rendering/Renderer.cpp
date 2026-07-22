@@ -51,11 +51,12 @@ void Renderer::updateLightsBuffer(Scene& scene) {
 
    const auto directionalLightCount = static_cast<size_t>(std::min(scene.directionalLights.size(),MAX_DIRECTIONAL_LIGHTS));
    const auto pointLightCount = static_cast<size_t>(std::min(scene.pointLights.size(),MAX_POINT_LIGHTS));
+   const auto spotLightCount = static_cast<size_t>(std::min(scene.spotLights.size(),MAX_SPOT_LIGHTS));
 
    data.lightCounts = glm::ivec4(
       directionalLightCount,
       pointLightCount,
-      0,
+      spotLightCount,
       0
    );
 
@@ -69,6 +70,19 @@ void Renderer::updateLightsBuffer(Scene& scene) {
       const PointLight& source = scene.pointLights[i];
       data.pointLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
       data.pointLights[i].positionRange = glm::vec4(source.position, source.range);
+   }
+
+   for (int i=0; i<spotLightCount; i++) {
+      const SpotLight& source = scene.spotLights[i];
+      data.spotLights[i].direction = glm::vec4(source.direction, 0.0f);
+      data.spotLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
+      data.spotLights[i].positionRange = glm::vec4(source.position, source.range);
+      data.spotLights[i].coneAngles = glm::vec4(
+         std::cos(glm::radians(source.innerAngle)),
+         std::cos(glm::radians(source.outerAngle)),
+         0.0f,
+         0.0f
+      );
    }
 
    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPULightingData), &data);

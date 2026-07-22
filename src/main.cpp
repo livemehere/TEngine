@@ -87,7 +87,15 @@ int main() {
         scene.directionalLights.push_back({
             .direction = glm::vec3{0.0f, -1.0f, 0.0f},
             .color = glm::vec3{1.0f},
-           .intensity = 0.1f
+            .intensity = 0.1f
+        });
+
+        scene.spotLights.push_back({
+            .direction = glm::vec3{0.0f, -1.0f, 0.0f},
+            .position = glm::vec3{0.0f, 4.0f, 0.0},
+            .range = 10.0f,
+            .color = glm::vec3{1.0f,1.0f, 0.0f},
+            .intensity = 10.0f,
         });
 
        //  scene.pointLights.push_back({
@@ -168,6 +176,14 @@ int main() {
             ImGui::SeparatorText("Point Light");
             ImGui::DragFloat("pointLight.intensity", &scene.pointLights[0].intensity, 0.1f);
             ImGui::DragFloat3("pointLight.position", glm::value_ptr(scene.pointLights[0].position), 0.1f);
+
+            ImGui::SeparatorText("Spot Light");
+            ImGui::DragFloat("spotLight.intensity", &scene.spotLights[0].intensity, 0.1f);
+            ImGui::DragFloat("spotLight.range", &scene.spotLights[0].range, 0.1f);
+            ImGui::DragFloat("spotLight.innerAngle", &scene.spotLights[0].innerAngle, 0.1f);
+            ImGui::DragFloat("spotLight.outerAngle", &scene.spotLights[0].outerAngle, 0.1f);
+            ImGui::DragFloat3("spotLight.position", glm::value_ptr(scene.spotLights[0].position), 0.1f);
+            ImGui::DragFloat3("spotLight.color", glm::value_ptr(scene.spotLights[0].color), 0.1f);
 
             ImGui::SeparatorText("LitMaterial");
             ImGui::DragFloat("shininess", &boxMaterial.shininess, 0.1f);
