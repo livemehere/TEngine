@@ -28,3 +28,7 @@ The goal is to accelerate the journey from idea to playable experience while giv
 ### Model
 
 <img width="916" height="565" alt="image" src="https://github.com/user-attachments/assets/3443a4be-5766-45f8-a4f5-e7087992733d" />
+
+apply specular map
+
+<img width="818" height="529" alt="image" src="https://github.com/user-attachments/assets/d6996b71-17e4-47e1-a5e1-01ac3010b344" />
