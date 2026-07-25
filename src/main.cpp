@@ -21,7 +21,7 @@ int main() {
     try {
         Window win;
         win.init();
-        win.create_window(1280, 720, "T-Engine Sandbox", true);
+        win.create_window(1920, 1080, "T-Engine Sandbox", true);
 
         Input input{win};
         ResourceManager resourceManager;
@@ -100,7 +100,7 @@ int main() {
         scene.ambientLight.intensity = 0.1f;
         // light
         scene.pointLights.push_back({
-            .position = {1.5f, 1.0f,0.0f},
+            .position = {0.0f, 1.5f,1.5f},
             .range = 5.0f,
             .color = {1.0f,1.0f,1.0f},
             .intensity = 1.0f,
@@ -112,13 +112,13 @@ int main() {
             .intensity = 0.1f
         });
 
-        scene.spotLights.push_back({
-            .direction = glm::vec3{0.0f, -1.0f, 0.0f},
-            .position = glm::vec3{0.0f, 4.0f, 0.0},
-            .range = 5.0f,
-            .color = glm::vec3{0.8f,0.4f, 0.4f},
-            .intensity = 10.0f,
-        });
+        // scene.spotLights.push_back({
+        //     .direction = glm::vec3{0.0f, -1.0f, 0.0f},
+        //     .position = glm::vec3{0.0f, 4.0f, 0.0},
+        //     .range = 5.0f,
+        //     .color = glm::vec3{0.8f,0.4f, 0.4f},
+        //     .intensity = 10.0f,
+        // });
 
        //  scene.pointLights.push_back({
        //      .position = {-1.5f, 1.0f,0.0f},
@@ -191,21 +191,27 @@ int main() {
             ImGui::SeparatorText("Ambient Light");
             ImGui::DragFloat("ambientLight.intensity", &scene.ambientLight.intensity, 0.1f);
 
-            ImGui::SeparatorText("Directional Light");
-            ImGui::DragFloat3("directionalLight.direction", glm::value_ptr(scene.directionalLights[0].direction), 0.1f);
-            ImGui::DragFloat("directionalLight.intensity", &scene.directionalLights[0].intensity, 0.1f);
+            if (!scene.directionalLights.empty()) {
+                ImGui::SeparatorText("Directional Light");
+                ImGui::DragFloat3("directionalLight.direction", glm::value_ptr(scene.directionalLights[0].direction), 0.1f);
+                ImGui::DragFloat("directionalLight.intensity", &scene.directionalLights[0].intensity, 0.1f);
+            }
 
-            ImGui::SeparatorText("Point Light");
-            ImGui::DragFloat("pointLight.intensity", &scene.pointLights[0].intensity, 0.1f);
-            ImGui::DragFloat3("pointLight.position", glm::value_ptr(scene.pointLights[0].position), 0.1f);
+            if (!scene.pointLights.empty()) {
+                ImGui::SeparatorText("Point Light");
+                ImGui::DragFloat("pointLight.intensity", &scene.pointLights[0].intensity, 0.1f);
+                ImGui::DragFloat3("pointLight.position", glm::value_ptr(scene.pointLights[0].position), 0.1f);
+            }
 
-            ImGui::SeparatorText("Spot Light");
-            ImGui::DragFloat("spotLight.intensity", &scene.spotLights[0].intensity, 0.1f);
-            ImGui::DragFloat("spotLight.range", &scene.spotLights[0].range, 0.1f);
-            ImGui::DragFloat("spotLight.innerAngle", &scene.spotLights[0].innerAngle, 0.1f);
-            ImGui::DragFloat("spotLight.outerAngle", &scene.spotLights[0].outerAngle, 0.1f);
-            ImGui::DragFloat3("spotLight.position", glm::value_ptr(scene.spotLights[0].position), 0.1f);
-            ImGui::DragFloat3("spotLight.color", glm::value_ptr(scene.spotLights[0].color), 0.1f);
+            if (!scene.spotLights.empty()) {
+                ImGui::SeparatorText("Spot Light");
+                ImGui::DragFloat("spotLight.intensity", &scene.spotLights[0].intensity, 0.1f);
+                ImGui::DragFloat("spotLight.range", &scene.spotLights[0].range, 0.1f);
+                ImGui::DragFloat("spotLight.innerAngle", &scene.spotLights[0].innerAngle, 0.1f);
+                ImGui::DragFloat("spotLight.outerAngle", &scene.spotLights[0].outerAngle, 0.1f);
+                ImGui::DragFloat3("spotLight.position", glm::value_ptr(scene.spotLights[0].position), 0.1f);
+                ImGui::DragFloat3("spotLight.color", glm::value_ptr(scene.spotLights[0].color), 0.1f);
+            }
 
             ImGui::SeparatorText("LitMaterial");
             ImGui::DragFloat("shininess", &boxMaterial.shininess, 0.1f);
