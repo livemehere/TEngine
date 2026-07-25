@@ -36,19 +36,21 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
     std::vector<GLuint> indices;
 
     /* vertex */
-    for (int i=0; i<mesh->mNumVertices; i++) {
+    for (size_t i=0; i<mesh->mNumVertices; i++) {
         glm::vec3 position;
         position.x = mesh->mVertices[i].x;
         position.y = mesh->mVertices[i].y;
         position.z = mesh->mVertices[i].z;
 
-        glm::vec3 normal;
-        normal.x = mesh->mNormals[i].x;
-        normal.y = mesh->mNormals[i].y;
-        normal.z = mesh->mNormals[i].z;
+        glm::vec3 normal{0.0f, 1.0f, 0.0f};
+        if (mesh->HasNormals()) {
+            normal.x = mesh->mNormals[i].x;
+            normal.y = mesh->mNormals[i].y;
+            normal.z = mesh->mNormals[i].z;
+        }
 
         glm::vec2 texCoord{0.0f,0.0f};
-        if (mesh->mTextureCoords[0]) {
+        if (mesh->HasTextureCoords(0)) {
             texCoord.x = mesh->mTextureCoords[0][i].x;
             texCoord.y = mesh->mTextureCoords[0][i].y;
         }
@@ -57,9 +59,9 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
     }
 
     /* indices */
-    for (int i=0; i<mesh->mNumFaces; i++) {
-        aiFace face = mesh->mFaces[i];
-        for (int j=0; j<face.mNumIndices;j++) {
+    for (size_t i=0; i<mesh->mNumFaces; i++) {
+        const aiFace& face = mesh->mFaces[i];
+        for (size_t j=0; j<face.mNumIndices;j++) {
             indices.push_back(face.mIndices[j]);
         }
     }
