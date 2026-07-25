@@ -32,3 +32,7 @@ The goal is to accelerate the journey from idea to playable experience while giv
 apply specular map
 
 <img width="818" height="529" alt="image" src="https://github.com/user-attachments/assets/d6996b71-17e4-47e1-a5e1-01ac3010b344" />
+
+stencil
+
+<img width="1183" height="841" alt="image" src="https://github.com/user-attachments/assets/10572083-b3a1-4aac-85b5-7a4332b7beb4" />
