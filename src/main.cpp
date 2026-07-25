@@ -61,9 +61,9 @@ int main() {
         for (auto& mesh : model.meshes) {
             scene.meshObjects.push_back({
                 .transform = {
-                    .position = {0.0f,0.0f,0.0f},
+                    .position = {0.0f,1.0f,0.0f},
                     .rotation = {0.0f,0.0f,0.0f},
-                    .scale = {5.0f,5.0f,5.0f},
+                    .scale = {0.5f,0.5f,0.5f},
                 },
                 .mesh = mesh.get(),
                 .material = &white,
@@ -83,15 +83,15 @@ int main() {
         });
 
         // cube
-        scene.meshObjects.push_back({
-           .transform = {
-               .position = {0.0f,1.1f,0.0f},
-               .rotation = {0.0f,0.0f,0.0f},
-               .scale = {1.0f,1.0f,1.0f},
-           },
-           .mesh = &resourceManager.getCubeMesh(),
-           .material = &boxMaterial,
-       });
+       //  scene.meshObjects.push_back({
+       //     .transform = {
+       //         .position = {0.0f,1.0f,1.5f},
+       //         .rotation = {0.0f,0.0f,0.0f},
+       //         .scale = {1.0f,1.0f,1.0f},
+       //     },
+       //     .mesh = &resourceManager.getCubeMesh(),
+       //     .material = &boxMaterial,
+       // });
 
         scene.ambientLight.intensity = 0.1f;
         // light
@@ -111,8 +111,8 @@ int main() {
         scene.spotLights.push_back({
             .direction = glm::vec3{0.0f, -1.0f, 0.0f},
             .position = glm::vec3{0.0f, 4.0f, 0.0},
-            .range = 10.0f,
-            .color = glm::vec3{1.0f,1.0f, 0.0f},
+            .range = 5.0f,
+            .color = glm::vec3{0.8f,0.4f, 0.4f},
             .intensity = 10.0f,
         });
 
