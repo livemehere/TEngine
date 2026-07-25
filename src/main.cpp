@@ -57,6 +57,10 @@ int main() {
 
         /* model */
         Model model(utils::asset_path("models/backpack/backpack.obj"));
+        Texture2D modelTexture("models/backpack/diffuse.jpg");
+        Texture2D modelSpecularMap("models/backpack/specular.jpg");
+        LitMaterial modelMaterial{litShader, modelTexture};
+        modelMaterial.specularTexture = &modelSpecularMap;
 
         for (auto& mesh : model.meshes) {
             scene.meshObjects.push_back({
@@ -66,7 +70,7 @@ int main() {
                     .scale = {0.5f,0.5f,0.5f},
                 },
                 .mesh = mesh.get(),
-                .material = &white,
+                .material = &modelMaterial,
             });
         }
 
