@@ -10,6 +10,7 @@ Model::Model(const std::string &path) {
     const aiScene *scene = importer.ReadFile(path.c_str(),
         aiProcess_Triangulate
         // | aiProcess_FlipUVs
+        // | aiProcess_PreTransformVertices
         );
     if (!scene) {
         throw std::runtime_error(std::format("Model load failed {}", path ));

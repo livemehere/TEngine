@@ -96,6 +96,8 @@ void Renderer::beginFrame(Scene& scene, const WindowSize& windowSize) {
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glEnable(GL_DEPTH_TEST);
+   // glDepthFunc(GL_LESS);
+   // glDepthMask(GL_TRUE);
    glEnable(GL_PROGRAM_POINT_SIZE);
 
    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // render as wireframe
