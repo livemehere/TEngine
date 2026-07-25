@@ -7,10 +7,12 @@
 #include "Scene.h"
 #include "camera/Camera.h"
 #include "camera/FreeLookCameraController.h"
+#include "core/utils.h"
 #include "graphics/Texture2D.h"
 #include "rendering/Renderer.h"
 #include "rendering/mesh/materials/LitMaterial.h"
 #include "rendering/mesh/materials/UnlitMaterial.h"
+#include "rendering/model/Model.h"
 #include "resources/ResourceManager.h"
 
 
@@ -52,6 +54,22 @@ int main() {
         /* unlit */
         Shader unlitShader{"shaders/basic.vert", "shaders/unlit.frag"};
         UnlitMaterial unlitMaterial{unlitShader,whiteTexture};
+
+        /* model */
+        Model model(utils::asset_path("models/backpack/backpack.obj"));
+
+        for (auto& mesh : model.meshes) {
+            scene.meshObjects.push_back({
+                .transform = {
+                    .position = {0.0f,0.0f,0.0f},
+                    .rotation = {0.0f,0.0f,0.0f},
+                    .scale = {5.0f,5.0f,5.0f},
+                },
+                .mesh = mesh.get(),
+                .material = &white,
+            });
+        }
+
 
         // ground
         scene.meshObjects.push_back({

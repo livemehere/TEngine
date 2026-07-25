@@ -50,6 +50,8 @@ add_executable(TEngine src/main.cpp
         src/rendering/mesh/materials/UnlitMaterial.cpp
         src/rendering/mesh/materials/UnlitMaterial.h
         src/thirdparty/stb_image.cpp
+        src/rendering/model/Model.cpp
+        src/rendering/model/Model.h
 )
 
 target_link_libraries(TEngine PRIVATE
