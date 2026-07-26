@@ -208,7 +208,7 @@ void main()
 //     FragColor = vec4(vNormal * 0.5 + 0.5, 0.8);
     /** depth-buffer */
     float distanceToCamera = length(camera.position.xyz - vPos);
-    float fogStart = 0.3;
+    float fogStart = 10.0;
     float fogEnd = 15.0;
     float fogAmount = smoothstep(fogStart, fogEnd, distanceToCamera);
 //    FragColor = vec4(vec3(fogAmount),1.0); // debug

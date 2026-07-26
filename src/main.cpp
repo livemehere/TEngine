@@ -49,6 +49,7 @@ int main() {
         litShader.bindUniformBlock("LightsData", UniformBinding::Lights);
         LitMaterial white{litShader,whiteTexture};
         LitMaterial boxMaterial{litShader,boxTexture, {0.2f,0.2f,0.2f,1.0f}};
+        LitMaterial windowMaterial{litShader,whiteTexture, {1.0f,0.0f,0.0f,0.3f}};
         boxMaterial.specularTexture = &boxSpecularMapTexture;
 
         /* unlit */
@@ -84,6 +85,17 @@ int main() {
             },
             .mesh = &resourceManager.getPlaneMesh(),
             .material = &white,
+        });
+
+        // window
+        scene.meshObjects.push_back({
+            .transform = {
+                .position = {5.0f,0.0f,0.0f},
+                .rotation = {0.0f,0.0f,0.0f},
+                .scale = {10.0f,10.0f,10.0f},
+            },
+            .mesh = &resourceManager.getPlaneMesh(),
+            .material = &windowMaterial,
         });
 
         // cube
