@@ -42,6 +42,7 @@ int main() {
         Texture2D whiteTexture{1,1,pixels};
         Texture2D boxTexture("textures/box.png");
         Texture2D boxSpecularMapTexture("textures/box_specular_map.png");
+        Texture2D grassTexture("textures/grass.png");
 
         /* lit */
         Shader litShader{"shaders/basic.vert", "shaders/lit.frag"};
@@ -90,12 +91,24 @@ int main() {
         // window
         scene.meshObjects.push_back({
             .transform = {
-                .position = {5.0f,0.0f,0.0f},
+                .position = {0.0f,0.0f,5.0f},
                 .rotation = {0.0f,0.0f,0.0f},
                 .scale = {10.0f,10.0f,10.0f},
             },
             .mesh = &resourceManager.getPlaneMesh(),
             .material = &windowMaterial,
+        });
+
+        // grass
+        UnlitMaterial grassMaterial{unlitShader, grassTexture};
+        scene.meshObjects.push_back({
+            .transform = {
+                .position = {0.0f,0.5f,2.0f},
+                .rotation = {0.0f,0.0f,0.0f},
+                .scale = {1.0f,1.0f,1.0f},
+            },
+            .mesh = &resourceManager.getPlaneMesh(),
+            .material = &grassMaterial,
         });
 
         // cube

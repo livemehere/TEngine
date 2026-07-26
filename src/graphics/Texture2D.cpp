@@ -41,6 +41,8 @@ Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels) {
 }
 
 Texture2D::Texture2D(const std::string& filepath) {
+    stbi_set_flip_vertically_on_load(true);
+
     auto path = std::filesystem::path(ASSET_ROOT) / filepath;
     int channels; // ignore
     unsigned char *data = stbi_load(path.c_str(), &width_, &height_, &channels, 4);
