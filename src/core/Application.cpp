@@ -18,13 +18,14 @@ void Application::run() {
         float dt = (currentFrameTime - lastFrameTime);
         // dt = std::min(dt, 0.1f); // prevent spark when replay after paused(debugging..)
         lastFrameTime = currentFrameTime;
-        const WindowSize& size = window.get_size();
-        const MouseState& mouseState = input.getMouseState();
 
         /* update */
         window.pollEvents();
         input.update();
         cameraController.update(scene.camera, input, dt);
+
+        const WindowSize& size = window.get_size();
+        const MouseState& mouseState = input.getMouseState();
 
         scene.update(dt);
         renderer.beginFrame(scene, size);
