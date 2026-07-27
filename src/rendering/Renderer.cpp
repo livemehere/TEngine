@@ -114,9 +114,11 @@ void Renderer::beginFrame(Scene& scene, const WindowSize& windowSize) {
 }
 
 void Renderer::render(const Scene &scene) {
-
-   for (auto& meshObject : scene.meshObjects) {
-      meshRenderer.render(meshObject);
+   for (const Entity&  entity : scene.getEntities()) {
+      // NOTE: temporary handle 1 component
+      if (entity.meshRenderer && entity.meshRenderer->mesh && entity.meshRenderer->material) {
+         meshRenderer.render(entity.transform, *entity.meshRenderer->mesh, *entity.meshRenderer->material);
+      }
    }
 }
 

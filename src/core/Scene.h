@@ -1,14 +1,17 @@
 #pragma once
 
 #include <vector>
+
+#include "Entity.h"
 #include "../camera/Camera.h"
 #include "../rendering/Lights.h"
-#include "../rendering/mesh/MeshRenderObject.h"
 
 class Scene {
+    EntityId nextEntityId = 0;
+    // QUESTION: why not use smart pointer?
+    std::vector<Entity> entities;
 public:
     Camera camera;
-    std::vector<MeshRenderObject> meshObjects;
 
     /* Lights */
     AmbientLight ambientLight;
@@ -20,4 +23,7 @@ public:
     ~Scene() = default;
 
     void update(float dt);
+
+    Entity& createEntity(const std::string& name);
+    const std::vector<Entity>& getEntities() const { return entities; }
 };

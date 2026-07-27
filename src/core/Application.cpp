@@ -145,52 +145,36 @@ void Application::createSandboxScene() {
     LitMaterial& modelMaterial = resourceManager.loadLitMaterial("model",litShader, modelTexture);
     modelMaterial.specularTexture = &modelSpecularMap;
 
+    Entity& ground = scene.createEntity("ground");
+    ground.transform.position = {0.0f,0.0f,0.0f};
+    ground.transform.rotation =  {-90.0f,0.0f,0.0f};
+    ground.transform.scale = {5.0f,5.0f,5.0f};
+    ground.meshRenderer = {&planeMesh, &whiteMaterial};
 
-    // ground
-    scene.meshObjects.push_back({
-        .transform = {
-            .position = {0.0f,0.0f,0.0f},
-            .rotation = {-90.0f,0.0f,0.0f},
-            .scale = {5.0f,5.0f,5.0f},
-        },
-        .mesh = &planeMesh,
-        .material = &whiteMaterial,
-    });
+    Entity& window = scene.createEntity("window");
+    window.transform.position = {0.0f, 0.0f, 5.0f};
+    window.transform.rotation = {0.0f, 0.0f, 0.0f};
+    window.transform.scale = {10.0f, 10.0f, 10.0f};
+    window.meshRenderer = {&planeMesh, &windowMaterial};
+
+    Entity& grass = scene.createEntity("grass");
+    grass.transform.position = {0.0f, 0.5f, 2.0f};
+    grass.transform.rotation = {0.0f, 0.0f, 0.0f};
+    grass.transform.scale = {1.0f, 1.0f, 1.0f};
+    grass.meshRenderer = {&planeMesh, &grassMaterial};
 
     // model
-    for (auto& mesh : model.meshes) {
-        scene.meshObjects.push_back({
-            .transform = {
-                .position = {0.0f,1.0f,0.0f},
-                .rotation = {0.0f,0.0f,0.0f},
-                .scale = {0.5f,0.5f,0.5f},
-            },
-            .mesh = mesh.get(),
-            .material = &modelMaterial,
-        });
-    }
-
-    // window
-    scene.meshObjects.push_back({
-       .transform = {
-           .position = {0.0f,0.0f,5.0f},
-           .rotation = {0.0f,0.0f,0.0f},
-           .scale = {10.0f,10.0f,10.0f},
-       },
-       .mesh = &planeMesh,
-       .material = &windowMaterial,
-   });
-
-    // grass
-    scene.meshObjects.push_back({
-        .transform = {
-            .position = {0.0f,0.5f,2.0f},
-            .rotation = {0.0f,0.0f,0.0f},
-            .scale = {1.0f,1.0f,1.0f},
-        },
-        .mesh = &planeMesh,
-        .material = &grassMaterial,
-    });
+    // for (auto& mesh : model.meshes) {
+    //     scene.entities.push_back({
+    //         .transform = {
+    //             .position = {0.0f,1.0f,0.0f},
+    //             .rotation = {0.0f,0.0f,0.0f},
+    //             .scale = {0.5f,0.5f,0.5f},
+    //         },
+    //         .mesh = mesh.get(),
+    //         .material = &modelMaterial,
+    //     });
+    // }
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;

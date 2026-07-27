@@ -2,7 +2,7 @@
 
 #include "materials/UnlitMaterial.h"
 
-void MeshRenderer::render(const MeshRenderObject &object) const {
+void MeshRenderer::render(const Transform& transform, const Mesh& mesh, const Material& material) const {
     /* stencil */
     glEnable(GL_STENCIL_TEST);
     glStencilMask(0xFF);
@@ -19,13 +19,13 @@ void MeshRenderer::render(const MeshRenderObject &object) const {
     );
 
     /* material specific */
-    object.material->bind();
+    material.bind();
 
     /* mesh common */
-    const glm::mat4 model = object.transform.getModelMatrix();
-    object.material->shader.setMat4("uModel", model);
+    const glm::mat4 model = transform.getModelMatrix();
+    material.shader.setMat4("uModel", model);
 
-    object.mesh->draw();
+    mesh.draw();
 
 
     /* 2. Outline path */
@@ -47,12 +47,12 @@ void MeshRenderer::render(const MeshRenderObject &object) const {
     static UnlitMaterial unlitMaterial{unlitShader,whiteTexture};
     unlitMaterial.baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
-    Transform outlineTransform = object.transform;
+    Transform outlineTransform = transform;
     outlineTransform.scale *= 1.02f;
     auto outlineModel = outlineTransform.getModelMatrix();
     unlitMaterial.bind();
     unlitMaterial.shader.setMat4("uModel", outlineModel);
-    object.mesh->draw();
+    mesh.draw();
 
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
