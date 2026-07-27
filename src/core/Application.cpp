@@ -41,15 +41,15 @@ void Application::run() {
         ImGui::Text("screen pos : %.2fx%.2f", mouseState.screenX,mouseState.screenY);
         ImGui::Text("cursor delta : %.2fx%.2f", mouseState.deltaX,mouseState.deltaY);
 
-        if (mouseState.leftBtnDown)
-            ImGui::Text("Left : {}", "Pressed");
-        else
-            ImGui::Text("Left : {}", "NONE");
+        ImGui::Text(
+            "Left : %s",
+            mouseState.leftBtnDown ? "Pressed" : "NONE"
+        );
 
-        if (mouseState.rightBtnDown)
-            ImGui::Text("Right : {}", "Pressed");
-        else
-            ImGui::Text("Right : {}", "NONE");
+        ImGui::Text(
+            "Right : %s",
+            mouseState.rightBtnDown ? "Pressed" : "NONE"
+        );
 
         ImGui::End();
 
@@ -132,7 +132,7 @@ void Application::createSandboxScene() {
     boxMaterial.baseColor = {0.2f,0.2f,0.2f,1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
 
-    LitMaterial& windowMaterial = resourceManager.loadLitMaterial("window", litShader, boxTexture);
+    LitMaterial& windowMaterial = resourceManager.loadLitMaterial("window", litShader, whiteTexture);
     windowMaterial.baseColor = {1.0f,0.0f,0.0f,0.3f};
 
     UnlitMaterial& grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);

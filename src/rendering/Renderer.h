@@ -67,6 +67,9 @@ public:
             glDeleteBuffers(1, &lightsUBO);
         }
     }
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+
     void beginFrame(Scene& scene, const WindowSize& windowSize);
     void render(const Scene& scene);
     void endFrame();

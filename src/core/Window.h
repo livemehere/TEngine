@@ -26,6 +26,8 @@ public:
     Window(int w, int h, const std::string& title, bool vsync = true);
     ~Window();
 
+    Window(const Window&) = delete;
+    Window& operator=(const Window&) = delete;
 
     bool should_close() const;
     void pollEvents();

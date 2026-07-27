@@ -38,6 +38,7 @@ void MeshRenderer::render(const MeshRenderObject &object) const {
     // glStencilMask(0x00);
     glDisable(GL_DEPTH_TEST);
 
+    // TODO: move to renderobject options
     static std::array<uint8_t,4> pixels = {
         255,255,255,255,
     };

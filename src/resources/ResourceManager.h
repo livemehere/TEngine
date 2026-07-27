@@ -13,18 +13,20 @@ class UnlitMaterial;
 
 class ResourceManager {
     std::filesystem::path assetRoot;
-    /* -------------------- built-in --------------------- */
-    /* meshes */
+
+    /* built in meshes */
     std::unique_ptr<Mesh> planeMesh;
     std::unique_ptr<Mesh> cubeMesh;
+
+    /* resources */
     std::unique_ptr<Shader> litShader;
     std::unique_ptr<Shader> unlitShader;
+    std::unordered_map<std::string, std::unique_ptr<Texture2D>> textures;
+    std::unordered_map<std::string, std::unique_ptr<Model>> models;
 
     std::unordered_map<std::string, std::unique_ptr<LitMaterial>> litMaterials;
     std::unordered_map<std::string, std::unique_ptr<UnlitMaterial>> unlitMaterials;
 
-    std::unordered_map<std::string, std::unique_ptr<Texture2D>> textures;
-    std::unordered_map<std::string, std::unique_ptr<Model>> models;
 
     std::filesystem::path resolvePath(std::filesystem::path filepath) const;
 
