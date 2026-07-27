@@ -13,8 +13,8 @@ find_package(assimp CONFIG REQUIRED)
 add_executable(TEngine src/main.cpp
         src/core/Window.cpp
         src/core/Window.h
-        src/Scene.cpp
-        src/Scene.h
+        src/core/Scene.cpp
+        src/core/Scene.h
         src/core/utils.h
         src/core/Input.cpp
         src/core/Input.h

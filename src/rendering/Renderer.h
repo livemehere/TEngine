@@ -1,5 +1,5 @@
 #pragma once
-#include "../Scene.h"
+#include "../core/Scene.h"
 #include "mesh/MeshRenderer.h"
 
 constexpr std::size_t MAX_POINT_LIGHTS = 16;

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vector>
-#include "camera/Camera.h"
-#include "rendering/Lights.h"
-#include "rendering/mesh/MeshRenderObject.h"
+#include "../camera/Camera.h"
+#include "../rendering/Lights.h"
+#include "../rendering/mesh/MeshRenderObject.h"
 
 class Scene {
 public:
