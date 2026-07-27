@@ -43,11 +43,10 @@ Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels) {
 Texture2D::Texture2D(const std::string& filepath) {
     stbi_set_flip_vertically_on_load(true);
 
-    auto path = std::filesystem::path(ASSET_ROOT) / filepath;
     int channels; // ignore
-    unsigned char *data = stbi_load(path.c_str(), &width_, &height_, &channels, 4);
+    unsigned char *data = stbi_load(filepath.c_str(), &width_, &height_, &channels, 4);
     if (!data) {
-        throw std::runtime_error(std::format("Texture load failed from '{}'", path.c_str()));
+        throw std::runtime_error(std::format("Texture load failed from '{}'", filepath.c_str()));
     }
 
     glGenTextures(1, &id_);

@@ -20,12 +20,12 @@ private:
     int fb_w;
     int fb_h;
 
+    void init();
+    void create_window(int w, int h, const std::string& title, bool vsync);
 public:
-    Window() = default;
+    Window(int w, int h, const std::string& title, bool vsync = true);
     ~Window();
 
-    void init();
-    void create_window(int w, int h, const std::string& title, bool vsync = true);
 
     bool should_close() const;
     void pollEvents();

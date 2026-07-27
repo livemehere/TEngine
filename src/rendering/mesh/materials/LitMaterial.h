@@ -6,15 +6,15 @@
 
 class LitMaterial : public Material {
 public:
-    Texture2D& albedoTexture;
-    Texture2D* specularTexture = nullptr;
+    const Texture2D& albedoTexture;
+    const Texture2D* specularTexture = nullptr;
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
 
     LitMaterial(
-        Shader &shader,
-        Texture2D& albedoTexture,
+        const Shader &shader,
+        const Texture2D& albedoTexture,
         glm::vec4 baseColor = glm::vec4(1.0f),
         float shininess = 32.0f,
         float specularStrength = 1.0f

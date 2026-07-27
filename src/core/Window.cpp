@@ -81,6 +81,11 @@ void Window::create_window(int w, int h, const std::string &title, bool vsync) {
 
 }
 
+Window::Window(int w, int h, const std::string &title, bool vsync) {
+    init();
+    create_window(w, h, title, vsync);
+}
+
 bool Window::should_close() const {
     return glfwWindowShouldClose(window);
 }

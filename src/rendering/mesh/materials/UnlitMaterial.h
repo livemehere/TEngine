@@ -6,12 +6,12 @@
 
 class UnlitMaterial : public Material {
 public:
-    Texture2D& albedoTexture;
+    const Texture2D& albedoTexture;
     glm::vec4 baseColor;
 
     UnlitMaterial(
-        Shader &shader,
-        Texture2D& albedoTexture,
+        const Shader &shader,
+        const Texture2D& albedoTexture,
         glm::vec4 baseColor = glm::vec4(1.0f)
     ) : Material(shader),
         albedoTexture(albedoTexture),
