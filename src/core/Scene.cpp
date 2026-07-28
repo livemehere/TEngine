@@ -35,6 +35,16 @@ const Entity * Scene::findEntity(EntityId id) const {
     return &(*it);
 }
 
+std::vector<const Entity *> Scene::getChildren(const EntityId id) {
+    std::vector<const Entity*> children;
+    for (const Entity& entity : entities) {
+       if (entity.parent && *entity.parent == id) {
+           children.push_back(&entity);
+       }
+    }
+    return children;
+}
+
 glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
     glm::mat4 localMatrix = entity.localTransform.getLocalMatrix();
     if (!entity.parent) {

@@ -10,6 +10,7 @@ class Editor {
 
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
+    void drawEntityNode(Scene& scene, const Entity& entity);
 public:
     void draw(Scene& scene);
 };

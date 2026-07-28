@@ -157,11 +157,15 @@ void Application::createSandboxScene() {
     window.localTransform.scale = {10.0f, 10.0f, 10.0f};
     window.meshRenderer = {&planeMesh, &windowMaterial};
 
+    Entity& box = scene.createEntity("box");
+    box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
+
     Entity& grass = scene.createEntity("grass");
     grass.localTransform.position = {0.0f, 0.5f, 2.0f};
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
+    grass.parent = box.id;
 
     // Entity& bag = scene.createEntity("bag");
     // bag.transform = {

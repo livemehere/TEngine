@@ -104,9 +104,9 @@ void Editor::drawHierarchy(Scene &scene) {
     ImGui::Begin("Hierarchy");
 
     for (const Entity &entity: scene.getEntities()) {
-        bool selected = entity.id == selectedEntityId;
-        if (ImGui::Selectable(entity.name.c_str(), selected)) {
-            selectedEntityId = entity.id;
+        bool isRoot = !entity.parent || !scene.findEntity(*entity.parent);
+        if (isRoot) {
+            drawEntityNode(scene, entity);
         }
     }
 
@@ -158,4 +158,35 @@ void Editor::drawInspector(Scene &scene) {
 
 
     ImGui::End();
+}
+
+void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
+    const auto children = scene.getChildren(entity.id);
+
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+    if (selectedEntityId&& *selectedEntityId == entity.id) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+
+    bool hasChildren = !children.empty();
+
+    if (!hasChildren) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+        flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    }
+
+    std::string nodeLabel = std::format("{}##{}", entity.name, entity.id);
+    bool opened = ImGui::TreeNodeEx(nodeLabel.c_str(), flags);
+
+    if (ImGui::IsItemClicked()) {
+        selectedEntityId = entity.id;
+    }
+
+    if (hasChildren && opened) {
+        for (const Entity* child : children) {
+            drawEntityNode(scene, *child);
+        }
+        ImGui::TreePop();
+    }
+
 }
