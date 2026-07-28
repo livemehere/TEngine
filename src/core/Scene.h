@@ -25,4 +25,6 @@ public:
 
     Entity& createEntity(const std::string& name);
     const std::vector<Entity>& getEntities() const { return entities; }
+
+    Entity* findEntity(EntityId id);
 };
