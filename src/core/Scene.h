@@ -9,6 +9,9 @@
 class Scene {
     EntityId entitySeq = 0;
     std::vector<Entity> entities;
+
+    bool wouldCreateCycle(EntityId childId, EntityId parentId);
+
 public:
     Camera camera;
 
@@ -30,6 +33,8 @@ public:
     const Entity* findEntity(EntityId id) const;
 
     std::vector<const Entity*> getChildren(EntityId id);
+    bool setParent(EntityId childId, EntityId parentId);
+    bool unsetParent(EntityId childId, EntityId parentId);
 
     glm::mat4 getWorldMatrix(const Entity& entity) const;
 };

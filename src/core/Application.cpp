@@ -165,7 +165,7 @@ void Application::createSandboxScene() {
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
-    grass.parent = box.id;
+    scene.setParent(grass.id, box.id);
 
     // Entity& bag = scene.createEntity("bag");
     // bag.transform = {

@@ -1,5 +1,24 @@
 #include "Scene.h"
 
+bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
+    Entity* current =  findEntity(parentId);
+    while (current) {
+
+        if (current->id == childId) {
+            // make cycle, disable set parent
+            return true;
+        }
+
+        if (!current->parent) {
+            break;
+        }
+        current = findEntity(*current->parent);
+    }
+
+    // enable to set parent
+    return false;
+}
+
 void Scene::update(float dt) {
     camera.update(dt);
 }
@@ -43,6 +62,30 @@ std::vector<const Entity *> Scene::getChildren(const EntityId id) {
        }
     }
     return children;
+}
+
+bool Scene::setParent(EntityId childId, EntityId parentId) {
+    if (childId == parentId) return false;
+
+    Entity* child = findEntity(childId);
+    if (!child) {
+        return false;
+    }
+
+    // check cycle
+    if (wouldCreateCycle(childId, parentId)) {
+        return false;
+    }
+
+    // keep child world position
+    // TODO:
+
+    child->parent = parentId;
+
+    return true;
+}
+
+bool Scene::unsetParent(EntityId childId, EntityId parentId) {
 }
 
 glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
