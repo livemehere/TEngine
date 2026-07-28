@@ -181,8 +181,6 @@ void Input::update() {
     const bool rightBtnDown = isMouseButtonDown(MouseButton::Right);
     mouseState.rightBtnPressed = rightBtnDown && !mouseState.rightBtnDown;
     mouseState.rightBtnDown = rightBtnDown;
-
-
 }
 
 void Input::setCursorLockState(bool lock) {

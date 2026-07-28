@@ -6,6 +6,7 @@
 #include "../rendering/Renderer.h"
 #include "../resources/ResourceManager.h"
 #include "Scene.h"
+#include "../editor/Editor.h"
 
 class Application {
     Window window;
@@ -16,7 +17,7 @@ class Application {
     Renderer renderer;
 
     Scene scene;
-    // Editor
+    Editor editor;
 public:
     Application() : window(1920, 1080, "TEngine", true), input(window), resourceManager(ASSET_ROOT) {};
     ~Application() = default;

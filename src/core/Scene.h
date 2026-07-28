@@ -7,8 +7,7 @@
 #include "../rendering/Lights.h"
 
 class Scene {
-    EntityId nextEntityId = 0;
-    // QUESTION: why not use smart pointer?
+    EntityId entitySeq = 0;
     std::vector<Entity> entities;
 public:
     Camera camera;

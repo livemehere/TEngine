@@ -55,6 +55,8 @@ add_executable(TEngine src/main.cpp
         src/core/Application.cpp
         src/core/Application.h
         src/core/Entity.h
+        src/editor/Editor.cpp
+        src/editor/Editor.h
 )
 
 target_link_libraries(TEngine PRIVATE

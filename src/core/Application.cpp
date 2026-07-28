@@ -31,6 +31,7 @@ void Application::run() {
         renderer.beginFrame(scene, size);
         renderer.render(scene);
         renderer.endFrame();
+        editor.draw(scene);
 
         /* render debug */
         ImGui::SetNextWindowSize(ImVec2(250,150), ImGuiCond_Once);

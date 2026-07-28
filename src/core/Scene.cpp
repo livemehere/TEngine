@@ -6,9 +6,8 @@ void Scene::update(float dt) {
 
 Entity & Scene::createEntity(const std::string &name) {
     Entity& entity = entities.emplace_back();
-    entity.id = nextEntityId++;
+    entity.id = entitySeq++;
     entity.name = name;
-
     return entity;
 }
 
