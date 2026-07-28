@@ -163,16 +163,16 @@ struct MouseState {
 };
 
 class Input {
-    Window& window_;
-    MouseState mouseState_{};
-    bool firstMouseUpdate_ = true;
+    const Window& window;
+    MouseState mouseState{};
+    bool firstMouseUpdate = true;
 
 public:
-    Input(Window &window);
+    Input(const Window &window) : window(window) {};
     ~Input() = default;
 
     const MouseState& getMouseState() const {
-        return mouseState_;
+        return mouseState;
     }
 
     void update();

@@ -37,6 +37,4 @@ public:
     GLFWwindow* get() const {
         return window;
     }
-
-
 };

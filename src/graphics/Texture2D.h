@@ -4,15 +4,15 @@
 
 /* RGBA support only for simplicity */
 class Texture2D {
-   GLuint id_ = 0;
-   int width_ = 0;
-   int height_ = 0;
+   GLuint id = 0;
+   int width = 0;
+   int height = 0;
 public:
    Texture2D(int width, int height, std::span<const uint8_t> pixels);
    Texture2D(const std::string& filepath);
    ~Texture2D() {
-      if (id_ != 0) {
-        glDeleteTextures(1, &id_);
+      if (id != 0) {
+        glDeleteTextures(1, &id);
       }
    }
 
@@ -21,7 +21,7 @@ public:
 
    void bind(GLuint slot = 0) const {
       glActiveTexture(GL_TEXTURE0 + slot);
-      glBindTexture(GL_TEXTURE_2D, id_);
+      glBindTexture(GL_TEXTURE_2D, id);
   }
 
    static void unBind(GLuint slot = 0) {
@@ -29,4 +29,3 @@ public:
       glBindTexture(GL_TEXTURE_2D, 0);
   }
 };
-

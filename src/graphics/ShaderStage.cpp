@@ -10,25 +10,25 @@ ShaderStage::ShaderStage(GLenum type, const std::string &filepath) {
     const std::string sourceString = utils::read_file(sourcePath);
     const char* shaderSource = sourceString.c_str();
 
-    id_ = glCreateShader(type);
-    glShaderSource(id_, 1, &shaderSource, nullptr);
-    glCompileShader(id_);
+    id = glCreateShader(type);
+    glShaderSource(id, 1, &shaderSource, nullptr);
+    glCompileShader(id);
 
     GLint success = GL_FALSE;
-    glGetShaderiv(id_, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
 
     if (success == GL_FALSE) {
         std::string shaderTypeStr = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
 
         GLint logLength = 0;
-        glGetShaderiv(id_, GL_INFO_LOG_LENGTH, &logLength);
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &logLength);
         std::string log(logLength,'\0');
 
         GLsizei written = 0;
-        glGetShaderInfoLog(id_, logLength, &written, log.data());
+        glGetShaderInfoLog(id, logLength, &written, log.data());
         log.resize(written);
 
-        glDeleteShader(id_);
+        glDeleteShader(id);
 
         throw std::runtime_error(std::format("[{} SHADER] {}",shaderTypeStr, log));
     }

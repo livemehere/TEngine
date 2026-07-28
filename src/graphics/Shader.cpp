@@ -23,67 +23,66 @@ Shader::Shader(const std::string &vsPath, const std::string &fsPath) {
     const ShaderStage vs(GL_VERTEX_SHADER,vsPath);
     const ShaderStage fs(GL_FRAGMENT_SHADER,fsPath);
 
-    id_ = glCreateProgram();
-    glAttachShader(id_, vs.getId());
-    glAttachShader(id_, fs.getId());
-    glLinkProgram(id_);
+    id = glCreateProgram();
+    glAttachShader(id, vs.getId());
+    glAttachShader(id, fs.getId());
+    glLinkProgram(id);
 
     GLint success = GL_FALSE;
-    glGetProgramiv(id_, GL_LINK_STATUS, &success);
+    glGetProgramiv(id, GL_LINK_STATUS, &success);
 
     if (success == GL_FALSE) {
         GLint logLength = 0;
-        glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &logLength);
+        glGetProgramiv(id, GL_INFO_LOG_LENGTH, &logLength);
         std::string log(logLength,'\0');
 
         GLsizei written = 0;
-        glGetProgramInfoLog(id_, logLength, &written, log.data());
+        glGetProgramInfoLog(id, logLength, &written, log.data());
         log.resize(written);
-        glDeleteProgram(id_);
+        glDeleteProgram(id);
 
         throw std::runtime_error(std::format("[SHADER_PROGRAM] {}", log));
     }
 
-    glDetachShader(id_, vs.getId());
-    glDetachShader(id_, fs.getId());
+    glDetachShader(id, vs.getId());
+    glDetachShader(id, fs.getId());
 
 }
 
 void Shader::setInt(const char *name, const int value) const {
-    const GLint loc = glGetUniformLocation(id_, name);
+    const GLint loc = glGetUniformLocation(id, name);
     validate_location(name, loc);
     glUniform1i(loc, value);
 }
 
 void Shader::setFloat(const char *name, float value) const {
-    const GLint loc = glGetUniformLocation(id_, name);
+    const GLint loc = glGetUniformLocation(id, name);
     validate_location(name, loc);
     glUniform1f(loc, value);
 }
 
 void Shader::setVec3(const char *name, const glm::vec3 &value) const {
-    const GLint loc = glGetUniformLocation(id_, name);
+    const GLint loc = glGetUniformLocation(id, name);
     validate_location(name, loc);
     glUniform3fv(loc, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec4(const char *name, const glm::vec4& value) const {
-    const GLint loc = glGetUniformLocation(id_, name);
+    const GLint loc = glGetUniformLocation(id, name);
     validate_location(name, loc);
     glUniform4fv(loc, 1, glm::value_ptr(value));
 }
 
 void Shader::setMat4(const char *name, const glm::mat4& value) const {
-    const GLint loc = glGetUniformLocation(id_, name);
+    const GLint loc = glGetUniformLocation(id, name);
     validate_location(name, loc);
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::bindUniformBlock(const char *name, const GLuint bindingPoint) const {
-    const GLuint blockIndex = glGetUniformBlockIndex(id_, name);
+    const GLuint blockIndex = glGetUniformBlockIndex(id, name);
     if (blockIndex == GL_INVALID_INDEX) {
         throw std::runtime_error(std::format("Uniform block '{}' not found", name));
     }
-    glUniformBlockBinding(id_, blockIndex, bindingPoint);
+    glUniformBlockBinding(id, blockIndex, bindingPoint);
 }
-

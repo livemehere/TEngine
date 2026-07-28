@@ -5,22 +5,22 @@
 #include <glm/glm.hpp>
 
 class Shader {
-    GLuint id_ = 0;
+    GLuint id = 0;
 public:
     Shader(const std::string& vsPath, const std::string& fsPath);
     ~Shader() {
-        if (id_ != 0) {
-            glDeleteProgram(id_);
+        if (id != 0) {
+            glDeleteProgram(id);
         }
     }
 
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
 
-    GLuint getId() const { return id_; }
+    GLuint getId() const { return id; }
 
     void use() const {
-        glUseProgram(id_);
+        glUseProgram(id);
     }
 
     void setInt(const char* name, int value) const;

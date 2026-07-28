@@ -10,8 +10,8 @@ Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels) {
         throw std::invalid_argument("Invalid RGBA pixel data size");
     }
 
-    glGenTextures(1, &id_);
-    glBindTexture(GL_TEXTURE_2D, id_);
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -44,13 +44,13 @@ Texture2D::Texture2D(const std::string& filepath) {
     stbi_set_flip_vertically_on_load(true);
 
     int channels; // ignore
-    unsigned char *data = stbi_load(filepath.c_str(), &width_, &height_, &channels, 4);
+    unsigned char *data = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
     if (!data) {
         throw std::runtime_error(std::format("Texture load failed from '{}'", filepath.c_str()));
     }
 
-    glGenTextures(1, &id_);
-    glBindTexture(GL_TEXTURE_2D, id_);
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     //     glTexParameteri(
@@ -68,8 +68,8 @@ Texture2D::Texture2D(const std::string& filepath) {
         GL_TEXTURE_2D,
         0,
         GL_RGBA8,
-        width_,
-        height_,
+        width,
+        height,
         0,
         GL_RGBA,
         GL_UNSIGNED_BYTE,
@@ -78,4 +78,3 @@ Texture2D::Texture2D(const std::string& filepath) {
     glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(data);
 }
-
