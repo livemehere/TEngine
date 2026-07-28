@@ -107,7 +107,6 @@ void Editor::drawHierarchy(Scene &scene) {
         bool selected = entity.id == selectedEntityId;
         if (ImGui::Selectable(entity.name.c_str(), selected)) {
             selectedEntityId = entity.id;
-            std::println("select {}", *selectedEntityId);
         }
     }
 
@@ -130,8 +129,9 @@ void Editor::drawInspector(Scene &scene) {
         return;
     }
 
-    ImGui::Text("%s", entity->name.c_str());
+    ImGui::Text("%s (id: %d)", entity->name.c_str(), static_cast<int>(entity->id));
 
+    /* transform start */
     constexpr ImGuiTreeNodeFlags componentFlags =
             ImGuiTreeNodeFlags_DefaultOpen |
             ImGuiTreeNodeFlags_Framed |
@@ -154,6 +154,7 @@ void Editor::drawInspector(Scene &scene) {
         }
         ImGui::TreePop();
     }
+    /* transform end */
 
 
     ImGui::End();
