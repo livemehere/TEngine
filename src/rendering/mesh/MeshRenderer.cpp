@@ -2,7 +2,7 @@
 
 #include "materials/UnlitMaterial.h"
 
-void MeshRenderer::render(const Transform& transform, const Mesh& mesh, const Material& material) const {
+void MeshRenderer::render(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material) const {
     /* stencil */
     glEnable(GL_STENCIL_TEST);
     glStencilMask(0xFF);
@@ -22,8 +22,7 @@ void MeshRenderer::render(const Transform& transform, const Mesh& mesh, const Ma
     material.bind();
 
     /* mesh common */
-    const glm::mat4 model = transform.getModelMatrix();
-    material.shader.setMat4("uModel", model);
+    material.shader.setMat4("uModel", worldMatrix);
 
     mesh.draw();
 
@@ -47,11 +46,9 @@ void MeshRenderer::render(const Transform& transform, const Mesh& mesh, const Ma
     static UnlitMaterial unlitMaterial{unlitShader,whiteTexture};
     unlitMaterial.baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
-    Transform outlineTransform = transform;
-    outlineTransform.scale *= 1.02f;
-    auto outlineModel = outlineTransform.getModelMatrix();
+    glm::mat4 outlineMatrix = glm::scale(worldMatrix, glm::vec3(1.02f));
     unlitMaterial.bind();
-    unlitMaterial.shader.setMat4("uModel", outlineModel);
+    unlitMaterial.shader.setMat4("uModel", outlineMatrix);
     mesh.draw();
 
     glEnable(GL_DEPTH_TEST);

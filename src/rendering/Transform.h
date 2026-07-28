@@ -8,7 +8,7 @@ struct Transform {
     glm::vec3 rotation;
     glm::vec3 scale;
 
-    glm::mat4 getModelMatrix() const {
+    glm::mat4 getLocalMatrix() const {
         glm::mat4 model(1.0f);
 
         model = glm::translate(model, position);

@@ -27,4 +27,7 @@ public:
     const std::vector<Entity>& getEntities() const { return entities; }
 
     Entity* findEntity(EntityId id);
+    const Entity* findEntity(EntityId id) const;
+
+    glm::mat4 getWorldMatrix(const Entity& entity) const;
 };

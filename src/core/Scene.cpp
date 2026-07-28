@@ -22,3 +22,29 @@ Entity *Scene::findEntity(const EntityId id) {
 
     return &(*it);
 }
+
+const Entity * Scene::findEntity(EntityId id) const {
+    auto it = std::find_if(entities.begin(), entities.end(), [id](const Entity &entity) {
+    return entity.id == id;
+});
+
+    if (it == entities.end()) {
+        return nullptr;
+    }
+
+    return &(*it);
+}
+
+glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
+    glm::mat4 localMatrix = entity.localTransform.getLocalMatrix();
+    if (!entity.parent) {
+        return localMatrix;
+    }
+
+    const Entity* parentEntity = findEntity(*entity.parent);
+    if (!parentEntity) {
+        return localMatrix;
+    }
+
+    return getWorldMatrix(*parentEntity) * localMatrix;
+}

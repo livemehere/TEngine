@@ -7,5 +7,5 @@ public:
     MeshRenderer() = default;
     ~MeshRenderer() = default;
 
-    void render(const Transform& transform, const Mesh& mesh, const Material& material) const;
+    void render(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material) const;
 };

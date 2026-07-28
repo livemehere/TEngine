@@ -118,7 +118,8 @@ void Renderer::render(const Scene &scene) {
       // NOTE: temporary handle 1 component
       if (entity.meshRenderer) {
          const MeshRendererComponent& component = *entity.meshRenderer;
-         meshRenderer.render(entity.localTransform, *component.mesh, *component.material);
+         auto worldTransform = scene.getWorldMatrix(entity);
+         meshRenderer.render(worldTransform, *component.mesh, *component.material);
       }
    }
 }
