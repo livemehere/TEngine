@@ -46,7 +46,7 @@ namespace {
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive, activeColor);
 
                 float buttonSize = ImGui::GetFrameHeight();
-                if (ImGui::Button(axisLabel, ImVec2(buttonSize, buttonSize))) {
+                if (ImGui::Button(axisLabel, ImVec2(buttonSize + 3.0f, buttonSize))) {
                     axisValue = resetValue;
                     changed = true;
                 }
