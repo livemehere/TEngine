@@ -6,6 +6,30 @@
 
 #include "../core/Scene.h"
 
+namespace {
+    bool drawVec3Control(const char *label, glm::vec3 &value, float resetValue, float speed = 0.1f) {
+        bool changed = false;
+
+        ImGui::PushID(label);
+
+        // TODO: 플레그 의미?
+        constexpr ImGuiTableFlags tableFlags =
+                ImGuiTableFlags_SizingStretchSame |
+                ImGuiTableFlags_NoSavedSettings |
+                ImGuiTableFlags_PadOuterX;
+
+        if (ImGui::BeginTable("##Vec3Control", 4, tableFlags)) {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+            ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Z", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableNextRow();
+        }
+
+
+    }
+}
+
 void Editor::draw(Scene &scene) {
     drawHierarchy(scene);
     drawInspector(scene);
@@ -42,9 +66,11 @@ void Editor::drawInspector(Scene &scene) {
     }
 
     ImGui::Text("%s", entity->name.c_str());
-    ImGui::DragFloat3("position", glm::value_ptr(entity->localTransform.position), 0.1f);
-    ImGui::DragFloat3("rotation", glm::value_ptr(entity->localTransform.rotation), 0.1f);
-    ImGui::DragFloat3("scale", glm::value_ptr(entity->localTransform.scale), 0.1f);
+    if (ImGui::CollapsingHeader("LocalTransform", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::DragFloat3("position", glm::value_ptr(entity->localTransform.position), 0.1f);
+        ImGui::DragFloat3("rotation", glm::value_ptr(entity->localTransform.rotation), 0.1f);
+        ImGui::DragFloat3("scale", glm::value_ptr(entity->localTransform.scale), 0.1f);
+    }
 
     ImGui::End();
 }
