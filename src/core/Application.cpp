@@ -137,7 +137,6 @@ void Application::createSandboxScene() {
 
     UnlitMaterial& grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
 
-
     /* models */
     const Model& model = resourceManager.loadModel("models/backpack/backpack.obj");
     const Texture2D& modelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
@@ -146,31 +145,33 @@ void Application::createSandboxScene() {
     modelMaterial.specularTexture = &modelSpecularMap;
 
     Entity& ground = scene.createEntity("ground");
-    ground.transform.position = {0.0f,0.0f,0.0f};
-    ground.transform.rotation =  {-90.0f,0.0f,0.0f};
-    ground.transform.scale = {5.0f,5.0f,5.0f};
+    ground.localTransform.position = {0.0f,0.0f,0.0f};
+    ground.localTransform.rotation =  {-90.0f,0.0f,0.0f};
+    ground.localTransform.scale = {5.0f,5.0f,5.0f};
     ground.meshRenderer = {&planeMesh, &whiteMaterial};
 
     Entity& window = scene.createEntity("window");
-    window.transform.position = {0.0f, 0.0f, 5.0f};
-    window.transform.rotation = {0.0f, 0.0f, 0.0f};
-    window.transform.scale = {10.0f, 10.0f, 10.0f};
+    window.localTransform.position = {0.0f, 0.0f, 5.0f};
+    window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
+    window.localTransform.scale = {10.0f, 10.0f, 10.0f};
     window.meshRenderer = {&planeMesh, &windowMaterial};
 
     Entity& grass = scene.createEntity("grass");
-    grass.transform.position = {0.0f, 0.5f, 2.0f};
-    grass.transform.rotation = {0.0f, 0.0f, 0.0f};
-    grass.transform.scale = {1.0f, 1.0f, 1.0f};
+    grass.localTransform.position = {0.0f, 0.5f, 2.0f};
+    grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
+    grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
 
-    // model
+    // Entity& bag = scene.createEntity("bag");
+    // bag.transform = {
+    //     .position = {0.0f,1.0f,0.0f},
+    //     .rotation = {0.0f,0.0f,0.0f},
+    //     .scale = {0.5f,0.5f,0.5f},
+    // };
+
     // for (auto& mesh : model.meshes) {
     //     scene.entities.push_back({
-    //         .transform = {
-    //             .position = {0.0f,1.0f,0.0f},
-    //             .rotation = {0.0f,0.0f,0.0f},
-    //             .scale = {0.5f,0.5f,0.5f},
-    //         },
+    //         .transform = ,
     //         .mesh = mesh.get(),
     //         .material = &modelMaterial,
     //     });
