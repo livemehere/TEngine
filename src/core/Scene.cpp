@@ -71,28 +71,60 @@ std::vector<const Entity *> Scene::getChildren(std::optional<EntityId> id) const
     return children;
 }
 
-bool Scene::setParent(EntityId childId, EntityId parentId) {
-    if (childId == parentId) return false;
+std::vector<EntityId> Scene::getChildrenIds(std::optional<EntityId> id, std::optional<EntityId> excludeId) const {
+    std::vector<EntityId> result;
+    const auto children = getChildren(id);
+    for (const Entity* entity : children) {
+        if (excludeId && entity->id == *excludeId) {
+            continue;
+        }
+        result.push_back(entity->id);
+    }
+    return result;
+}
 
-    Entity* child = findEntity(childId);
-    if (!child) {
+bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, size_t insertIndex) {
+    Entity* source = findEntity(sourceId);
+    if (!source) {
+        return false;
+    }
+
+    // parent must be existed if assigned
+    if (newParentId && !findEntity(*newParentId)) {
+        return false;
+    }
+
+    // disable self
+    if (newParentId && sourceId == *newParentId) {
         return false;
     }
 
     // check cycle
-    if (wouldCreateCycle(childId, parentId)) {
+    if (newParentId && wouldCreateCycle(sourceId, *newParentId)) {
         return false;
+    }
+
+    std::optional<EntityId> oldParentId = source->parentId;
+
+    auto newSiblingIds = getChildrenIds(newParentId, sourceId);
+
+    if (oldParentId != newParentId) {
+       auto oldSiblings = getChildrenIds(oldParentId, sourceId);
+        for (size_t i=0; i< oldSiblings.size(); i++) {
+            findEntity(oldSiblings[i])->siblingIndex = i;
+        }
     }
 
     // keep child world position
     // TODO:
 
-    child->parentId = parentId;
-
+    source->parentId = newParentId;
+    insertIndex = std::min(insertIndex, newSiblingIds.size());
+    newSiblingIds.insert(newSiblingIds.begin() + insertIndex, sourceId);
+    for (size_t i=0; i<newSiblingIds.size(); i++) {
+        findEntity(newSiblingIds[i])->siblingIndex = i;
+    }
     return true;
-}
-
-bool Scene::unsetParent(EntityId childId, EntityId parentId) {
 }
 
 glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {

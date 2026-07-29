@@ -33,8 +33,8 @@ public:
     const Entity* findEntity(EntityId id) const;
 
     std::vector<const Entity*> getChildren(std::optional<EntityId> id) const;
-    bool setParent(EntityId childId, EntityId parentId);
-    bool unsetParent(EntityId childId, EntityId parentId);
+    std::vector<EntityId> getChildrenIds(std::optional<EntityId> id, std::optional<EntityId> excludeId) const;
+    bool moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, size_t insertIndex);
 
     glm::mat4 getWorldMatrix(const Entity& entity) const;
 };

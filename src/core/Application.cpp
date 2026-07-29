@@ -168,7 +168,7 @@ void Application::createSandboxScene() {
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
     grass.siblingIndex = 3;
-    scene.setParent(grass.id, boxId);
+    scene.moveEntity(grass.id, boxId, 0);
 
 
     Entity& box2 = scene.createEntity("box2");
@@ -176,7 +176,7 @@ void Application::createSandboxScene() {
     box2.localTransform.position.x = 3.0f;
     box2.siblingIndex = 0
     ;
-    scene.setParent(box2.id, boxId);
+    scene.moveEntity(box2.id, boxId, 1);
 
 
     // Entity& bag = scene.createEntity("bag");

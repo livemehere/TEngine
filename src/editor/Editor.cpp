@@ -151,6 +151,11 @@ void Editor::drawHierarchy(Scene &scene) {
     ImGui::Begin("Hierarchy");
     drawSiblingList(scene, std::nullopt);
     ImGui::End();
+
+    if (pendingMoveReq) {
+        scene.moveEntity(pendingMoveReq->sourceId, pendingMoveReq->newParentId, pendingMoveReq->insertIndex);
+        pendingMoveReq.reset();
+    }
 }
 
 void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
@@ -186,6 +191,20 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
         ImGui::SetDragDropPayload("SCENE_ENTITY", &entity.id, sizeof(EntityId));
         ImGui::Text("Move %s", entity.name.c_str());
         ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY");
+        if (payload && payload->IsDelivery()) {
+            EntityId sourceId = *static_cast<EntityId*>(payload->Data);
+            auto children = scene.getChildren(entity.id);
+            pendingMoveReq = EntityMoveRequest{
+                .sourceId = sourceId,
+                .newParentId = entity.id,
+                .insertIndex = children.size()
+            };
+        }
+        ImGui::EndDragDropTarget();
     }
 
 
