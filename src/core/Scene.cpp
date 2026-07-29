@@ -56,10 +56,10 @@ const Entity * Scene::findEntity(EntityId id) const {
     return &(*it);
 }
 
-std::vector<const Entity *> Scene::getChildren(std::optional<EntityId> id) {
+std::vector<const Entity *> Scene::getChildren(std::optional<EntityId> id) const {
     std::vector<const Entity*> children;
     for (const Entity& entity : entities) {
-       if (entity.parentId && *entity.parentId == id) {
+       if (entity.parentId == id) {
            children.push_back(&entity);
        }
     }

@@ -15,7 +15,7 @@ struct Entity {
         .scale = {1.0f, 1.0f, 1.0f}
     };
 
-    std::optional<EntityId> parentId;
+    std::optional<EntityId> parentId = std::nullopt;
     size_t siblingIndex = 0;
 
     std::optional<MeshRendererComponent> meshRenderer;

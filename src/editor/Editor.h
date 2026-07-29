@@ -11,6 +11,7 @@ class Editor {
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
     void drawEntityNode(Scene& scene, const Entity& entity);
+    void drawSiblingList(Scene& scene, std::optional<EntityId> id);
 public:
     void draw(Scene& scene);
 };

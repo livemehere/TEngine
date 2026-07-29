@@ -103,12 +103,7 @@ void Editor::draw(Scene &scene) {
 void Editor::drawHierarchy(Scene &scene) {
     ImGui::Begin("Hierarchy");
 
-    for (const Entity &entity: scene.getEntities()) {
-        bool isRoot = !entity.parentId || !scene.findEntity(*entity.parentId);
-        if (isRoot) {
-            drawEntityNode(scene, entity);
-        }
-    }
+    drawSiblingList(scene, std::nullopt);
 
     ImGui::End();
 }
@@ -183,10 +178,15 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     }
 
     if (hasChildren && opened) {
-        for (const Entity* child : children) {
-            drawEntityNode(scene, *child);
-        }
+        drawSiblingList(scene, entity.id);
         ImGui::TreePop();
     }
 
+}
+
+void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
+    auto siblings = scene.getChildren(id);
+    for (const Entity* entity : siblings) {
+        drawEntityNode(scene, *entity);
+    }
 }
