@@ -1,6 +1,9 @@
 #include "Editor.h"
 
-#include <print>
+#include <cfloat>
+#include <format>
+#include <limits>
+
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -116,7 +119,11 @@ void Editor::drawInspector(Scene &scene) {
         return;
     }
 
-    ImGui::Text("%s (id: %d)", entity->name.c_str(), static_cast<int>(entity->id));
+    ImGui::Text(
+        "%s (id: %llu)",
+        entity->name.c_str(),
+        static_cast<unsigned long long>(entity->id)
+    );
 
     /* transform start */
     constexpr ImGuiTreeNodeFlags componentFlags =
@@ -161,16 +168,16 @@ void Editor::drawHierarchy(Scene &scene) {
 void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
     auto siblings = scene.getChildren(id);
 
-    drawInsertionSlot(scene, id, 0);
+    drawInsertionSlot(id, 0);
 
     for (size_t i=0; i< siblings.size(); i++) {
         drawEntityNode(scene, *siblings[i]);
-        drawInsertionSlot(scene, id, i+1);
+        drawInsertionSlot(id, i+1);
     }
 
 }
 
-void Editor::drawInsertionSlot(Scene &scene, std::optional<EntityId> id, size_t insertIndex) {
+void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
     auto slotId = std::format("##DropSlot_{}_{}", id.value_or(std::numeric_limits<EntityId>::max()), insertIndex);
 
     ImGui::InvisibleButton(slotId.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 2.0f));
@@ -195,7 +202,7 @@ void Editor::drawInsertionSlot(Scene &scene, std::optional<EntityId> id, size_t 
         );
 
         if (payload->IsDelivery()) {
-           EntityId sourceId = *static_cast<EntityId*>(payload->Data);
+            const EntityId sourceId = *static_cast<const EntityId*>(payload->Data);
             pendingMoveReq = {
                 .sourceId = sourceId,
                 .newParentId = id,
@@ -238,7 +245,7 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     if (ImGui::BeginDragDropTarget()) {
         const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY");
         if (payload && payload->IsDelivery()) {
-            EntityId sourceId = *static_cast<EntityId *>(payload->Data);
+            const EntityId sourceId = *static_cast<const EntityId*>(payload->Data);
             auto children = scene.getChildren(entity.id);
             pendingMoveReq = EntityMoveRequest{
                 .sourceId = sourceId,

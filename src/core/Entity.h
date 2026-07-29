@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
+
 #include "../rendering/Transform.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 

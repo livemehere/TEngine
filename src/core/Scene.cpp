@@ -1,6 +1,10 @@
 #include "Scene.h"
 
 #include <algorithm>
+#include <cmath>
+#include <format>
+
+#include <glm/gtc/matrix_inverse.hpp>
 
 bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
     Entity* current =  findEntity(parentId);
@@ -26,9 +30,12 @@ void Scene::update(float dt) {
 }
 
 Entity &Scene::createEntity(const std::string &name) {
+    const size_t siblingIndex = getChildren(std::nullopt).size();
+
     Entity &entity = entities.emplace_back();
     entity.id = entitySeq++;
     entity.name = name;
+    entity.siblingIndex = siblingIndex;
     return entity;
 }
 
@@ -90,7 +97,8 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
     }
 
     // parent must be existed if assigned
-    if (newParentId && !findEntity(*newParentId)) {
+    Entity* newParent = newParentId ? findEntity(*newParentId) : nullptr;
+    if (newParentId && !newParent) {
         return false;
     }
 
@@ -104,33 +112,63 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
         return false;
     }
 
-    std::optional<EntityId> oldParentId = source->parentId;
+    const std::optional<EntityId> oldParentId = source->parentId;
+    const bool parentChanged = oldParentId != newParentId;
+    const size_t oldSiblingIndex = source->siblingIndex;
 
     auto newSiblingIds = getChildrenIds(newParentId, sourceId);
 
-    if (oldParentId != newParentId) {
-       auto oldSiblings = getChildrenIds(oldParentId, sourceId);
-        for (size_t i=0; i< oldSiblings.size(); i++) {
-            findEntity(oldSiblings[i])->siblingIndex = i;
+    // insertIndex is based on the list before removing source.
+    // Moving downward in the same list shifts the target slot left by one.
+    if (!parentChanged && oldSiblingIndex < insertIndex) {
+        --insertIndex;
+    }
+
+    Transform newLocalTransform = source->localTransform;
+
+    if (parentChanged) {
+        // Keep the entity at the same world transform after reparenting.
+        const glm::mat4 oldWorldMatrix = getWorldMatrix(*source);
+        const glm::mat4 newParentWorldMatrix =
+            newParent ? getWorldMatrix(*newParent) : glm::mat4{1.0f};
+        const float determinant = glm::determinant(newParentWorldMatrix);
+
+        if (!std::isfinite(determinant) || std::abs(determinant) <= 1e-6f) {
+            LOG(std::format("Cannot move entity {}: parent transform is not invertible", sourceId));
+            return false;
+        }
+
+        const glm::mat4 newLocalMatrix =
+            glm::inverse(newParentWorldMatrix) * oldWorldMatrix;
+
+        if (!Transform::decompose(newLocalMatrix, newLocalTransform)) {
+            LOG(std::format("Failed to decompose transform {}", sourceId));
+            return false;
         }
     }
 
-    // keep child world position
-    const glm::mat4 oldWorldMatrix = getWorldMatrix(*source);
-    const glm::mat4 newParentWorldMatrix = newParentId ? getWorldMatrix(*findEntity(*newParentId)) : glm::mat4{1.0f};
-    const glm::mat4 newLocalMatrix = glm::inverse(newParentWorldMatrix) * oldWorldMatrix;
-
-    if (!Transform::decompose(newLocalMatrix, source->localTransform)) {
-        LOG(std::format("Failed to decompose transform {}", sourceId));
+    // Apply hierarchy changes only after every validation has succeeded.
+    if (parentChanged) {
+        auto oldSiblingIds = getChildrenIds(oldParentId, sourceId);
+        for (size_t i = 0; i < oldSiblingIds.size(); ++i) {
+            findEntity(oldSiblingIds[i])->siblingIndex = i;
+        }
     }
-    // ---
 
+    source->localTransform = newLocalTransform;
     source->parentId = newParentId;
+
     insertIndex = std::min(insertIndex, newSiblingIds.size());
-    newSiblingIds.insert(newSiblingIds.begin() + insertIndex, sourceId);
-    for (size_t i=0; i<newSiblingIds.size(); i++) {
+    newSiblingIds.insert(
+        newSiblingIds.begin() +
+            static_cast<std::vector<EntityId>::difference_type>(insertIndex),
+        sourceId
+    );
+
+    for (size_t i = 0; i < newSiblingIds.size(); ++i) {
         findEntity(newSiblingIds[i])->siblingIndex = i;
     }
+
     return true;
 }
 
