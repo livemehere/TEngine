@@ -100,14 +100,6 @@ void Editor::draw(Scene &scene) {
     drawInspector(scene);
 }
 
-void Editor::drawHierarchy(Scene &scene) {
-    ImGui::Begin("Hierarchy");
-
-    drawSiblingList(scene, std::nullopt);
-
-    ImGui::End();
-}
-
 void Editor::drawInspector(Scene &scene) {
     ImGui::Begin("Inspector");
 
@@ -155,15 +147,28 @@ void Editor::drawInspector(Scene &scene) {
     ImGui::End();
 }
 
+void Editor::drawHierarchy(Scene &scene) {
+    ImGui::Begin("Hierarchy");
+    drawSiblingList(scene, std::nullopt);
+    ImGui::End();
+}
+
+void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
+    auto siblings = scene.getChildren(id);
+    for (const Entity* entity : siblings) {
+        drawEntityNode(scene, *entity);
+    }
+}
+
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     const auto children = scene.getChildren(entity.id);
+    bool hasChildren = !children.empty();
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+
     if (selectedEntityId&& *selectedEntityId == entity.id) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
-
-    bool hasChildren = !children.empty();
 
     if (!hasChildren) {
         flags |= ImGuiTreeNodeFlags_Leaf;
@@ -177,16 +182,15 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
         selectedEntityId = entity.id;
     }
 
+    if (ImGui::BeginDragDropSource()) {
+        ImGui::SetDragDropPayload("SCENE_ENTITY", &entity.id, sizeof(EntityId));
+        ImGui::Text("Move %s", entity.name.c_str());
+        ImGui::EndDragDropSource();
+    }
+
+
     if (hasChildren && opened) {
         drawSiblingList(scene, entity.id);
         ImGui::TreePop();
-    }
-
-}
-
-void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
-    auto siblings = scene.getChildren(id);
-    for (const Entity* entity : siblings) {
-        drawEntityNode(scene, *entity);
     }
 }

@@ -22,7 +22,7 @@ struct Entity {
 };
 
 struct EntityMoveRequest {
-    EntityId targetId;
+    EntityId sourceId;
     // std::nullopt = Root
     std::optional<EntityId> newParentId;
     size_t insertIndex;
