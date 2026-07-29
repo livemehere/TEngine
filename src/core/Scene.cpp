@@ -116,7 +116,14 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
     }
 
     // keep child world position
-    // TODO:
+    const glm::mat4 oldWorldMatrix = getWorldMatrix(*source);
+    const glm::mat4 newParentWorldMatrix = newParentId ? getWorldMatrix(*findEntity(*newParentId)) : glm::mat4{1.0f};
+    const glm::mat4 newLocalMatrix = glm::inverse(newParentWorldMatrix) * oldWorldMatrix;
+
+    if (!Transform::decompose(newLocalMatrix, source->localTransform)) {
+        LOG(std::format("Failed to decompose transform {}", sourceId));
+    }
+    // ---
 
     source->parentId = newParentId;
     insertIndex = std::min(insertIndex, newSiblingIds.size());

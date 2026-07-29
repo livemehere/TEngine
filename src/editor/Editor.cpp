@@ -160,9 +160,51 @@ void Editor::drawHierarchy(Scene &scene) {
 
 void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
     auto siblings = scene.getChildren(id);
-    for (const Entity* entity : siblings) {
-        drawEntityNode(scene, *entity);
+
+    drawInsertionSlot(scene, id, 0);
+
+    for (size_t i=0; i< siblings.size(); i++) {
+        drawEntityNode(scene, *siblings[i]);
+        drawInsertionSlot(scene, id, i+1);
     }
+
+}
+
+void Editor::drawInsertionSlot(Scene &scene, std::optional<EntityId> id, size_t insertIndex) {
+    auto slotId = std::format("##DropSlot_{}_{}", id.value_or(std::numeric_limits<EntityId>::max()), insertIndex);
+
+    ImGui::InvisibleButton(slotId.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 2.0f));
+
+    if (!ImGui::BeginDragDropTarget()) {
+        return;
+    }
+
+    constexpr ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery |
+                                         ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+    const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY", flags);
+
+    if (payload) {
+        ImVec2 min = ImGui::GetItemRectMin();
+        ImVec2 max = ImGui::GetItemRectMax();
+        float y = (min.y + max.y) / 2.0f;
+        ImGui::GetWindowDrawList()->AddLine(
+            ImVec2(min.x, y),
+            ImVec2(max.x, y),
+            ImGui::GetColorU32(ImGuiCol_DragDropTarget),
+            2.0f
+        );
+
+        if (payload->IsDelivery()) {
+           EntityId sourceId = *static_cast<EntityId*>(payload->Data);
+            pendingMoveReq = {
+                .sourceId = sourceId,
+                .newParentId = id,
+                .insertIndex = insertIndex
+            };
+        }
+    }
+
+    ImGui::EndDragDropTarget();
 }
 
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
@@ -171,7 +213,7 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (selectedEntityId&& *selectedEntityId == entity.id) {
+    if (selectedEntityId && *selectedEntityId == entity.id) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -194,9 +236,9 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     }
 
     if (ImGui::BeginDragDropTarget()) {
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY");
+        const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY");
         if (payload && payload->IsDelivery()) {
-            EntityId sourceId = *static_cast<EntityId*>(payload->Data);
+            EntityId sourceId = *static_cast<EntityId *>(payload->Data);
             auto children = scene.getChildren(entity.id);
             pendingMoveReq = EntityMoveRequest{
                 .sourceId = sourceId,
