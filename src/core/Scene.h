@@ -32,7 +32,7 @@ public:
     Entity* findEntity(EntityId id);
     const Entity* findEntity(EntityId id) const;
 
-    std::vector<const Entity*> getChildren(EntityId id);
+    std::vector<const Entity*> getChildren(std::optional<EntityId> id);
     bool setParent(EntityId childId, EntityId parentId);
     bool unsetParent(EntityId childId, EntityId parentId);
 

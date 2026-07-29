@@ -1,5 +1,7 @@
 #include "Scene.h"
 
+#include <algorithm>
+
 bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
     Entity* current =  findEntity(parentId);
     while (current) {
@@ -9,10 +11,10 @@ bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
             return true;
         }
 
-        if (!current->parent) {
+        if (!current->parentId) {
             break;
         }
-        current = findEntity(*current->parent);
+        current = findEntity(*current->parentId);
     }
 
     // enable to set parent
@@ -54,13 +56,18 @@ const Entity * Scene::findEntity(EntityId id) const {
     return &(*it);
 }
 
-std::vector<const Entity *> Scene::getChildren(const EntityId id) {
+std::vector<const Entity *> Scene::getChildren(std::optional<EntityId> id) {
     std::vector<const Entity*> children;
     for (const Entity& entity : entities) {
-       if (entity.parent && *entity.parent == id) {
+       if (entity.parentId && *entity.parentId == id) {
            children.push_back(&entity);
        }
     }
+
+    std::ranges::sort(children, {}, [](const Entity* entity) {
+        return entity->siblingIndex;
+    });
+
     return children;
 }
 
@@ -80,7 +87,7 @@ bool Scene::setParent(EntityId childId, EntityId parentId) {
     // keep child world position
     // TODO:
 
-    child->parent = parentId;
+    child->parentId = parentId;
 
     return true;
 }
@@ -90,11 +97,11 @@ bool Scene::unsetParent(EntityId childId, EntityId parentId) {
 
 glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
     glm::mat4 localMatrix = entity.localTransform.getLocalMatrix();
-    if (!entity.parent) {
+    if (!entity.parentId) {
         return localMatrix;
     }
 
-    const Entity* parentEntity = findEntity(*entity.parent);
+    const Entity* parentEntity = findEntity(*entity.parentId);
     if (!parentEntity) {
         return localMatrix;
     }

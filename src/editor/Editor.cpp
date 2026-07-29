@@ -104,7 +104,7 @@ void Editor::drawHierarchy(Scene &scene) {
     ImGui::Begin("Hierarchy");
 
     for (const Entity &entity: scene.getEntities()) {
-        bool isRoot = !entity.parent || !scene.findEntity(*entity.parent);
+        bool isRoot = !entity.parentId || !scene.findEntity(*entity.parentId);
         if (isRoot) {
             drawEntityNode(scene, entity);
         }

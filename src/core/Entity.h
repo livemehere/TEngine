@@ -15,7 +15,15 @@ struct Entity {
         .scale = {1.0f, 1.0f, 1.0f}
     };
 
-    std::optional<EntityId> parent;
+    std::optional<EntityId> parentId;
+    size_t siblingIndex = 0;
 
     std::optional<MeshRendererComponent> meshRenderer;
+};
+
+struct EntityMoveRequest {
+    EntityId targetId;
+    // std::nullopt = Root
+    std::optional<EntityId> newParentId;
+    size_t insertIndex;
 };

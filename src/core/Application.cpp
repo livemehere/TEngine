@@ -158,14 +158,26 @@ void Application::createSandboxScene() {
     window.meshRenderer = {&planeMesh, &windowMaterial};
 
     Entity& box = scene.createEntity("box");
+    EntityId boxId = box.id;
     box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
+
 
     Entity& grass = scene.createEntity("grass");
     grass.localTransform.position = {0.0f, 0.5f, 2.0f};
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
-    scene.setParent(grass.id, box.id);
+    grass.siblingIndex = 3;
+    scene.setParent(grass.id, boxId);
+
+
+    Entity& box2 = scene.createEntity("box2");
+    box2.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
+    box2.localTransform.position.x = 3.0f;
+    box2.siblingIndex = 0
+    ;
+    scene.setParent(box2.id, boxId);
+
 
     // Entity& bag = scene.createEntity("bag");
     // bag.transform = {
