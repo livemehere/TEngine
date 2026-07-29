@@ -13,6 +13,7 @@ class Editor {
     void drawInspector(Scene& scene);
     void drawEntityNode(Scene& scene, const Entity& entity);
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
+    void drawInsertionSlot(Scene& scene, std::optional<EntityId> id, size_t insertIndex);
 public:
     void draw(Scene& scene);
 };

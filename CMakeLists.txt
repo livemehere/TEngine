@@ -70,5 +70,6 @@ target_link_libraries(TEngine PRIVATE
 # TODO: COPY asset file to packaging.
 target_compile_definitions(TEngine PRIVATE
         ASSET_ROOT="${CMAKE_SOURCE_DIR}/assets"
+        GLM_ENABLE_EXPERIMENTAL
 )
 
