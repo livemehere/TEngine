@@ -198,17 +198,19 @@ const EntityId Scene::instantiateModel(const Model &model, const Material &fallb
         const ModelNode &modelNode = nodes[nodeIndex];
 
         Entity &nodeEntity = createEntity(modelNode.name);
-        nodeEntityIds[nodeIndex] = nodeEntity.id;
+        const EntityId nodeEntityId = nodeEntity.id;
+
+        nodeEntityIds[nodeIndex] = nodeEntityId;
         nodeEntity.localTransform = modelNode.localTransform;
         std::optional<EntityId> parentId = modelNode.parentIndex >= 0
                                                ? std::optional<EntityId>(nodeEntityIds[modelNode.parentIndex])
                                                : std::optional<EntityId>(rootEntityId);
         size_t insertIndex = getChildren(parentId).size();
-        moveEntity(nodeEntity.id,*parentId,insertIndex, true);
+        moveEntity(nodeEntityId,*parentId,insertIndex, true);
 
         if (modelNode.partIndices.size() == 1) {
             const ModelPart &part = parts[modelNode.partIndices[0]];
-            Entity *target = findEntity(nodeEntity.id);
+            Entity *target = findEntity(nodeEntityId);
             target->meshRenderer = {
                 .mesh = part.mesh.get(),
                 .material = &fallbackMaterial
@@ -219,13 +221,14 @@ const EntityId Scene::instantiateModel(const Model &model, const Material &fallb
                 auto partIndex = modelNode.partIndices[partOrder];
                 const ModelPart &part = parts[partIndex];
                 Entity &meshEntity = createEntity(std::format("{}_Mesh_{}", modelNode.name, partOrder));
+                const EntityId meshEntityId = meshEntity.id;
 
                 meshEntity.meshRenderer = {
                     .mesh = part.mesh.get(),
                     .material = &fallbackMaterial
                 };
 
-                moveEntity(meshEntity.id, nodeEntity.id, partOrder, true);
+                moveEntity(meshEntityId, nodeEntityId, partOrder, true);
             }
         }
     }

@@ -1,5 +1,7 @@
 #include "MeshRenderer.h"
 
+#include <glm/gtx/transform.hpp>
+
 #include "materials/UnlitMaterial.h"
 
 void MeshRenderer::render(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material) const {

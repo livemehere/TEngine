@@ -8,7 +8,8 @@
 Model::Model(const std::string &path, bool flipUVs) {
     Assimp::Importer importer;
 
-    unsigned int pFlags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality;
+    unsigned int pFlags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality |
+                          aiProcess_GenSmoothNormals;
     if (flipUVs) {
         pFlags |= aiProcess_FlipUVs;
     }
@@ -23,7 +24,6 @@ Model::Model(const std::string &path, bool flipUVs) {
 }
 
 void Model::processNode(const aiNode *node, const aiScene *scene, int parentIndex) {
-
     const glm::mat4 localMatrix = convertMatrixToGlmFormat(node->mTransformation);
     Transform localTransform{
         .position = {0.0f, 0.0f, 0.0f},
@@ -31,8 +31,8 @@ void Model::processNode(const aiNode *node, const aiScene *scene, int parentInde
         .scale = {1.0f, 1.0f, 1.0f},
     };
 
-    if (!Transform::decompose(localMatrix, localTransform)){
-       throw std::runtime_error(std::format("Failed to decompose model node {}", node->mName.C_Str()));
+    if (!Transform::decompose(localMatrix, localTransform)) {
+        throw std::runtime_error(std::format("Failed to decompose model node {}", node->mName.C_Str()));
     }
 
     size_t nodeIndex = nodes.size();
