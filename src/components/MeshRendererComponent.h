@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Mesh.h"
-#include "materials/Material.h"
+#include "../rendering/mesh/Mesh.h"
+#include "../rendering/mesh/materials/Material.h"
 
 struct MeshRendererComponent {
     const Mesh* mesh = nullptr;

@@ -31,7 +31,7 @@ add_executable(TEngine src/main.cpp
         src/graphics/Texture2D.h
         src/rendering/mesh/Mesh.cpp
         src/rendering/mesh/Mesh.h
-        src/rendering/mesh/MeshRendererComponent.h
+        src/components/MeshRendererComponent.h
         src/rendering/Transform.h
         src/rendering/mesh/materials/Material.h
         src/rendering/mesh/materials/LitMaterial.cpp
