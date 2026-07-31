@@ -12,7 +12,6 @@ void Application::run() {
 
     auto lastFrameTime = static_cast<float>(glfwGetTime());
     while (!window.should_close()) {
-
         /* currentFrame info */
         float currentFrameTime = static_cast<float>(glfwGetTime());
         float dt = (currentFrameTime - lastFrameTime);
@@ -24,8 +23,8 @@ void Application::run() {
         input.update();
         cameraController.update(scene.camera, input, dt);
 
-        const WindowSize& size = window.get_size();
-        const MouseState& mouseState = input.getMouseState();
+        const WindowSize &size = window.get_size();
+        const MouseState &mouseState = input.getMouseState();
 
         scene.update(dt);
         renderer.beginFrame(scene, size);
@@ -34,13 +33,13 @@ void Application::run() {
         editor.draw(scene);
 
         /* render debug */
-        ImGui::SetNextWindowSize(ImVec2(250,150), ImGuiCond_Once);
+        ImGui::SetNextWindowSize(ImVec2(250, 150), ImGuiCond_Once);
         ImGui::Begin("Debug");
         ImGui::Text("FPS %.1f FPS", ImGui::GetIO().Framerate);
         ImGui::Text("size : %dx%d", size.w, size.h);
         ImGui::Text("buffer size : %dx%d", size.fb_w, size.fb_h);
-        ImGui::Text("screen pos : %.2fx%.2f", mouseState.screenX,mouseState.screenY);
-        ImGui::Text("cursor delta : %.2fx%.2f", mouseState.deltaX,mouseState.deltaY);
+        ImGui::Text("screen pos : %.2fx%.2f", mouseState.screenX, mouseState.screenY);
+        ImGui::Text("cursor delta : %.2fx%.2f", mouseState.deltaX, mouseState.deltaY);
 
         ImGui::Text(
             "Left : %s",
@@ -64,7 +63,7 @@ void Application::run() {
             is3DMode = !is3DMode;
             if (is3DMode) {
                 scene.camera.projection = PerspectiveProjection{};
-            }else {
+            } else {
                 scene.camera.projection = OrthoGraphicProjection{};
             }
         }
@@ -105,7 +104,6 @@ void Application::run() {
 }
 
 void Application::createSandboxScene() {
-
     /* camera */
     scene.camera.transform.position.x = 3.0f;
     scene.camera.transform.position.z = 3.0f;
@@ -114,60 +112,64 @@ void Application::createSandboxScene() {
 
 
     /* meshes*/
-    const Mesh& planeMesh = resourceManager.getPlaneMesh();
+    const Mesh &planeMesh = resourceManager.getPlaneMesh();
 
     /* textures */
-    const Texture2D& whiteTexture = resourceManager.loadTexture("builtin:white");
-    const Texture2D& boxTexture = resourceManager.loadTexture("textures/box.png");
-    const Texture2D& boxSpecularMapTexture = resourceManager.loadTexture("textures/box_specular_map.png");
-    const Texture2D& grassTexture = resourceManager.loadTexture("textures/grass.png");
+    const Texture2D &whiteTexture = resourceManager.loadTexture("builtin:white");
+    const Texture2D &boxTexture = resourceManager.loadTexture("textures/box.png");
+    const Texture2D &boxSpecularMapTexture = resourceManager.loadTexture("textures/box_specular_map.png");
+    const Texture2D &grassTexture = resourceManager.loadTexture("textures/grass.png");
 
     /* shaders */
-    const Shader& litShader = resourceManager.getLitShader();
-    const Shader& unlitShader = resourceManager.getUnlitShader();
+    const Shader &litShader = resourceManager.getLitShader();
+    const Shader &unlitShader = resourceManager.getUnlitShader();
 
     /* materials */
-    LitMaterial& whiteMaterial = resourceManager.loadLitMaterial("white", litShader, whiteTexture);
+    LitMaterial &whiteMaterial = resourceManager.loadLitMaterial("white", litShader, whiteTexture);
 
-    LitMaterial& boxMaterial = resourceManager.loadLitMaterial("box", litShader, boxTexture);
-    boxMaterial.baseColor = {0.2f,0.2f,0.2f,1.0f};
+    LitMaterial &boxMaterial = resourceManager.loadLitMaterial("box", litShader, boxTexture);
+    boxMaterial.baseColor = {0.2f, 0.2f, 0.2f, 1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
 
-    LitMaterial& windowMaterial = resourceManager.loadLitMaterial("window", litShader, whiteTexture);
-    windowMaterial.baseColor = {1.0f,0.0f,0.0f,0.3f};
+    LitMaterial &windowMaterial = resourceManager.loadLitMaterial("window", litShader, whiteTexture);
+    windowMaterial.baseColor = {1.0f, 0.0f, 0.0f, 0.3f};
 
-    UnlitMaterial& grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
+    UnlitMaterial &grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
 
     /* models */
-    const Model& bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
-    const Texture2D& bagModelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
-    const Texture2D& bagModelSpecularTexture = resourceManager.loadTexture("models/backpack/specular.jpg");
-    LitMaterial& bagModelMaterial = resourceManager.loadLitMaterial("bag",litShader, bagModelTexture);
+    const Model &bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
+    const Texture2D &bagModelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
+    const Texture2D &bagModelSpecularTexture = resourceManager.loadTexture("models/backpack/specular.jpg");
+    LitMaterial &bagModelMaterial = resourceManager.loadLitMaterial("bag", litShader, bagModelTexture);
     bagModelMaterial.specularTexture = &bagModelSpecularTexture;
 
-    const Model & personModel = resourceManager.loadModel("models/person/scene.gltf", false);
-    const Texture2D& personTexture = resourceManager.loadTexture("models/person/baseColor.png");
-    LitMaterial& personMaterial = resourceManager.loadLitMaterial("person",litShader, personTexture);
+    const Model &personModel = resourceManager.loadModel("models/person/scene.gltf", false);
+    const Texture2D &personTexture = resourceManager.loadTexture("models/person/baseColor.png");
+    LitMaterial &personMaterial = resourceManager.loadLitMaterial("person", litShader, personTexture);
+
+    const Model &fourArmsModel = resourceManager.loadModel("models/ben10-four-arms.glb", false);
+    // const Texture2D& fourArmsTexture = resourceManager.loadTexture("models/fourArms/baseColor.png");
+    // LitMaterial& fourArmsMaterial = resourceManager.loadLitMaterial("fourArms",litShader, fourArmsTexture);
 
 
-    Entity& ground = scene.createEntity("ground");
-    ground.localTransform.position = {0.0f,0.0f,0.0f};
-    ground.localTransform.rotation =  {-90.0f,0.0f,0.0f};
-    ground.localTransform.scale = {5.0f,5.0f,5.0f};
+    Entity &ground = scene.createEntity("ground");
+    ground.localTransform.position = {0.0f, 0.0f, 0.0f};
+    ground.localTransform.rotation = {-90.0f, 0.0f, 0.0f};
+    ground.localTransform.scale = {5.0f, 5.0f, 5.0f};
     ground.meshRenderer = {&planeMesh, &whiteMaterial};
 
-    Entity& window = scene.createEntity("window");
+    Entity &window = scene.createEntity("window");
     window.localTransform.position = {0.0f, 0.0f, 5.0f};
     window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     window.localTransform.scale = {10.0f, 10.0f, 10.0f};
     window.meshRenderer = {&planeMesh, &windowMaterial};
 
-    Entity& box = scene.createEntity("box");
+    Entity &box = scene.createEntity("box");
     EntityId boxId = box.id;
     box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
 
 
-    Entity& grass = scene.createEntity("grass");
+    Entity &grass = scene.createEntity("grass");
     grass.localTransform.position = {0.0f, 0.5f, 2.0f};
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
@@ -176,43 +178,44 @@ void Application::createSandboxScene() {
     scene.moveEntity(grass.id, boxId, 0);
 
 
-    Entity& box2 = scene.createEntity("box2");
+    Entity &box2 = scene.createEntity("box2");
     box2.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
     box2.localTransform.position.x = 3.0f;
-    box2.siblingIndex = 0
-    ;
+    box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
 
 
-    Entity& bag = scene.createEntity("bag");
-    bag.localTransform = {
-        .position = {0.0f,1.0f,0.0f},
-        .rotation = {0.0f,0.0f,0.0f},
-        .scale = {0.5f,0.5f,0.5f},
-    };
-    bag.modelRenderer = {
-        .model = &bagModel,
-        .material = &bagModelMaterial
+    auto bagId = scene.instantiateModel(bagModel, bagModelMaterial, "bag");
+    Entity *bagEntity = scene.findEntity(bagId);
+    bagEntity->localTransform = {
+        .position = {0.0f, 1.0f, 0.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {0.5f, 0.5f, 0.5f},
     };
 
-    Entity& person = scene.createEntity("person");
-    person.localTransform = {
-        .position = {2.0f,1.0f,0.0f},
-        .rotation = {0.0f,0.0f,0.0f},
-        .scale = {1.0f,1.0f,1.0f},
+    auto personId = scene.instantiateModel(personModel, personMaterial, "person");
+    Entity *personEntity = scene.findEntity(personId);
+    personEntity->localTransform = {
+        .position = {2.0f, 1.0f, 0.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
     };
-    person.modelRenderer = {
-        .model = &personModel,
-        .material = &personMaterial
+
+    auto fourArmsId = scene.instantiateModel(fourArmsModel, whiteMaterial, "fourArms");
+    Entity *fourArmsEntity = scene.findEntity(fourArmsId);
+    fourArmsEntity->localTransform = {
+        .position = {-2.0f, 1.0f, 0.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
     };
 
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;
     scene.pointLights.push_back({
-        .position = {0.0f, 1.5f,1.5f},
+        .position = {0.0f, 1.5f, 1.5f},
         .range = 5.0f,
-        .color = {1.0f,1.0f,1.0f},
+        .color = {1.0f, 1.0f, 1.0f},
         .intensity = 1.0f,
     });
 
@@ -226,7 +229,7 @@ void Application::createSandboxScene() {
         .direction = glm::vec3{0.0f, -1.0f, 0.0f},
         .position = glm::vec3{0.0f, 4.0f, 0.0},
         .range = 5.0f,
-        .color = glm::vec3{0.8f,0.4f, 0.4f},
+        .color = glm::vec3{0.8f, 0.4f, 0.4f},
         .intensity = 10.0f,
     });
 }

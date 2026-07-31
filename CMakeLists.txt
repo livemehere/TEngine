@@ -31,7 +31,7 @@ add_executable(TEngine src/main.cpp
         src/graphics/Texture2D.h
         src/rendering/mesh/Mesh.cpp
         src/rendering/mesh/Mesh.h
-        src/components/MeshRendererComponent.h
+        src/rendering/mesh/MeshRendererComponent.h
         src/rendering/Transform.h
         src/rendering/mesh/materials/Material.h
         src/rendering/mesh/materials/LitMaterial.cpp
@@ -57,7 +57,6 @@ add_executable(TEngine src/main.cpp
         src/scene/Entity.h
         src/editor/Editor.cpp
         src/editor/Editor.h
-        src/components/ModelRendererComponent.h
 )
 
 target_link_libraries(TEngine PRIVATE

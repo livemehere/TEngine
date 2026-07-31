@@ -121,15 +121,6 @@ void Renderer::render(const Scene &scene) {
             auto worldMatrix = scene.getWorldMatrix(entity);
             meshRenderer.render(worldMatrix, *component.mesh, *component.material);
         }
-
-        if (entity.modelRenderer) {
-            const ModelRendererComponent &component = *entity.modelRenderer;
-            auto worldMatrix = scene.getWorldMatrix(entity);
-            for (const ModelPart &part: component.model->getParts()) {
-                meshRenderer.render(
-                    worldMatrix * part.localMatrix, *part.mesh, *component.material);
-            }
-        }
     }
 }
 

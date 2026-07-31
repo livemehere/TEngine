@@ -30,6 +30,7 @@ public:
     Model(const std::string &path, bool flipUVs);
     ~Model() = default;
 
+    const std::vector<ModelNode> &getNodes() const { return nodes; }
     const std::vector<ModelPart> &getParts() const { return parts; }
 
     // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/assimp_glm_helpers.h

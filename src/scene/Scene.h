@@ -5,6 +5,7 @@
 #include "Entity.h"
 #include "../camera/Camera.h"
 #include "../rendering/Lights.h"
+#include "../rendering/model/Model.h"
 
 class Scene {
     EntityId entitySeq = 0;
@@ -34,7 +35,9 @@ public:
 
     std::vector<const Entity*> getChildren(std::optional<EntityId> id) const;
     std::vector<EntityId> getChildrenIds(std::optional<EntityId> id, std::optional<EntityId> excludeId) const;
-    bool moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, size_t insertIndex);
+    bool moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, size_t insertIndex, bool keepLocalTransform = false);
 
     glm::mat4 getWorldMatrix(const Entity& entity) const;
+
+    const EntityId instantiateModel(const Model& model, const Material& fallbackMaterial, const std::string& name);
 };

@@ -31,7 +31,7 @@ void Model::processNode(const aiNode *node, const aiScene *scene, int parentInde
         .scale = {1.0f, 1.0f, 1.0f},
     };
 
-    if (Transform::decompose(localMatrix, localTransform)){
+    if (!Transform::decompose(localMatrix, localTransform)){
        throw std::runtime_error(std::format("Failed to decompose model node {}", node->mName.C_Str()));
     }
 
@@ -52,7 +52,6 @@ void Model::processNode(const aiNode *node, const aiScene *scene, int parentInde
         parts.push_back({
             .mesh = processMesh(mesh, scene),
             .materialSlot = mesh->mMaterialIndex
-
         });
         nodes[nodeIndex].partIndices.push_back(partIndex);
     }
