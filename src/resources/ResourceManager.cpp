@@ -86,8 +86,18 @@ const Texture2D & ResourceManager::loadTexture(const std::string &path) {
         texture = std::make_unique<Texture2D>(resolvePath(path));
     }
 
-    auto [it, inserted] = textures.emplace(path,std::move(texture));
+    auto [it, inserted] = textures.emplace(path, std::move(texture));
 
+    return *it->second;
+}
+
+const Texture2D & ResourceManager::loadTexture(const std::string &key, std::span<const std::uint8_t> encodedData) {
+    if (const auto it = textures.find(key); it != textures.end()) {
+        return *it->second;
+    }
+
+    auto texture = std::make_unique<Texture2D>(encodedData);
+    auto [it, inserted] = textures.emplace(key, std::move(texture));
     return *it->second;
 }
 

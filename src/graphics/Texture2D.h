@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <span>
 #include <glad/glad.h>
 
@@ -10,6 +11,8 @@ class Texture2D {
 public:
    Texture2D(int width, int height, std::span<const uint8_t> pixels);
    Texture2D(const std::string& filepath);
+   Texture2D(std::span<const std::uint8_t> encodedData);
+
    ~Texture2D() {
       if (id != 0) {
         glDeleteTextures(1, &id);
