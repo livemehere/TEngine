@@ -75,7 +75,11 @@ UnlitMaterial &ResourceManager::loadUnlitMaterial(const std::string &key, const 
 }
 
 const Texture2D &ResourceManager::loadTexture(const std::string &path) {
-    if (const auto it = textures.find(path); it != textures.end()) {
+    const std::string key = path == "builtin:white"
+                                ? path
+                                : resolvePath(path).lexically_normal().string();
+
+    if (const auto it = textures.find(key); it != textures.end()) {
         return *it->second;
     }
 
@@ -84,10 +88,10 @@ const Texture2D &ResourceManager::loadTexture(const std::string &path) {
         constexpr std::array<uint8_t, 4> pixels{255, 255, 255, 255};
         texture = std::make_unique<Texture2D>(1, 1, pixels);
     } else {
-        texture = std::make_unique<Texture2D>(resolvePath(path).lexically_normal().string());
+        texture = std::make_unique<Texture2D>(key);
     }
 
-    auto [it, inserted] = textures.emplace(path, std::move(texture));
+    auto [it, inserted] = textures.emplace(key, std::move(texture));
 
     return *it->second;
 }

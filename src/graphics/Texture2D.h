@@ -1,6 +1,9 @@
 #pragma once
+
 #include <cstdint>
 #include <span>
+#include <string>
+
 #include <glad/glad.h>
 
 /* RGBA support only for simplicity */

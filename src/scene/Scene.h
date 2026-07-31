@@ -39,5 +39,5 @@ public:
 
     glm::mat4 getWorldMatrix(const Entity& entity) const;
 
-    const EntityId instantiateModel(const Model& model, const Material& fallbackMaterial, const std::string& name);
+    EntityId instantiateModel(const Model& model, const Material& fallbackMaterial, const std::string& name);
 };

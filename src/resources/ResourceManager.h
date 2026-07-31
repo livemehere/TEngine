@@ -1,6 +1,11 @@
 #pragma once
+
+#include <cstdint>
+#include <filesystem>
 #include <memory>
-#include <__filesystem/filesystem_error.h>
+#include <span>
+#include <string>
+#include <unordered_map>
 
 #include "../graphics/Shader.h"
 #include "../graphics/Texture2D.h"

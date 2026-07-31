@@ -1,11 +1,15 @@
 #pragma once
 
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <string>
-#include <assimp/scene.h>
+#include <vector>
 
 #include "../Transform.h"
 #include "../mesh/Mesh.h"
-#include "../mesh/materials/Material.h"
+
+class Material;
 
 struct ModelNode {
     std::string name;

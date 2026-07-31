@@ -186,7 +186,7 @@ glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
     return getWorldMatrix(*parentEntity) * localMatrix;
 }
 
-const EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMaterial, const std::string &name) {
+EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMaterial, const std::string &name) {
     const EntityId rootEntityId = createEntity(name).id;
 
     const auto &nodes = model.nodes;
@@ -202,7 +202,7 @@ const EntityId Scene::instantiateModel(const Model &model, const Material &fallb
 
         nodeEntityIds[nodeIndex] = nodeEntityId;
         nodeEntity.localTransform = modelNode.localTransform;
-        std::optional<EntityId> parentId = modelNode.parentIndex >= 0
+        std::optional<EntityId> parentId = modelNode.parentIndex
                                                ? std::optional<EntityId>(nodeEntityIds[*modelNode.parentIndex])
                                                : std::optional<EntityId>(rootEntityId);
         size_t insertIndex = getChildren(parentId).size();

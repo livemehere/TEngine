@@ -1,5 +1,9 @@
 #pragma once
-#include <__filesystem/filesystem_error.h>
+
+#include <filesystem>
+
+#include <assimp/material.h>
+#include <assimp/scene.h>
 
 #include "Model.h"
 
@@ -36,7 +40,7 @@ class ModelImporter {
     // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/assimp_glm_helpers.h
     static glm::mat4 convertMatrixToGlmFormat(const aiMatrix4x4 &from) {
         glm::mat4 to;
-        //the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+        // In Assimp, a/b/c/d identify rows and 1/2/3/4 identify columns.
         to[0][0] = from.a1;
         to[1][0] = from.a2;
         to[2][0] = from.a3;

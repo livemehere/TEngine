@@ -2,10 +2,13 @@
 
 #include <filesystem>
 #include <format>
+#include <limits>
+#include <stdexcept>
 
 #include "../thirdparty/stb_image.h"
 
-Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels) {
+Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels)
+    : width(width), height(height) {
     if (const size_t expectedSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
         pixels.size() != expectedSize) {
         throw std::invalid_argument("Invalid RGBA pixel data size");
@@ -90,7 +93,14 @@ Texture2D::Texture2D(std::span<const std::uint8_t> encodedData) {
 
     stbi_set_flip_vertically_on_load(true);
     int channels = 0;
-    unsigned char *data = stbi_load_from_memory(encodedData.data(), encodedData.size(), &width, &height, &channels, 4);
+    unsigned char *data = stbi_load_from_memory(
+        encodedData.data(),
+        static_cast<int>(encodedData.size()),
+        &width,
+        &height,
+        &channels,
+        4
+    );
     if (!data) {
         throw std::runtime_error("Failed to decode embedded texture");
     }
