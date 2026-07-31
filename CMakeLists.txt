@@ -13,8 +13,8 @@ find_package(assimp CONFIG REQUIRED)
 add_executable(TEngine src/main.cpp
         src/core/Window.cpp
         src/core/Window.h
-        src/core/Scene.cpp
-        src/core/Scene.h
+        src/scene/Scene.cpp
+        src/scene/Scene.h
         src/core/utils.h
         src/core/Input.cpp
         src/core/Input.h
@@ -54,7 +54,7 @@ add_executable(TEngine src/main.cpp
         src/rendering/model/Model.h
         src/core/Application.cpp
         src/core/Application.h
-        src/core/Entity.h
+        src/scene/Entity.h
         src/editor/Editor.cpp
         src/editor/Editor.h
 )

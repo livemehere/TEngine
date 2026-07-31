@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "../core/Scene.h"
+#include "../scene/Scene.h"
 
 namespace {
     bool drawVec3Control(const char *label, glm::vec3 &value, float resetValue, float step = 0.1f) {

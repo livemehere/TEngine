@@ -5,7 +5,7 @@
 #include "Window.h"
 #include "../rendering/Renderer.h"
 #include "../resources/ResourceManager.h"
-#include "Scene.h"
+#include "../scene/Scene.h"
 #include "../editor/Editor.h"
 
 class Application {
