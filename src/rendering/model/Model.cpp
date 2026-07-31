@@ -8,36 +8,57 @@
 Model::Model(const std::string &path, bool flipUVs) {
     Assimp::Importer importer;
 
-    unsigned int pFlags = aiProcess_Triangulate;
+    unsigned int pFlags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality;
     if (flipUVs) {
         pFlags |= aiProcess_FlipUVs;
     }
 
     const aiScene *scene = importer.ReadFile(path.c_str(), pFlags);
 
-
     if (!scene) {
         throw std::runtime_error(std::format("Model load failed {}", path));
     }
 
-    processNode(scene->mRootNode, scene, glm::mat4{1.0f});
+    processNode(scene->mRootNode, scene, -1);
 }
 
-void Model::processNode(const aiNode *node, const aiScene *scene, const glm::mat4 &parentMatrix) {
+void Model::processNode(const aiNode *node, const aiScene *scene, int parentIndex) {
+
     const glm::mat4 localMatrix = convertMatrixToGlmFormat(node->mTransformation);
-    const glm::mat4 matrixFromRoot = parentMatrix * localMatrix;
+    Transform localTransform{
+        .position = {0.0f, 0.0f, 0.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+    };
+
+    if (Transform::decompose(localMatrix, localTransform)){
+       throw std::runtime_error(std::format("Failed to decompose model node {}", node->mName.C_Str()));
+    }
+
+    size_t nodeIndex = nodes.size();
+
+    nodes.push_back({
+        .name = node->mName.length > 0 ? node->mName.C_Str() : "UnnamedNode",
+        .parentIndex = parentIndex,
+        .localTransform = localTransform,
+        .partIndices = {}
+    });
 
     for (int i = 0; i < node->mNumMeshes; i++) {
-        const aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+        const unsigned int meshIndex = node->mMeshes[i];
+        const aiMesh *mesh = scene->mMeshes[meshIndex];
+        const size_t partIndex = parts.size();
+
         parts.push_back({
             .mesh = processMesh(mesh, scene),
-            .localMatrix = matrixFromRoot,
             .materialSlot = mesh->mMaterialIndex
+
         });
+        nodes[nodeIndex].partIndices.push_back(partIndex);
     }
 
     for (int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene, matrixFromRoot);
+        processNode(node->mChildren[i], scene, nodeIndex);
     }
 }
 
@@ -64,8 +85,7 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
             texCoord.x = mesh->mTextureCoords[0][i].x;
             texCoord.y = mesh->mTextureCoords[0][i].y;
         }
-        Vertex vertex(position, normal, texCoord);
-        vertices.push_back(vertex);
+        vertices.emplace_back(position, normal, texCoord);
     }
 
     /* indices */
