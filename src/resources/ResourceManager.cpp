@@ -91,12 +91,12 @@ const Texture2D & ResourceManager::loadTexture(const std::string &path) {
     return *it->second;
 }
 
-const Model & ResourceManager::loadModel(const std::string &path) {
+const Model & ResourceManager::loadModel(const std::string &path, bool flipUVs) {
     if (const auto it = models.find(path); it != models.end()) {
         return *it->second;
     }
 
-    auto model = std::make_unique<Model>(resolvePath(path));
+    auto model = std::make_unique<Model>(resolvePath(path),flipUVs);
 
     auto [it, inserted] = models.emplace(path,std::move(model));
 

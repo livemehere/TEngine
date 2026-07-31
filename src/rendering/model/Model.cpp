@@ -5,22 +5,25 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-Model::Model(const std::string &path) {
+Model::Model(const std::string &path, bool flipUVs) {
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path.c_str(),
-        aiProcess_Triangulate
-        | aiProcess_FlipUVs
-        // | aiProcess_PreTransformVertices
-        );
+
+    unsigned int pFlags = aiProcess_Triangulate;
+    if (flipUVs) {
+        pFlags |= aiProcess_FlipUVs;
+    }
+
+    const aiScene *scene = importer.ReadFile(path.c_str(), pFlags);
+
+
     if (!scene) {
-        throw std::runtime_error(std::format("Model load failed {}", path ));
+        throw std::runtime_error(std::format("Model load failed {}", path));
     }
 
     processNode(scene->mRootNode, scene, glm::mat4{1.0f});
 }
 
-void Model::processNode(const aiNode *node, const aiScene *scene, const glm::mat4& parentMatrix) {
-
+void Model::processNode(const aiNode *node, const aiScene *scene, const glm::mat4 &parentMatrix) {
     const glm::mat4 localMatrix = convertMatrixToGlmFormat(node->mTransformation);
     const glm::mat4 matrixFromRoot = parentMatrix * localMatrix;
 
@@ -36,7 +39,6 @@ void Model::processNode(const aiNode *node, const aiScene *scene, const glm::mat
     for (int i = 0; i < node->mNumChildren; i++) {
         processNode(node->mChildren[i], scene, matrixFromRoot);
     }
-
 }
 
 std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scene) {
@@ -44,7 +46,7 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
     std::vector<GLuint> indices;
 
     /* vertex */
-    for (size_t i=0; i<mesh->mNumVertices; i++) {
+    for (size_t i = 0; i < mesh->mNumVertices; i++) {
         glm::vec3 position;
         position.x = mesh->mVertices[i].x;
         position.y = mesh->mVertices[i].y;
@@ -57,7 +59,7 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
             normal.z = mesh->mNormals[i].z;
         }
 
-        glm::vec2 texCoord{0.0f,0.0f};
+        glm::vec2 texCoord{0.0f, 0.0f};
         if (mesh->HasTextureCoords(0)) {
             texCoord.x = mesh->mTextureCoords[0][i].x;
             texCoord.y = mesh->mTextureCoords[0][i].y;
@@ -67,9 +69,9 @@ std::unique_ptr<Mesh> Model::processMesh(const aiMesh *mesh, const aiScene *scen
     }
 
     /* indices */
-    for (size_t i=0; i<mesh->mNumFaces; i++) {
-        const aiFace& face = mesh->mFaces[i];
-        for (size_t j=0; j<face.mNumIndices;j++) {
+    for (size_t i = 0; i < mesh->mNumFaces; i++) {
+        const aiFace &face = mesh->mFaces[i];
+        for (size_t j = 0; j < face.mNumIndices; j++) {
             indices.push_back(face.mIndices[j]);
         }
     }

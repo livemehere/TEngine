@@ -139,13 +139,13 @@ void Application::createSandboxScene() {
     UnlitMaterial& grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
 
     /* models */
-    const Model& bagModel = resourceManager.loadModel("models/backpack/backpack.obj");
+    const Model& bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
     const Texture2D& bagModelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
     const Texture2D& bagModelSpecularTexture = resourceManager.loadTexture("models/backpack/specular.jpg");
     LitMaterial& bagModelMaterial = resourceManager.loadLitMaterial("bag",litShader, bagModelTexture);
     bagModelMaterial.specularTexture = &bagModelSpecularTexture;
 
-    const Model & personModel = resourceManager.loadModel("models/person/scene.gltf");
+    const Model & personModel = resourceManager.loadModel("models/person/scene.gltf", false);
     const Texture2D& personTexture = resourceManager.loadTexture("models/person/baseColor.png");
     LitMaterial& personMaterial = resourceManager.loadLitMaterial("person",litShader, personTexture);
 

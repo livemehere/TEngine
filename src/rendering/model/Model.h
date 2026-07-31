@@ -17,7 +17,7 @@ class Model {
 
     std::vector<ModelPart> parts;
 public:
-    Model(const std::string& path);
+    Model(const std::string& path, bool flipUVs);
     ~Model() = default;
 
     const std::vector<ModelPart>& getParts() const { return parts; }

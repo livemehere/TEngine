@@ -42,5 +42,5 @@ public:
     UnlitMaterial& loadUnlitMaterial(const std::string& key, const Shader& shader, const Texture2D& texture);
 
     const Texture2D& loadTexture(const std::string& path);
-    const Model& loadModel(const std::string& path);
+    const Model& loadModel(const std::string& path, bool flipUVs);
 };
