@@ -189,8 +189,8 @@ glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
 const EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMaterial, const std::string &name) {
     const EntityId rootEntityId = createEntity(name).id;
 
-    const auto &nodes = model.getNodes();
-    const auto &parts = model.getParts();
+    const auto &nodes = model.nodes;
+    const auto &parts = model.parts;
 
     std::vector<EntityId> nodeEntityIds(nodes.size());
 
@@ -203,17 +203,35 @@ const EntityId Scene::instantiateModel(const Model &model, const Material &fallb
         nodeEntityIds[nodeIndex] = nodeEntityId;
         nodeEntity.localTransform = modelNode.localTransform;
         std::optional<EntityId> parentId = modelNode.parentIndex >= 0
-                                               ? std::optional<EntityId>(nodeEntityIds[modelNode.parentIndex])
+                                               ? std::optional<EntityId>(nodeEntityIds[*modelNode.parentIndex])
                                                : std::optional<EntityId>(rootEntityId);
         size_t insertIndex = getChildren(parentId).size();
-        moveEntity(nodeEntityId,*parentId,insertIndex, true);
+        moveEntity(nodeEntityId, *parentId, insertIndex, true);
+
+        const auto resolvePartMaterial =
+                [&](const ModelPart &part)
+            -> const Material * {
+            if (part.materialSlot <
+                model.materials.size()) {
+                const Material *material =
+                        model.materials[
+                            part.materialSlot
+                        ];
+
+                if (material) {
+                    return material;
+                }
+            }
+
+            return &fallbackMaterial;
+        };
 
         if (modelNode.partIndices.size() == 1) {
             const ModelPart &part = parts[modelNode.partIndices[0]];
             Entity *target = findEntity(nodeEntityId);
             target->meshRenderer = {
                 .mesh = part.mesh.get(),
-                .material = &fallbackMaterial
+                .material = resolvePartMaterial(part)
             };
         } else {
             // one node has multiple meshes
@@ -225,7 +243,7 @@ const EntityId Scene::instantiateModel(const Model &model, const Material &fallb
 
                 meshEntity.meshRenderer = {
                     .mesh = part.mesh.get(),
-                    .material = &fallbackMaterial
+                    .material = resolvePartMaterial(part)
                 };
 
                 moveEntity(meshEntityId, nodeEntityId, partOrder, true);

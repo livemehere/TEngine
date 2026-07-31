@@ -138,19 +138,8 @@ void Application::createSandboxScene() {
 
     /* models */
     const Model &bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
-    const Texture2D &bagModelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
-    const Texture2D &bagModelSpecularTexture = resourceManager.loadTexture("models/backpack/specular.jpg");
-    LitMaterial &bagModelMaterial = resourceManager.loadLitMaterial("bag", litShader, bagModelTexture);
-    bagModelMaterial.specularTexture = &bagModelSpecularTexture;
-
     const Model &personModel = resourceManager.loadModel("models/person/scene.gltf", false);
-    const Texture2D &personTexture = resourceManager.loadTexture("models/person/baseColor.png");
-    LitMaterial &personMaterial = resourceManager.loadLitMaterial("person", litShader, personTexture);
-
     const Model &fourArmsModel = resourceManager.loadModel("models/ben10-four-arms.glb", false);
-    // const Texture2D& fourArmsTexture = resourceManager.loadTexture("models/fourArms/baseColor.png");
-    // LitMaterial& fourArmsMaterial = resourceManager.loadLitMaterial("fourArms",litShader, fourArmsTexture);
-
 
     Entity &ground = scene.createEntity("ground");
     ground.localTransform.position = {0.0f, 0.0f, 0.0f};
@@ -184,8 +173,7 @@ void Application::createSandboxScene() {
     box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
 
-
-    auto bagId = scene.instantiateModel(bagModel, bagModelMaterial, "bag");
+    auto bagId = scene.instantiateModel(bagModel, whiteMaterial, "bag");
     Entity *bagEntity = scene.findEntity(bagId);
     bagEntity->localTransform = {
         .position = {0.0f, 1.0f, 0.0f},
@@ -193,7 +181,7 @@ void Application::createSandboxScene() {
         .scale = {0.5f, 0.5f, 0.5f},
     };
 
-    auto personId = scene.instantiateModel(personModel, personMaterial, "person");
+    auto personId = scene.instantiateModel(personModel, whiteMaterial, "person");
     Entity *personEntity = scene.findEntity(personId);
     personEntity->localTransform = {
         .position = {2.0f, 1.0f, 0.0f},
