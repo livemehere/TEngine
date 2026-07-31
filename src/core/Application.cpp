@@ -139,11 +139,16 @@ void Application::createSandboxScene() {
     UnlitMaterial& grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
 
     /* models */
-    const Model& model = resourceManager.loadModel("models/backpack/backpack.obj");
-    const Texture2D& modelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
-    const Texture2D& modelSpecularMap = resourceManager.loadTexture("models/backpack/specular.jpg");
-    LitMaterial& modelMaterial = resourceManager.loadLitMaterial("model",litShader, modelTexture);
-    modelMaterial.specularTexture = &modelSpecularMap;
+    const Model& bagModel = resourceManager.loadModel("models/backpack/backpack.obj");
+    const Texture2D& bagModelTexture = resourceManager.loadTexture("models/backpack/diffuse.jpg");
+    const Texture2D& bagModelSpecularTexture = resourceManager.loadTexture("models/backpack/specular.jpg");
+    LitMaterial& bagModelMaterial = resourceManager.loadLitMaterial("bag",litShader, bagModelTexture);
+    bagModelMaterial.specularTexture = &bagModelSpecularTexture;
+
+    const Model & personModel = resourceManager.loadModel("models/person/scene.gltf");
+    const Texture2D& personTexture = resourceManager.loadTexture("models/person/baseColor.png");
+    LitMaterial& personMaterial = resourceManager.loadLitMaterial("person",litShader, personTexture);
+
 
     Entity& ground = scene.createEntity("ground");
     ground.localTransform.position = {0.0f,0.0f,0.0f};
@@ -186,8 +191,19 @@ void Application::createSandboxScene() {
         .scale = {0.5f,0.5f,0.5f},
     };
     bag.modelRenderer = {
-        .model = &model,
-        .material = &modelMaterial
+        .model = &bagModel,
+        .material = &bagModelMaterial
+    };
+
+    Entity& person = scene.createEntity("person");
+    person.localTransform = {
+        .position = {2.0f,1.0f,0.0f},
+        .rotation = {0.0f,0.0f,0.0f},
+        .scale = {1.0f,1.0f,1.0f},
+    };
+    person.modelRenderer = {
+        .model = &personModel,
+        .material = &personMaterial
     };
 
 
