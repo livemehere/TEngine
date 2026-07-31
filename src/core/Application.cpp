@@ -158,13 +158,7 @@ void Application::createSandboxScene() {
     box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
 
 
-    Entity &grass = scene.createEntity("grass");
-    grass.localTransform.position = {0.0f, 0.5f, 2.0f};
-    grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
-    grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
-    grass.meshRenderer = {&planeMesh, &grassMaterial};
-    grass.siblingIndex = 3;
-    scene.moveEntity(grass.id, boxId, 0);
+
 
 
     Entity &box2 = scene.createEntity("box2");
@@ -197,6 +191,15 @@ void Application::createSandboxScene() {
         .scale = {1.0f, 1.0f, 1.0f},
     };
 
+
+    // FIXME: alpha channel has matter with order of render.
+    Entity &grass = scene.createEntity("grass");
+    grass.localTransform.position = {0.0f, 0.5f, 2.0f};
+    grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
+    grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
+    grass.meshRenderer = {&planeMesh, &grassMaterial};
+    grass.siblingIndex = 3;
+    scene.moveEntity(grass.id, boxId, 0);
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;
