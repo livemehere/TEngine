@@ -179,20 +179,17 @@ void Application::createSandboxScene() {
     scene.moveEntity(box2.id, boxId, 1);
 
 
-    // Entity& bag = scene.createEntity("bag");
-    // bag.transform = {
-    //     .position = {0.0f,1.0f,0.0f},
-    //     .rotation = {0.0f,0.0f,0.0f},
-    //     .scale = {0.5f,0.5f,0.5f},
-    // };
+    Entity& bag = scene.createEntity("bag");
+    bag.localTransform = {
+        .position = {0.0f,1.0f,0.0f},
+        .rotation = {0.0f,0.0f,0.0f},
+        .scale = {0.5f,0.5f,0.5f},
+    };
+    bag.modelRenderer = {
+        .model = &model,
+        .material = &modelMaterial
+    };
 
-    // for (auto& mesh : model.meshes) {
-    //     scene.entities.push_back({
-    //         .transform = ,
-    //         .mesh = mesh.get(),
-    //         .material = &modelMaterial,
-    //     });
-    // }
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;

@@ -57,6 +57,7 @@ add_executable(TEngine src/main.cpp
         src/scene/Entity.h
         src/editor/Editor.cpp
         src/editor/Editor.h
+        src/components/ModelRendererComponent.h
 )
 
 target_link_libraries(TEngine PRIVATE

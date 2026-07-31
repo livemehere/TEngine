@@ -16,18 +16,25 @@ Model::Model(const std::string &path) {
         throw std::runtime_error(std::format("Model load failed {}", path ));
     }
 
-    processNode(scene->mRootNode, scene);
+    processNode(scene->mRootNode, scene, glm::mat4{1.0f});
 }
 
-void Model::processNode(const aiNode *node, const aiScene *scene) {
+void Model::processNode(const aiNode *node, const aiScene *scene, const glm::mat4& parentMatrix) {
+
+    const glm::mat4 localMatrix = convertMatrixToGlmFormat(node->mTransformation);
+    const glm::mat4 matrixFromRoot = parentMatrix * localMatrix;
 
     for (int i = 0; i < node->mNumMeshes; i++) {
         const aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        parts.push_back({
+            .mesh = processMesh(mesh, scene),
+            .localMatrix = matrixFromRoot,
+            .materialSlot = mesh->mMaterialIndex
+        });
     }
 
     for (int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene);
+        processNode(node->mChildren[i], scene, matrixFromRoot);
     }
 
 }

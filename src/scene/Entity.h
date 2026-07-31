@@ -5,6 +5,7 @@
 
 #include "../rendering/Transform.h"
 #include "../components/MeshRendererComponent.h"
+#include "../components/ModelRendererComponent.h"
 
 using EntityId = std::uint64_t;
 
@@ -21,6 +22,7 @@ struct Entity {
     size_t siblingIndex = 0;
 
     std::optional<MeshRendererComponent> meshRenderer;
+    std::optional<ModelRendererComponent> modelRenderer;
 };
 
 struct EntityMoveRequest {
