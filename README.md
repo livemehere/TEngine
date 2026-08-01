@@ -36,3 +36,7 @@ apply specular map
 stencil
 
 <img width="1183" height="841" alt="image" src="https://github.com/user-attachments/assets/10572083-b3a1-4aac-85b5-7a4332b7beb4" />
+
+#### .obj, .glb, .gltf .. all kind of model load and auto load materials(still phong...)
+
+<img width="1630" height="1010" alt="image" src="https://github.com/user-attachments/assets/da64b37f-7d93-4b7b-bad0-e0e3db632ac1" />
