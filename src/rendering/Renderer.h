@@ -62,7 +62,7 @@ struct RenderOptions {
 
 class Renderer {
     const Shader &outlineShader;
-    glm::vec4 outlineColor{1.0f, 0.0f, 0.0f, 1.0f};
+    glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
 
     GLuint cameraUBO = 0;
