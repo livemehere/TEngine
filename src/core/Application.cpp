@@ -149,14 +149,14 @@ void Application::createSandboxScene() {
     ground.localTransform.position = {0.0f, 0.0f, 0.0f};
     ground.localTransform.rotation = {-90.0f, 0.0f, 0.0f};
     ground.localTransform.scale = {5.0f, 5.0f, 5.0f};
-    ground.meshRenderer = {&planeMesh, &whiteMaterial};
+    ground.meshRenderComponent = {&planeMesh, &whiteMaterial};
 
     Entity &box = scene.createEntity("box");
     EntityId boxId = box.id;
-    box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
+    box.meshRenderComponent = {&resourceManager.getCubeMesh(), &whiteMaterial};
 
     Entity &box2 = scene.createEntity("box2");
-    box2.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
+    box2.meshRenderComponent = {&resourceManager.getCubeMesh(), &whiteMaterial};
     box2.localTransform.position.x = 3.0f;
     box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
@@ -199,14 +199,14 @@ void Application::createSandboxScene() {
     grass.localTransform.position = {0.0f, 0.5f, 2.0f};
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
-    grass.meshRenderer = {&planeMesh, &grassMaterial};
+    grass.meshRenderComponent = {&planeMesh, &grassMaterial};
     grass.siblingIndex = 3;
 
     Entity &window = scene.createEntity("window");
     window.localTransform.position = {0.0f, 0.0f, 5.0f};
     window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     window.localTransform.scale = {10.0f, 10.0f, 10.0f};
-    window.meshRenderer = {&planeMesh, &windowMaterial};
+    window.meshRenderComponent = {&planeMesh, &windowMaterial};
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;

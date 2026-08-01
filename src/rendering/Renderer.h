@@ -57,6 +57,7 @@ class Renderer {
 
     void updateCameraBuffer(Scene& scene, const WindowSize& windowSize);
     void updateLightsBuffer(Scene& scene);
+
 public:
     Renderer();
     ~Renderer() {

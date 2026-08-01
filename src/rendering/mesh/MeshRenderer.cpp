@@ -35,8 +35,7 @@ void MeshRenderer::render(const glm::mat4& worldMatrix, const Mesh& mesh, const 
         1,
         0xFF
     );
-
-    // glStencilMask(0x00);
+    glStencilMask(0x00);
     glDisable(GL_DEPTH_TEST);
 
     // TODO: move to renderobject options
@@ -53,6 +52,6 @@ void MeshRenderer::render(const glm::mat4& worldMatrix, const Mesh& mesh, const 
     unlitMaterial.shader.setMat4("uModel", outlineMatrix);
     mesh.draw();
 
+    glStencilMask(0xFF);
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_STENCIL_TEST);
 }

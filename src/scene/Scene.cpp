@@ -229,7 +229,7 @@ EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMat
         if (modelNode.partIndices.size() == 1) {
             const ModelPart &part = parts[modelNode.partIndices[0]];
             Entity *target = findEntity(nodeEntityId);
-            target->meshRenderer = {
+            target->meshRenderComponent = {
                 .mesh = part.mesh.get(),
                 .material = resolvePartMaterial(part)
             };
@@ -241,7 +241,7 @@ EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMat
                 Entity &meshEntity = createEntity(std::format("{}_Mesh_{}", modelNode.name, partOrder));
                 const EntityId meshEntityId = meshEntity.id;
 
-                meshEntity.meshRenderer = {
+                meshEntity.meshRenderComponent = {
                     .mesh = part.mesh.get(),
                     .material = resolvePartMaterial(part)
                 };
