@@ -136,6 +136,11 @@ void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
     // glEnable(GL_CULL_FACE);
     // glFrontFace(GL_CCW);
     // glCullFace(GL_BACK);
+
+    // glClear respects the stencil write mask. Always restore all stencil bits
+    // before clearing so values from the previous frame cannot survive.
+    glStencilMask(0xFF);
+    glDisable(GL_STENCIL_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
@@ -156,7 +161,7 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
             GL_REPLACE
         );
     } else {
-        glStencilMask(0x00);
+        glDisable(GL_STENCIL_TEST);
     }
 
     /* material specific */
