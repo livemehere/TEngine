@@ -177,6 +177,21 @@ void Editor::drawInspector(Scene &scene) {
                 component.outlineMode = static_cast<OutlineMode>(outlineMode);
             }
 
+            constexpr const char *outlineVisibilityNames[] = {
+                "Visible Only",
+                "Always Visible"
+            };
+
+            int outlineVisibility = static_cast<int>(component.outlineVisibility);
+            if (ImGui::Combo(
+                "Outline Visibility",
+                &outlineVisibility,
+                outlineVisibilityNames,
+                IM_ARRAYSIZE(outlineVisibilityNames)
+            )) {
+                component.outlineVisibility = static_cast<OutlineVisibility>(outlineVisibility);
+            }
+
             ImGui::TreePop();
         }
     }

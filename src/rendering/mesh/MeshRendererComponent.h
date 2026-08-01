@@ -8,9 +8,15 @@ enum class OutlineMode : int {
     ScaleFromPivot = 1
 };
 
+enum class OutlineVisibility : int {
+    VisibleOnly = 0,
+    AlwaysVisible = 1
+};
+
 struct MeshRendererComponent {
     const Mesh* mesh = nullptr;
     const Material* material = nullptr;
     bool outlineEnabled = false;
     OutlineMode outlineMode = OutlineMode::NormalExtrusion;
+    OutlineVisibility outlineVisibility = OutlineVisibility::VisibleOnly;
 };

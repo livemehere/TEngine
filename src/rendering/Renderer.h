@@ -73,7 +73,7 @@ class Renderer {
 
     /** passes */
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
-    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode);
+    void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);
 
 public:
     explicit Renderer(ResourceManager &resourceManager);
