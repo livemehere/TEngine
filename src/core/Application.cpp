@@ -140,6 +140,10 @@ void Application::createSandboxScene() {
     const Model &bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
     const Model &personModel = resourceManager.loadModel("models/person/scene.gltf", false);
     const Model &fourArmsModel = resourceManager.loadModel("models/ben10-four-arms.glb", false);
+    const Model &fireManModel = resourceManager.loadModel("models/fire-elementals.glb", false);
+
+
+    // scene.moveEntity(grass.id, boxId, 0);
 
     Entity &ground = scene.createEntity("ground");
     ground.localTransform.position = {0.0f, 0.0f, 0.0f};
@@ -147,19 +151,9 @@ void Application::createSandboxScene() {
     ground.localTransform.scale = {5.0f, 5.0f, 5.0f};
     ground.meshRenderer = {&planeMesh, &whiteMaterial};
 
-    Entity &window = scene.createEntity("window");
-    window.localTransform.position = {0.0f, 0.0f, 5.0f};
-    window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
-    window.localTransform.scale = {10.0f, 10.0f, 10.0f};
-    window.meshRenderer = {&planeMesh, &windowMaterial};
-
     Entity &box = scene.createEntity("box");
     EntityId boxId = box.id;
     box.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
-
-
-
-
 
     Entity &box2 = scene.createEntity("box2");
     box2.meshRenderer = {&resourceManager.getCubeMesh(), &whiteMaterial};
@@ -191,15 +185,28 @@ void Application::createSandboxScene() {
         .scale = {1.0f, 1.0f, 1.0f},
     };
 
+    auto fireManId = scene.instantiateModel(fireManModel, whiteMaterial, "fireman");
+    Entity *fireManEntity = scene.findEntity(fireManId);
+    fireManEntity->localTransform = {
+        .position = {1.0f, 1.0f, 1.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+    };
 
-    // FIXME: alpha channel has matter with order of render.
+    // TODO: transparent entities must be re-ordered in scene render pipeline.
+    // must be render after none-transparent object.
     Entity &grass = scene.createEntity("grass");
     grass.localTransform.position = {0.0f, 0.5f, 2.0f};
     grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
     grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderer = {&planeMesh, &grassMaterial};
     grass.siblingIndex = 3;
-    scene.moveEntity(grass.id, boxId, 0);
+
+    Entity &window = scene.createEntity("window");
+    window.localTransform.position = {0.0f, 0.0f, 5.0f};
+    window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
+    window.localTransform.scale = {10.0f, 10.0f, 10.0f};
+    window.meshRenderer = {&planeMesh, &windowMaterial};
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;

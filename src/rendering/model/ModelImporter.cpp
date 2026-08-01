@@ -224,9 +224,9 @@ std::unique_ptr<Mesh> ModelImporter::processMesh(
 }
 
 void ModelImporter::processMaterials(
-    Model& model,
-    const aiScene* scene,
-    const std::filesystem::path& modelPath
+    Model &model,
+    const aiScene *scene,
+    const std::filesystem::path &modelPath
 ) {
     model.materials.assign(
         scene->mNumMaterials,
@@ -236,28 +236,28 @@ void ModelImporter::processMaterials(
     for (unsigned int materialIndex = 0;
          materialIndex < scene->mNumMaterials;
          ++materialIndex) {
-        const aiMaterial* sourceMaterial =
-            scene->mMaterials[materialIndex];
+        const aiMaterial *sourceMaterial =
+                scene->mMaterials[materialIndex];
 
         try {
             // glTF/PBR
-            const Texture2D* albedoTexture =
-                loadMaterialTexture(
-                    sourceMaterial,
-                    aiTextureType_BASE_COLOR,
-                    scene,
-                    modelPath
-                );
+            const Texture2D *albedoTexture =
+                    loadMaterialTexture(
+                        sourceMaterial,
+                        aiTextureType_BASE_COLOR,
+                        scene,
+                        modelPath
+                    );
 
             // OBJ/Phong
             if (!albedoTexture) {
                 albedoTexture =
-                    loadMaterialTexture(
-                        sourceMaterial,
-                        aiTextureType_DIFFUSE,
-                        scene,
-                        modelPath
-                    );
+                        loadMaterialTexture(
+                            sourceMaterial,
+                            aiTextureType_DIFFUSE,
+                            scene,
+                            modelPath
+                        );
             }
 
             // use fallbackMaterial
@@ -266,18 +266,18 @@ void ModelImporter::processMaterials(
             }
 
             const std::string materialKey =
-                std::format(
-                    "{}#material:{}",
-                    modelPath.string(),
-                    materialIndex
-                );
+                    std::format(
+                        "{}#material:{}",
+                        modelPath.string(),
+                        materialIndex
+                    );
 
-            LitMaterial& importedMaterial =
-                resourceManager.loadLitMaterial(
-                    materialKey,
-                    resourceManager.getLitShader(),
-                    *albedoTexture
-                );
+            LitMaterial &importedMaterial =
+                    resourceManager.loadLitMaterial(
+                        materialKey,
+                        resourceManager.getLitShader(),
+                        *albedoTexture
+                    );
 
             aiColor4D baseColor{
                 1.0f,
@@ -304,17 +304,17 @@ void ModelImporter::processMaterials(
             };
 
             importedMaterial.specularTexture =
-                nullptr;
+                    nullptr;
 
             try {
                 importedMaterial.specularTexture =
-                    loadMaterialTexture(
-                        sourceMaterial,
-                        aiTextureType_SPECULAR,
-                        scene,
-                        modelPath
-                    );
-            } catch (const std::exception& e) {
+                        loadMaterialTexture(
+                            sourceMaterial,
+                            aiTextureType_SPECULAR,
+                            scene,
+                            modelPath
+                        );
+            } catch (const std::exception &e) {
                 LOG(std::format(
                     "Specular texture load failed: {}",
                     e.what()
@@ -322,11 +322,10 @@ void ModelImporter::processMaterials(
             }
 
             model.materials[materialIndex] =
-                &importedMaterial;
-
-        } catch (const std::exception& e) {
+                    &importedMaterial;
+        } catch (const std::exception &e) {
             model.materials[materialIndex] =
-                nullptr;
+                    nullptr;
 
             LOG(std::format(
                 "Material {} import failed: {}",
@@ -337,11 +336,11 @@ void ModelImporter::processMaterials(
     }
 }
 
-const Texture2D* ModelImporter::loadMaterialTexture(
-    const aiMaterial* material,
+const Texture2D *ModelImporter::loadMaterialTexture(
+    const aiMaterial *material,
     aiTextureType textureType,
-    const aiScene* scene,
-    const std::filesystem::path& modelPath
+    const aiScene *scene,
+    const std::filesystem::path &modelPath
 ) {
     aiString textureReference;
 
@@ -354,62 +353,62 @@ const Texture2D* ModelImporter::loadMaterialTexture(
     }
 
     const auto [embeddedTexture, embeddedIndex] =
-        scene->GetEmbeddedTextureAndIndex(
-            textureReference.C_Str()
-        );
+            scene->GetEmbeddedTextureAndIndex(
+                textureReference.C_Str()
+            );
 
     if (embeddedTexture) {
         const std::string embeddedId =
-            embeddedIndex >= 0
-                ? std::to_string(embeddedIndex)
-                : std::string(
-                    textureReference.C_Str()
-                );
+                embeddedIndex >= 0
+                    ? std::to_string(embeddedIndex)
+                    : std::string(
+                        textureReference.C_Str()
+                    );
 
         const std::string resourceKey =
-            std::format(
-                "{}#embedded:{}",
-                modelPath.string(),
-                embeddedId
-            );
+                std::format(
+                    "{}#embedded:{}",
+                    modelPath.string(),
+                    embeddedId
+                );
 
         // compressed PNG/JPG data.
         //  mWidth = byte size.
         if (embeddedTexture->mHeight == 0) {
-            const auto* bytes =
-                reinterpret_cast<const std::uint8_t*>(
-                    embeddedTexture->pcData
-                );
+            const auto *bytes =
+                    reinterpret_cast<const std::uint8_t *>(
+                        embeddedTexture->pcData
+                    );
 
             const std::span<const std::uint8_t>
-                encodedData{
-                    bytes,
-                    static_cast<std::size_t>(
-                        embeddedTexture->mWidth
-                    )
-                };
+                    encodedData{
+                        bytes,
+                        static_cast<std::size_t>(
+                            embeddedTexture->mWidth
+                        )
+                    };
 
             return &resourceManager
-                .loadEncodedTexture(
-                    resourceKey,
-                    encodedData
-                );
+                    .loadEncodedTexture(
+                        resourceKey,
+                        encodedData
+                    );
         }
 
         const std::size_t pixelCount =
-            static_cast<std::size_t>(
-                embeddedTexture->mWidth
-            ) *
-            static_cast<std::size_t>(
-                embeddedTexture->mHeight
-            );
+                static_cast<std::size_t>(
+                    embeddedTexture->mWidth
+                ) *
+                static_cast<std::size_t>(
+                    embeddedTexture->mHeight
+                );
 
         std::vector<std::uint8_t> rgbaPixels(
             pixelCount * 4
         );
 
         for (std::size_t i = 0; i < pixelCount; ++i) {
-            const aiTexel& texel = embeddedTexture->pcData[i];
+            const aiTexel &texel = embeddedTexture->pcData[i];
 
             rgbaPixels[i * 4 + 0] = texel.r;
             rgbaPixels[i * 4 + 1] = texel.g;
@@ -430,10 +429,10 @@ const Texture2D* ModelImporter::loadMaterialTexture(
     }
 
     const std::filesystem::path texturePath =
-        (
-            modelPath.parent_path() /
-            textureReference.C_Str()
-        ).lexically_normal();
+    (
+        modelPath.parent_path() /
+        textureReference.C_Str()
+    ).lexically_normal();
 
     return &resourceManager.loadTexture(
         texturePath.string()

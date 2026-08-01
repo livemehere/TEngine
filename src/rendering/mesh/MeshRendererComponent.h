@@ -6,5 +6,6 @@
 struct MeshRendererComponent {
     const Mesh* mesh = nullptr;
     const Material* material = nullptr;
+    // TODO: add outline (stencil) bool option
 };
 

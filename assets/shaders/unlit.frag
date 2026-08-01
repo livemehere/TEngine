@@ -11,7 +11,8 @@ uniform vec4 uBaseColor;
 
 void main()
 {
-    FragColor = texture(uAlbedoTexture, vTexCoord) * uBaseColor;
+    vec4 color = texture(uAlbedoTexture, vTexCoord) * uBaseColor;
+    FragColor = color;
     /** for normal direction debug */
 //     FragColor = vec4(vNormal * 0.5 + 0.5, 0.8);
 }
