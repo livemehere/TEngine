@@ -303,6 +303,14 @@ void ModelImporter::processMaterials(
                 baseColor.a
             };
 
+            int twoSided = 0;
+            if (sourceMaterial->Get(
+                    AI_MATKEY_TWOSIDED,
+                    twoSided
+                ) == AI_SUCCESS && twoSided != 0) {
+                importedMaterial.rasterState.cullMode = CullMode::None;
+            }
+
             importedMaterial.specularTexture =
                     nullptr;
 

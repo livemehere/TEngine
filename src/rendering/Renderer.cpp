@@ -6,6 +6,22 @@
 #include "../resources/ResourceManager.h"
 
 namespace {
+    void applyCullMode(CullMode mode) {
+        switch (mode) {
+            case CullMode::None:
+                glDisable(GL_CULL_FACE);
+                break;
+            case CullMode::Back:
+                glEnable(GL_CULL_FACE);
+                glCullFace(GL_BACK);
+                break;
+            case CullMode::Front:
+                glEnable(GL_CULL_FACE);
+                glCullFace(GL_FRONT);
+                break;
+        }
+    }
+
     bool isEntityOrDescendantOf(
         const Scene &scene,
         const Entity &entity,
@@ -143,16 +159,11 @@ void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glFrontFace(GL_CCW);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // render as wireframe
     // glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    // Back-face culling (enable for one-sided meshes)
-    // NOTE: keep disabled when both sides of a surface must be visible.
-    // glEnable(GL_CULL_FACE);
-    // glFrontFace(GL_CCW);
-    // glCullFace(GL_BACK);
 
     // glClear respects the stencil write mask. Always restore all stencil bits
     // before clearing so values from the previous frame cannot survive.
@@ -182,6 +193,7 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
     }
 
     /* material specific */
+    applyCullMode(material.rasterState.cullMode);
     material.bind();
 
     /* mesh common */
@@ -196,6 +208,10 @@ void Renderer::drawMeshOutline(
     OutlineMode outlineMode,
     float width
 ) {
+    // Outline geometry owns its raster state and must not inherit the material's
+    // culling mode. Both sides are required by the current stencil extrusion.
+    glDisable(GL_CULL_FACE);
+
     outlineShader.use();
     outlineShader.setMat4("uModel", worldMatrix);
     outlineShader.setFloat("uOutlineWidth", width);
