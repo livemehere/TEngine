@@ -150,6 +150,36 @@ void Editor::drawInspector(Scene &scene) {
     }
     /* transform end */
 
+    if (entity->meshRenderComponent) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+        const bool meshRendererOpen = ImGui::TreeNodeEx("MeshRenderer", componentFlags);
+        ImGui::PopStyleVar();
+
+        if (meshRendererOpen) {
+            ImGui::Spacing();
+
+            MeshRendererComponent &component = *entity->meshRenderComponent;
+            ImGui::Checkbox("Persistent Outline", &component.outlineEnabled);
+            ImGui::TextDisabled("Selection highlight is shown independently.");
+
+            constexpr const char *outlineModeNames[] = {
+                "Normal Extrusion",
+                "Scale From Pivot"
+            };
+
+            int outlineMode = static_cast<int>(component.outlineMode);
+            if (ImGui::Combo(
+                "Outline Mode",
+                &outlineMode,
+                outlineModeNames,
+                IM_ARRAYSIZE(outlineModeNames)
+            )) {
+                component.outlineMode = static_cast<OutlineMode>(outlineMode);
+            }
+
+            ImGui::TreePop();
+        }
+    }
 
     ImGui::End();
 }

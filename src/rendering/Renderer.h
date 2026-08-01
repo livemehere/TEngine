@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <glm/vec4.hpp>
 
 #include "../scene/Scene.h"
@@ -54,6 +56,10 @@ struct alignas(16) GPULightingData {
     std::array<GPUSpotLight,MAX_SPOT_LIGHTS> spotLights;
 };
 
+struct RenderOptions {
+    std::optional<EntityId> highlightedEntityId;
+};
+
 class Renderer {
     const Shader &outlineShader;
     glm::vec4 outlineColor{1.0f, 0.0f, 0.0f, 1.0f};
@@ -67,7 +73,7 @@ class Renderer {
 
     /** passes */
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
-    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh);
+    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode);
 
 public:
     explicit Renderer(ResourceManager &resourceManager);
@@ -83,6 +89,6 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     void beginFrame(Scene& scene, const WindowSize& windowSize);
-    void render(const Scene& scene);
+    void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
 };

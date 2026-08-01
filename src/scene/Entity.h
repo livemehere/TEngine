@@ -20,7 +20,6 @@ struct Entity {
     std::optional<EntityId> parentId = std::nullopt;
     size_t siblingIndex = 0;
 
-    bool outline = true;
     std::optional<MeshRendererComponent> meshRenderComponent;
 };
 

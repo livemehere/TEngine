@@ -2,6 +2,28 @@
 
 #include "../resources/ResourceManager.h"
 
+namespace {
+    bool isEntityOrDescendantOf(
+        const Scene &scene,
+        const Entity &entity,
+        EntityId ancestorId
+    ) {
+        const Entity *current = &entity;
+
+        while (current) {
+            if (current->id == ancestorId) {
+                return true;
+            }
+
+            current = current->parentId
+                          ? scene.findEntity(*current->parentId)
+                          : nullptr;
+        }
+
+        return false;
+    }
+}
+
 /*layout (std140) uniform ExampleBlock
 {
                      // base alignment  // aligned offset
@@ -146,7 +168,11 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
     mesh.draw();
 }
 
-void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh) {
+void Renderer::meshOutlineRenderPass(
+    const glm::mat4 &worldMatrix,
+    const Mesh &mesh,
+    OutlineMode outlineMode
+) {
     glStencilFunc(
         GL_NOTEQUAL,
         1,
@@ -159,6 +185,7 @@ void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &m
     outlineShader.setMat4("uModel", worldMatrix);
     outlineShader.setFloat("uOutlineWidth", outlineWidth);
     outlineShader.setVec4("uOutlineColor", outlineColor);
+    outlineShader.setInt("uOutlineMode", static_cast<int>(outlineMode));
     mesh.draw();
 
     glStencilMask(0xFF);
@@ -166,15 +193,23 @@ void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &m
     glDisable(GL_STENCIL_TEST);
 }
 
-void Renderer::render(const Scene &scene) {
+void Renderer::render(const Scene &scene, const RenderOptions &options) {
     for (const Entity &entity: scene.getEntities()) {
         if (entity.meshRenderComponent) {
             const MeshRendererComponent &component = *entity.meshRenderComponent;
+            const bool highlighted = options.highlightedEntityId &&
+                                     isEntityOrDescendantOf(
+                                         scene,
+                                         entity,
+                                         *options.highlightedEntityId
+                                     );
+            const bool showOutline = component.outlineEnabled || highlighted;
+
             auto worldMatrix = scene.getWorldMatrix(entity);
-            meshRenderPass(worldMatrix, *component.mesh, *component.material, entity.outline);
+            meshRenderPass(worldMatrix, *component.mesh, *component.material, showOutline);
             // NOTE: multiple mesh line collapsed. TODO: detach pass to other for loop
-            if (entity.outline) {
-                meshOutlineRenderPass(worldMatrix, *component.mesh);
+            if (showOutline) {
+                meshOutlineRenderPass(worldMatrix, *component.mesh, component.outlineMode);
             }
         }
     }

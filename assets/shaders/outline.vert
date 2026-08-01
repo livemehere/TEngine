@@ -11,16 +11,26 @@ layout (location = 1) in vec3 aNormal;
 
 uniform mat4 uModel;
 uniform float uOutlineWidth;
+uniform int uOutlineMode;
+
+const int OUTLINE_NORMAL_EXTRUSION = 0;
+const int OUTLINE_SCALE_FROM_PIVOT = 1;
 
 void main()
 {
-    vec3 worldPos = vec3(uModel * vec4(aPos, 1.0));
+    vec3 worldPos;
 
-    mat3 normalMatrix = mat3(transpose(inverse(uModel)));
+    if (uOutlineMode == OUTLINE_SCALE_FROM_PIVOT) {
+        vec3 expandedPosition = aPos * (1.0 + uOutlineWidth);
+        worldPos = vec3(uModel * vec4(expandedPosition, 1.0));
+    } else {
+        worldPos = vec3(uModel * vec4(aPos, 1.0));
 
-    vec3 worldNormal = normalize(normalMatrix * aNormal);
+        mat3 normalMatrix = mat3(transpose(inverse(uModel)));
+        vec3 worldNormal = normalize(normalMatrix * aNormal);
 
-    worldPos += worldNormal * uOutlineWidth;
+        worldPos += worldNormal * uOutlineWidth;
+    }
 
     gl_Position = camera.projection * camera.view * vec4(worldPos, 1.0);
 }

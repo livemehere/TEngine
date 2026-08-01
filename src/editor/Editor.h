@@ -15,5 +15,6 @@ class Editor {
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
+    std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
     void draw(Scene& scene);
 };
