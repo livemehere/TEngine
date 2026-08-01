@@ -16,6 +16,11 @@
 
 class UnlitMaterial;
 
+namespace ResourceKey {
+    inline constexpr std::string TEXTURE_WHITE = "TEXTURE:WHITE";
+    inline constexpr std::string MATERIAL_OUTLINE = "MATERIAL:OUTLINE";
+};
+
 class ResourceManager {
     std::filesystem::path assetRoot;
 
@@ -26,6 +31,7 @@ class ResourceManager {
     /* resources */
     std::unique_ptr<Shader> litShader;
     std::unique_ptr<Shader> unlitShader;
+    std::unique_ptr<Shader> outlineShader;
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
     std::unordered_map<std::string, std::unique_ptr<Model> > models;
 
@@ -36,10 +42,10 @@ class ResourceManager {
     std::filesystem::path resolvePath(std::filesystem::path filepath) const;
 
 public:
-    ResourceManager(std::filesystem::path rootPath) : assetRoot(rootPath) {
-    };
-
+    ResourceManager(std::filesystem::path rootPath) : assetRoot(rootPath) {}
     ~ResourceManager() = default;
+
+    void bootstrap();
 
     const Mesh &getPlaneMesh();
 
@@ -48,6 +54,8 @@ public:
     const Shader &getLitShader();
 
     const Shader &getUnlitShader();
+
+    const Shader &getOutlineShader();
 
     LitMaterial &loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 

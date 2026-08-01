@@ -5,10 +5,26 @@
 #include "../rendering/model/ModelImporter.h"
 
 std::filesystem::path ResourceManager::resolvePath(std::filesystem::path filepath) const {
+    if (filepath == ResourceKey::TEXTURE_WHITE || filepath == ResourceKey::MATERIAL_OUTLINE) return filepath;
+
     if (filepath.is_absolute()) {
         return filepath;
     }
     return assetRoot / filepath;
+}
+
+void ResourceManager::bootstrap() {
+    /* white texture */
+    constexpr std::array<uint8_t, 4> pixels{255, 255, 255, 255};
+    auto whiteTexture = std::make_unique<Texture2D>(1, 1, pixels);
+
+    /* outline material */
+    const Shader& outlineShader = getOutlineShader();
+    auto outlineMaterial = std::make_unique<UnlitMaterial>(outlineShader, *whiteTexture, glm::vec4{1.0f, 0.0f, 0.0f, 1.0f});
+
+    /* move */
+    textures.emplace(ResourceKey::TEXTURE_WHITE, std::move(whiteTexture));
+    unlitMaterials.emplace(ResourceKey::MATERIAL_OUTLINE,std::move(outlineMaterial));
 }
 
 /* mesh */
@@ -48,6 +64,14 @@ const Shader &ResourceManager::getUnlitShader() {
     return *unlitShader;
 }
 
+const Shader & ResourceManager::getOutlineShader() {
+    if (!outlineShader) {
+        outlineShader = std::make_unique<Shader>("shaders/outline.vert", "shaders/outline.frag");
+        const auto shader = outlineShader.get();
+        shader->bindUniformBlock("CameraData", UniformBinding::Camera);
+    }
+    return *outlineShader;
+}
 
 LitMaterial &ResourceManager::loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
     if (const auto it = litMaterials.find(key); it != litMaterials.end()) {
@@ -75,21 +99,13 @@ UnlitMaterial &ResourceManager::loadUnlitMaterial(const std::string &key, const 
 }
 
 const Texture2D &ResourceManager::loadTexture(const std::string &path) {
-    const std::string key = path == "builtin:white"
-                                ? path
-                                : resolvePath(path).lexically_normal().string();
+    const std::string key = resolvePath(path).lexically_normal().string();
 
     if (const auto it = textures.find(key); it != textures.end()) {
         return *it->second;
     }
 
-    std::unique_ptr<Texture2D> texture;
-    if (path == "builtin:white") {
-        constexpr std::array<uint8_t, 4> pixels{255, 255, 255, 255};
-        texture = std::make_unique<Texture2D>(1, 1, pixels);
-    } else {
-        texture = std::make_unique<Texture2D>(key);
-    }
+    auto texture = std::make_unique<Texture2D>(key);
 
     auto [it, inserted] = textures.emplace(key, std::move(texture));
 

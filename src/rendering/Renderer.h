@@ -1,6 +1,5 @@
 #pragma once
 #include "../scene/Scene.h"
-#include "mesh/MeshRenderer.h"
 
 constexpr std::size_t MAX_POINT_LIGHTS = 16;
 constexpr std::size_t MAX_DIRECTIONAL_LIGHTS = 4;
@@ -50,13 +49,15 @@ struct alignas(16) GPULightingData {
 };
 
 class Renderer {
-    MeshRenderer meshRenderer;
-
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
 
     void updateCameraBuffer(Scene& scene, const WindowSize& windowSize);
     void updateLightsBuffer(Scene& scene);
+
+    /** passes */
+    void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
+    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& outlineMaterial);
 
 public:
     Renderer();
@@ -72,6 +73,6 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     void beginFrame(Scene& scene, const WindowSize& windowSize);
-    void render(const Scene& scene);
+    void render(const Scene& scene, const Material& outlineMaterial);
     void endFrame();
 };

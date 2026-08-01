@@ -36,8 +36,6 @@ add_executable(TEngine src/main.cpp
         src/rendering/mesh/materials/Material.h
         src/rendering/mesh/materials/LitMaterial.cpp
         src/rendering/mesh/materials/LitMaterial.h
-        src/rendering/mesh/MeshRenderer.cpp
-        src/rendering/mesh/MeshRenderer.h
         src/resources/ResourceManager.cpp
         src/resources/ResourceManager.h
         src/rendering/mesh/primitives/PrimitiveMeshes.cpp

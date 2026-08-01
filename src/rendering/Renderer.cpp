@@ -90,6 +90,7 @@ void Renderer::updateLightsBuffer(Scene &scene) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+
 void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
     updateCameraBuffer(scene, windowSize);
     updateLightsBuffer(scene);
@@ -113,13 +114,64 @@ void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void Renderer::render(const Scene &scene) {
+void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, const Material &material,
+                              bool writeOutlineStencil) {
+    if (writeOutlineStencil) {
+        glEnable(GL_STENCIL_TEST);
+        glStencilMask(0xFF);
+        glStencilFunc(
+            GL_ALWAYS,
+            1,
+            0xFF
+        );
+
+        glStencilOp(
+            GL_KEEP,
+            GL_KEEP,
+            GL_REPLACE
+        );
+    } else {
+        glStencilMask(0x00);
+    }
+
+    /* material specific */
+    material.bind();
+
+    /* mesh common */
+    material.shader.setMat4("uModel", worldMatrix);
+
+    mesh.draw();
+}
+
+void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, const Material &outlineMaterial) {
+    glStencilFunc(
+        GL_NOTEQUAL,
+        1,
+        0xFF
+    );
+    glStencilMask(0x00);
+    glDisable(GL_DEPTH_TEST);
+
+    outlineMaterial.bind();
+    outlineMaterial.shader.setMat4("uModel", worldMatrix);
+    outlineMaterial.shader.setFloat("uOutlineWidth", 0.02f);
+    mesh.draw();
+
+    glStencilMask(0xFF);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+}
+
+void Renderer::render(const Scene &scene, const Material &outlineMaterial) {
     for (const Entity &entity: scene.getEntities()) {
-        // NOTE: temporary handle 1 component
         if (entity.meshRenderComponent) {
             const MeshRendererComponent &component = *entity.meshRenderComponent;
             auto worldMatrix = scene.getWorldMatrix(entity);
-            meshRenderer.render(worldMatrix, *component.mesh, *component.material);
+            meshRenderPass(worldMatrix, *component.mesh, *component.material, entity.outline);
+            // NOTE: multiple mesh line collapsed. TODO: detach pass to other for loop
+            if (entity.outline) {
+                meshOutlineRenderPass(worldMatrix, *component.mesh, outlineMaterial);
+            }
         }
     }
 }
