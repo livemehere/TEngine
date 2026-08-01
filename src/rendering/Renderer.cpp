@@ -1,5 +1,8 @@
 #include "Renderer.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "../resources/ResourceManager.h"
 
 namespace {
@@ -21,6 +24,20 @@ namespace {
         }
 
         return false;
+    }
+
+    EntityId getTopLevelAncestorId(const Scene &scene, const Entity &entity) {
+        const Entity *current = &entity;
+
+        while (current->parentId) {
+            const Entity *parent = scene.findEntity(*current->parentId);
+            if (!parent) {
+                break;
+            }
+            current = parent;
+        }
+
+        return current->id;
     }
 }
 
@@ -188,17 +205,20 @@ void Renderer::drawMeshOutline(
 }
 
 void Renderer::render(const Scene &scene, const RenderOptions &options) {
+    const auto isHighlighted = [&](const Entity &entity) {
+        return options.highlightedEntityId &&
+               isEntityOrDescendantOf(
+                   scene,
+                   entity,
+                   *options.highlightedEntityId
+               );
+    };
+
     const auto getOutlineVisibility = [&](const Entity &entity)
         -> std::optional<OutlineVisibility> {
         const MeshRendererComponent &component = *entity.meshRenderComponent;
-        const bool highlighted = options.highlightedEntityId &&
-                                 isEntityOrDescendantOf(
-                                     scene,
-                                     entity,
-                                     *options.highlightedEntityId
-                                 );
 
-        if (highlighted) {
+        if (isHighlighted(entity)) {
             return OutlineVisibility::AlwaysVisible;
         }
 
@@ -209,8 +229,13 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         return component.outlineVisibility;
     };
 
+    struct XRayOutlineGroup {
+        EntityId id;
+        std::vector<const Entity *> entities;
+    };
+
     bool hasVisibleOutline = false;
-    bool hasAlwaysVisibleOutline = false;
+    std::vector<XRayOutlineGroup> xRayOutlineGroups;
 
     // Scene mesh pass: finish the depth buffer and mark visible-only outlines.
     for (const Entity &entity: scene.getEntities()) {
@@ -223,7 +248,27 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             meshRenderPass(worldMatrix, *component.mesh, *component.material, visibleOnly);
 
             hasVisibleOutline |= visibleOnly;
-            hasAlwaysVisibleOutline |= visibility == OutlineVisibility::AlwaysVisible;
+
+            if (visibility == OutlineVisibility::AlwaysVisible) {
+                const EntityId groupId = isHighlighted(entity)
+                                             ? *options.highlightedEntityId
+                                             : getTopLevelAncestorId(scene, entity);
+
+                auto group = std::ranges::find(
+                    xRayOutlineGroups,
+                    groupId,
+                    &XRayOutlineGroup::id
+                );
+
+                if (group == xRayOutlineGroups.end()) {
+                    group = xRayOutlineGroups.insert(
+                        xRayOutlineGroups.end(),
+                        XRayOutlineGroup{.id = groupId}
+                    );
+                }
+
+                group->entities.push_back(&entity);
+            }
         }
     }
 
@@ -253,44 +298,37 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         glDisable(GL_STENCIL_TEST);
     }
 
-    if (hasAlwaysVisibleOutline) {
-        // Rebuild stencil from the complete silhouettes of X-ray targets.
-        glStencilMask(0xFF);
-        glClear(GL_STENCIL_BUFFER_BIT);
+    if (!xRayOutlineGroups.empty()) {
         glEnable(GL_STENCIL_TEST);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-        for (const Entity &entity: scene.getEntities()) {
-            if (!entity.meshRenderComponent ||
-                getOutlineVisibility(entity) != OutlineVisibility::AlwaysVisible) {
-                continue;
+        for (const XRayOutlineGroup &group : xRayOutlineGroups) {
+            // Each group needs its own stencil mask. Otherwise a large selected
+            // object can suppress the X-ray outline of an unrelated object.
+            glStencilMask(0xFF);
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+            for (const Entity *entity : group.entities) {
+                const MeshRendererComponent &component = *entity->meshRenderComponent;
+                const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
+                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, 0.0f);
             }
 
-            const MeshRendererComponent &component = *entity.meshRenderComponent;
-            const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-            drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, 0.0f);
-        }
+            // Draw only outside this group's original silhouette, ignoring depth.
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+            glStencilMask(0x00);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-        // Draw only outside the original X-ray silhouettes, ignoring scene depth.
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-        for (const Entity &entity: scene.getEntities()) {
-            if (!entity.meshRenderComponent ||
-                getOutlineVisibility(entity) != OutlineVisibility::AlwaysVisible) {
-                continue;
+            for (const Entity *entity : group.entities) {
+                const MeshRendererComponent &component = *entity->meshRenderComponent;
+                const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
+                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
             }
-
-            const MeshRendererComponent &component = *entity.meshRenderComponent;
-            const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-            drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
         }
 
         glDepthMask(GL_TRUE);
