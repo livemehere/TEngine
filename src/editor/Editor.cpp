@@ -1,8 +1,10 @@
 #include "Editor.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <format>
 #include <limits>
+#include <vector>
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,6 +12,25 @@
 #include "../scene/Scene.h"
 
 namespace {
+    void collectMeshRendererComponents(
+        Scene &scene,
+        EntityId rootId,
+        std::vector<MeshRendererComponent *> &result
+    ) {
+        Entity *entity = scene.findEntity(rootId);
+        if (!entity) {
+            return;
+        }
+
+        if (entity->meshRenderComponent) {
+            result.push_back(&*entity->meshRenderComponent);
+        }
+
+        for (const Entity *child : scene.getChildren(rootId)) {
+            collectMeshRendererComponents(scene, child->id, result);
+        }
+    }
+
     bool drawVec3Control(const char *label, glm::vec3 &value, float resetValue, float step = 0.1f) {
         bool changed = false;
 
@@ -150,31 +171,88 @@ void Editor::drawInspector(Scene &scene) {
     }
     /* transform end */
 
-    if (entity->meshRenderComponent) {
+    std::vector<MeshRendererComponent *> meshRenderers;
+    collectMeshRendererComponents(scene, entity->id, meshRenderers);
+
+    if (!meshRenderers.empty()) {
+        const std::string componentLabel = std::format(
+            "MeshRenderer ({})###MeshRenderer",
+            meshRenderers.size()
+        );
+
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
-        const bool meshRendererOpen = ImGui::TreeNodeEx("MeshRenderer", componentFlags);
+        const bool meshRendererOpen = ImGui::TreeNodeEx(componentLabel.c_str(), componentFlags);
         ImGui::PopStyleVar();
 
         if (meshRendererOpen) {
             ImGui::Spacing();
 
-            MeshRendererComponent &component = *entity->meshRenderComponent;
-            ImGui::Checkbox("Persistent Outline", &component.outlineEnabled);
-            ImGui::TextDisabled("Selection highlight is shown independently.");
+            const MeshRendererComponent &first = *meshRenderers.front();
+
+            const bool enabledMixed = std::ranges::any_of(
+                meshRenderers,
+                [&](const MeshRendererComponent *component) {
+                    return component->outlineEnabled != first.outlineEnabled;
+                }
+            );
+
+            if (enabledMixed) {
+                ImGui::TextUnformatted("Persistent Outline: Mixed");
+
+                if (ImGui::Button("Enable All")) {
+                    for (MeshRendererComponent *component : meshRenderers) {
+                        component->outlineEnabled = true;
+                    }
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Disable All")) {
+                    for (MeshRendererComponent *component : meshRenderers) {
+                        component->outlineEnabled = false;
+                    }
+                }
+            } else {
+                bool outlineEnabled = first.outlineEnabled;
+                if (ImGui::Checkbox("Persistent Outline", &outlineEnabled)) {
+                    for (MeshRendererComponent *component : meshRenderers) {
+                        component->outlineEnabled = outlineEnabled;
+                    }
+                }
+            }
+
+            ImGui::TextDisabled(
+                "%zu renderer(s) in this subtree. Selection highlight is independent.",
+                meshRenderers.size()
+            );
 
             constexpr const char *outlineModeNames[] = {
                 "Normal Extrusion",
                 "Scale From Pivot"
             };
 
-            int outlineMode = static_cast<int>(component.outlineMode);
-            if (ImGui::Combo(
-                "Outline Mode",
-                &outlineMode,
-                outlineModeNames,
-                IM_ARRAYSIZE(outlineModeNames)
-            )) {
-                component.outlineMode = static_cast<OutlineMode>(outlineMode);
+            const bool modeMixed = std::ranges::any_of(
+                meshRenderers,
+                [&](const MeshRendererComponent *component) {
+                    return component->outlineMode != first.outlineMode;
+                }
+            );
+            const int outlineMode = static_cast<int>(first.outlineMode);
+            const char *outlineModePreview = modeMixed
+                                                 ? "Mixed"
+                                                 : outlineModeNames[outlineMode];
+
+            if (ImGui::BeginCombo("Outline Mode", outlineModePreview)) {
+                for (int i = 0; i < IM_ARRAYSIZE(outlineModeNames); ++i) {
+                    if (ImGui::Selectable(
+                        outlineModeNames[i],
+                        !modeMixed && outlineMode == i
+                    )) {
+                        for (MeshRendererComponent *component : meshRenderers) {
+                            component->outlineMode = static_cast<OutlineMode>(i);
+                        }
+                    }
+                }
+                ImGui::EndCombo();
             }
 
             constexpr const char *outlineVisibilityNames[] = {
@@ -182,14 +260,29 @@ void Editor::drawInspector(Scene &scene) {
                 "Always Visible"
             };
 
-            int outlineVisibility = static_cast<int>(component.outlineVisibility);
-            if (ImGui::Combo(
-                "Outline Visibility",
-                &outlineVisibility,
-                outlineVisibilityNames,
-                IM_ARRAYSIZE(outlineVisibilityNames)
-            )) {
-                component.outlineVisibility = static_cast<OutlineVisibility>(outlineVisibility);
+            const bool visibilityMixed = std::ranges::any_of(
+                meshRenderers,
+                [&](const MeshRendererComponent *component) {
+                    return component->outlineVisibility != first.outlineVisibility;
+                }
+            );
+            const int outlineVisibility = static_cast<int>(first.outlineVisibility);
+            const char *outlineVisibilityPreview = visibilityMixed
+                                                       ? "Mixed"
+                                                       : outlineVisibilityNames[outlineVisibility];
+
+            if (ImGui::BeginCombo("Outline Visibility", outlineVisibilityPreview)) {
+                for (int i = 0; i < IM_ARRAYSIZE(outlineVisibilityNames); ++i) {
+                    if (ImGui::Selectable(
+                        outlineVisibilityNames[i],
+                        !visibilityMixed && outlineVisibility == i
+                    )) {
+                        for (MeshRendererComponent *component : meshRenderers) {
+                            component->outlineVisibility = static_cast<OutlineVisibility>(i);
+                        }
+                    }
+                }
+                ImGui::EndCombo();
             }
 
             ImGui::TreePop();
