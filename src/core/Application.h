@@ -19,9 +19,11 @@ class Application {
     Scene scene;
     Editor editor;
 public:
-    Application() : window(1920, 1080, "TEngine", true), input(window), resourceManager(ASSET_ROOT) {
-        resourceManager.bootstrap();
-    };
+    Application()
+        : window(1920, 1080, "TEngine", true),
+          input(window),
+          resourceManager(ASSET_ROOT),
+          renderer(resourceManager) {}
     ~Application() = default;
 
     void run();

@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include "../resources/ResourceManager.h"
+
 /*layout (std140) uniform ExampleBlock
 {
                      // base alignment  // aligned offset
@@ -16,7 +18,8 @@
     int integer;     // 4               // 148
 }; */
 
-Renderer::Renderer() {
+Renderer::Renderer(ResourceManager &resourceManager)
+    : outlineShader(resourceManager.getOutlineShader()) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -108,9 +111,9 @@ void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
 
     // Back-face culling (enable for one-sided meshes)
     // NOTE: keep disabled when both sides of a surface must be visible.
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
+    // glEnable(GL_CULL_FACE);
+    // glFrontFace(GL_CCW);
+    // glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
@@ -143,7 +146,7 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
     mesh.draw();
 }
 
-void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, const Material &outlineMaterial) {
+void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh) {
     glStencilFunc(
         GL_NOTEQUAL,
         1,
@@ -152,9 +155,10 @@ void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &m
     glStencilMask(0x00);
     glDisable(GL_DEPTH_TEST);
 
-    outlineMaterial.bind();
-    outlineMaterial.shader.setMat4("uModel", worldMatrix);
-    outlineMaterial.shader.setFloat("uOutlineWidth", 0.02f);
+    outlineShader.use();
+    outlineShader.setMat4("uModel", worldMatrix);
+    outlineShader.setFloat("uOutlineWidth", outlineWidth);
+    outlineShader.setVec4("uOutlineColor", outlineColor);
     mesh.draw();
 
     glStencilMask(0xFF);
@@ -162,7 +166,7 @@ void Renderer::meshOutlineRenderPass(const glm::mat4 &worldMatrix, const Mesh &m
     glDisable(GL_STENCIL_TEST);
 }
 
-void Renderer::render(const Scene &scene, const Material &outlineMaterial) {
+void Renderer::render(const Scene &scene) {
     for (const Entity &entity: scene.getEntities()) {
         if (entity.meshRenderComponent) {
             const MeshRendererComponent &component = *entity.meshRenderComponent;
@@ -170,7 +174,7 @@ void Renderer::render(const Scene &scene, const Material &outlineMaterial) {
             meshRenderPass(worldMatrix, *component.mesh, *component.material, entity.outline);
             // NOTE: multiple mesh line collapsed. TODO: detach pass to other for loop
             if (entity.outline) {
-                meshOutlineRenderPass(worldMatrix, *component.mesh, outlineMaterial);
+                meshOutlineRenderPass(worldMatrix, *component.mesh);
             }
         }
     }

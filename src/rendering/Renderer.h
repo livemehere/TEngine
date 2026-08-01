@@ -1,5 +1,11 @@
 #pragma once
+
+#include <glm/vec4.hpp>
+
 #include "../scene/Scene.h"
+
+class ResourceManager;
+class Shader;
 
 constexpr std::size_t MAX_POINT_LIGHTS = 16;
 constexpr std::size_t MAX_DIRECTIONAL_LIGHTS = 4;
@@ -49,6 +55,10 @@ struct alignas(16) GPULightingData {
 };
 
 class Renderer {
+    const Shader &outlineShader;
+    glm::vec4 outlineColor{1.0f, 0.0f, 0.0f, 1.0f};
+    float outlineWidth = 0.02f;
+
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
 
@@ -57,10 +67,10 @@ class Renderer {
 
     /** passes */
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
-    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& outlineMaterial);
+    void meshOutlineRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh);
 
 public:
-    Renderer();
+    explicit Renderer(ResourceManager &resourceManager);
     ~Renderer() {
         if (cameraUBO != 0) {
             glDeleteBuffers(1, &cameraUBO);
@@ -73,6 +83,6 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     void beginFrame(Scene& scene, const WindowSize& windowSize);
-    void render(const Scene& scene, const Material& outlineMaterial);
+    void render(const Scene& scene);
     void endFrame();
 };

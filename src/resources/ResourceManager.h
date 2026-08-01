@@ -14,24 +14,18 @@
 #include "../rendering/mesh/materials/UnlitMaterial.h"
 #include "../rendering/model/Model.h"
 
-class UnlitMaterial;
-
-namespace ResourceKey {
-    inline constexpr std::string TEXTURE_WHITE = "TEXTURE:WHITE";
-    inline constexpr std::string MATERIAL_OUTLINE = "MATERIAL:OUTLINE";
-};
-
 class ResourceManager {
     std::filesystem::path assetRoot;
 
-    /* built in meshes */
+    /* built-in resources */
     std::unique_ptr<Mesh> planeMesh;
     std::unique_ptr<Mesh> cubeMesh;
-
-    /* resources */
+    std::unique_ptr<Texture2D> whiteTexture;
     std::unique_ptr<Shader> litShader;
     std::unique_ptr<Shader> unlitShader;
     std::unique_ptr<Shader> outlineShader;
+
+    /* externally loaded resources */
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
     std::unordered_map<std::string, std::unique_ptr<Model> > models;
 
@@ -45,11 +39,11 @@ public:
     ResourceManager(std::filesystem::path rootPath) : assetRoot(rootPath) {}
     ~ResourceManager() = default;
 
-    void bootstrap();
-
     const Mesh &getPlaneMesh();
 
     const Mesh &getCubeMesh();
+
+    const Texture2D &getWhiteTexture();
 
     const Shader &getLitShader();
 

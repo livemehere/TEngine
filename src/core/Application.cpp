@@ -10,8 +10,6 @@ void Application::run() {
 
     FreeLookCameraController cameraController;
 
-    const UnlitMaterial& outlineMaterial = resourceManager.loadUnlitMaterial(ResourceKey::MATERIAL_OUTLINE, resourceManager.getOutlineShader(), resourceManager.loadTexture(ResourceKey::TEXTURE_WHITE));
-
     auto lastFrameTime = static_cast<float>(glfwGetTime());
     while (!window.should_close()) {
         /* currentFrame info */
@@ -30,7 +28,7 @@ void Application::run() {
 
         scene.update(dt);
         renderer.beginFrame(scene, size);
-        renderer.render(scene, outlineMaterial);
+        renderer.render(scene);
         renderer.endFrame();
         editor.draw(scene);
 
@@ -117,7 +115,7 @@ void Application::createSandboxScene() {
     const Mesh &planeMesh = resourceManager.getPlaneMesh();
 
     /* textures */
-    const Texture2D &whiteTexture = resourceManager.loadTexture(ResourceKey::TEXTURE_WHITE);
+    const Texture2D &whiteTexture = resourceManager.getWhiteTexture();
     const Texture2D &boxTexture = resourceManager.loadTexture("textures/box.png");
     const Texture2D &boxSpecularMapTexture = resourceManager.loadTexture("textures/box_specular_map.png");
     const Texture2D &grassTexture = resourceManager.loadTexture("textures/grass.png");

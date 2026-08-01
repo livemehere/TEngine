@@ -1,30 +1,16 @@
 #include "ResourceManager.h"
 
+#include <array>
+
 #include "../rendering/Renderer.h"
 #include "../rendering/mesh/primitives/PrimitiveMeshes.h"
 #include "../rendering/model/ModelImporter.h"
 
 std::filesystem::path ResourceManager::resolvePath(std::filesystem::path filepath) const {
-    if (filepath == ResourceKey::TEXTURE_WHITE || filepath == ResourceKey::MATERIAL_OUTLINE) return filepath;
-
     if (filepath.is_absolute()) {
         return filepath;
     }
     return assetRoot / filepath;
-}
-
-void ResourceManager::bootstrap() {
-    /* white texture */
-    constexpr std::array<uint8_t, 4> pixels{255, 255, 255, 255};
-    auto whiteTexture = std::make_unique<Texture2D>(1, 1, pixels);
-
-    /* outline material */
-    const Shader& outlineShader = getOutlineShader();
-    auto outlineMaterial = std::make_unique<UnlitMaterial>(outlineShader, *whiteTexture, glm::vec4{1.0f, 0.0f, 0.0f, 1.0f});
-
-    /* move */
-    textures.emplace(ResourceKey::TEXTURE_WHITE, std::move(whiteTexture));
-    unlitMaterials.emplace(ResourceKey::MATERIAL_OUTLINE,std::move(outlineMaterial));
 }
 
 /* mesh */
@@ -42,6 +28,14 @@ const Mesh &ResourceManager::getCubeMesh() {
         cubeMesh = std::make_unique<Mesh>(vertices, indices);
     }
     return *cubeMesh;
+}
+
+const Texture2D &ResourceManager::getWhiteTexture() {
+    if (!whiteTexture) {
+        constexpr std::array<std::uint8_t, 4> pixels{255, 255, 255, 255};
+        whiteTexture = std::make_unique<Texture2D>(1, 1, pixels);
+    }
+    return *whiteTexture;
 }
 
 /* shaders */
@@ -64,9 +58,12 @@ const Shader &ResourceManager::getUnlitShader() {
     return *unlitShader;
 }
 
-const Shader & ResourceManager::getOutlineShader() {
+const Shader &ResourceManager::getOutlineShader() {
     if (!outlineShader) {
-        outlineShader = std::make_unique<Shader>("shaders/outline.vert", "shaders/outline.frag");
+        outlineShader = std::make_unique<Shader>(
+            resolvePath("shaders/outline.vert"),
+            resolvePath("shaders/outline.frag")
+        );
         const auto shader = outlineShader.get();
         shader->bindUniformBlock("CameraData", UniformBinding::Camera);
     }
