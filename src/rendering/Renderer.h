@@ -5,6 +5,7 @@
 #include <glm/vec4.hpp>
 
 #include "../scene/Scene.h"
+#include "RenderExtent.h"
 
 class ResourceManager;
 class Shader;
@@ -68,7 +69,7 @@ class Renderer {
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
 
-    void updateCameraBuffer(Scene& scene, const WindowSize& windowSize);
+    void updateCameraBuffer(Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(Scene& scene);
 
     /** passes */
@@ -88,7 +89,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void beginFrame(Scene& scene, const WindowSize& windowSize);
+    void beginFrame(Scene& scene, const RenderExtent& size);
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
 };

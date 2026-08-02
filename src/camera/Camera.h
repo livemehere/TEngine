@@ -5,8 +5,9 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "../common.h"
-#include "../core/Window.h"
+#include "../rendering/RenderExtent.h"
 #include "../rendering/Transform.h"
+
 
 struct OrthoGraphicProjection {
     float height = 5.0f;
@@ -40,7 +41,7 @@ public:
 
     void update(float dt);
     glm::mat4 getViewMatrix() const;
-    glm::mat4 getProjectionMatrix(const WindowSize& size);
+    glm::mat4 getProjectionMatrix(const RenderExtent& size);
 
     glm::quat getOrientation() const {
         return glm::quat(glm::radians(transform.rotation));

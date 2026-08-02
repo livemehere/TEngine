@@ -90,11 +90,11 @@ Renderer::Renderer(ResourceManager &resourceManager)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void Renderer::updateCameraBuffer(Scene &scene, const WindowSize &windowSize) {
+void Renderer::updateCameraBuffer(Scene &scene, const RenderExtent& size) {
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
     const GPUCameraData data{
         .viewMatrix = scene.camera.getViewMatrix(),
-        .projectionMatrix = scene.camera.getProjectionMatrix(windowSize),
+        .projectionMatrix = scene.camera.getProjectionMatrix(size),
         .position = glm::vec4(scene.camera.transform.position, 1.0f)
     };
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUCameraData), &data);
@@ -149,8 +149,8 @@ void Renderer::updateLightsBuffer(Scene &scene) {
 }
 
 
-void Renderer::beginFrame(Scene &scene, const WindowSize &windowSize) {
-    updateCameraBuffer(scene, windowSize);
+void Renderer::beginFrame(Scene &scene, const RenderExtent& size) {
+    updateCameraBuffer(scene, size);
     updateLightsBuffer(scene);
 
     glEnable(GL_BLEND);

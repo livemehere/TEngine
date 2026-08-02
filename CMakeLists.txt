@@ -45,6 +45,7 @@ add_executable(TEngine src/main.cpp
         src/rendering/Lights.h
         src/rendering/Renderer.cpp
         src/rendering/Renderer.h
+        src/rendering/RenderExtent.h
         src/rendering/mesh/materials/UnlitMaterial.cpp
         src/rendering/mesh/materials/UnlitMaterial.h
         src/thirdparty/stb_image.cpp
@@ -56,6 +57,8 @@ add_executable(TEngine src/main.cpp
         src/editor/Editor.h
         src/rendering/model/ModelImporter.cpp
         src/rendering/model/ModelImporter.h
+        src/graphics/FrameBuffer.cpp
+        src/graphics/FrameBuffer.h
 )
 
 target_link_libraries(TEngine PRIVATE
@@ -71,4 +74,3 @@ target_compile_definitions(TEngine PRIVATE
         ASSET_ROOT="${CMAKE_SOURCE_DIR}/assets"
         GLM_ENABLE_EXPERIMENTAL
 )
-

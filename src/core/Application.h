@@ -7,6 +7,7 @@
 #include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
 #include "../editor/Editor.h"
+#include "../graphics/FrameBuffer.h"
 
 class Application {
     Window window;
@@ -15,6 +16,7 @@ class Application {
     ResourceManager resourceManager;
 
     Renderer renderer;
+    FrameBuffer sceneFBO;
 
     Scene scene;
     Editor editor;
@@ -23,7 +25,8 @@ public:
         : window(1920, 1080, "TEngine", true),
           input(window),
           resourceManager(ASSET_ROOT),
-          renderer(resourceManager) {}
+          renderer(resourceManager),
+          sceneFBO(1,1) {}
     ~Application() = default;
 
     void run();

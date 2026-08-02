@@ -26,12 +26,22 @@ void Application::run() {
         const WindowSize &size = window.get_size();
         const MouseState &mouseState = input.getMouseState();
 
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        RenderExtent viewport = editor.drawSceneView(sceneFBO.getTextureId());
+        sceneFBO.resize(viewport.width, viewport.height);
+        sceneFBO.bind();
+
         scene.update(dt);
-        renderer.beginFrame(scene, size);
+        renderer.beginFrame(scene, viewport);
         renderer.render(scene, {
             .highlightedEntityId = editor.getSelectedEntityId()
         });
         renderer.endFrame();
+
+        sceneFBO.unBind();
+        // glViewport(0,0, size.fb_w, size.fb_h);
+
         editor.draw(scene);
 
         /* render debug */

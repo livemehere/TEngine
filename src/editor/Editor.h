@@ -1,9 +1,13 @@
 #pragma once
 
+#include <glad/glad.h>
+
+#include "../rendering/RenderExtent.h"
 #include "../scene/Entity.h"
 
-
 class Scene;
+
+
 
 class Editor {
     std::optional<EntityId> selectedEntityId;
@@ -17,4 +21,5 @@ class Editor {
 public:
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
     void draw(Scene& scene);
+    RenderExtent drawSceneView(GLuint textureId);
 };

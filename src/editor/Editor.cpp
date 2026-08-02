@@ -26,7 +26,7 @@ namespace {
             result.push_back(&*entity->meshRenderComponent);
         }
 
-        for (const Entity *child : scene.getChildren(rootId)) {
+        for (const Entity *child: scene.getChildren(rootId)) {
             collectMeshRendererComponents(scene, child->id, result);
         }
     }
@@ -200,21 +200,21 @@ void Editor::drawInspector(Scene &scene) {
                 ImGui::TextUnformatted("Persistent Outline: Mixed");
 
                 if (ImGui::Button("Enable All")) {
-                    for (MeshRendererComponent *component : meshRenderers) {
+                    for (MeshRendererComponent *component: meshRenderers) {
                         component->outlineEnabled = true;
                     }
                 }
 
                 ImGui::SameLine();
                 if (ImGui::Button("Disable All")) {
-                    for (MeshRendererComponent *component : meshRenderers) {
+                    for (MeshRendererComponent *component: meshRenderers) {
                         component->outlineEnabled = false;
                     }
                 }
             } else {
                 bool outlineEnabled = first.outlineEnabled;
                 if (ImGui::Checkbox("Persistent Outline", &outlineEnabled)) {
-                    for (MeshRendererComponent *component : meshRenderers) {
+                    for (MeshRendererComponent *component: meshRenderers) {
                         component->outlineEnabled = outlineEnabled;
                     }
                 }
@@ -247,7 +247,7 @@ void Editor::drawInspector(Scene &scene) {
                         outlineModeNames[i],
                         !modeMixed && outlineMode == i
                     )) {
-                        for (MeshRendererComponent *component : meshRenderers) {
+                        for (MeshRendererComponent *component: meshRenderers) {
                             component->outlineMode = static_cast<OutlineMode>(i);
                         }
                     }
@@ -277,7 +277,7 @@ void Editor::drawInspector(Scene &scene) {
                         outlineVisibilityNames[i],
                         !visibilityMixed && outlineVisibility == i
                     )) {
-                        for (MeshRendererComponent *component : meshRenderers) {
+                        for (MeshRendererComponent *component: meshRenderers) {
                             component->outlineVisibility = static_cast<OutlineVisibility>(i);
                         }
                     }
@@ -308,11 +308,10 @@ void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
 
     drawInsertionSlot(id, 0);
 
-    for (size_t i=0; i< siblings.size(); i++) {
+    for (size_t i = 0; i < siblings.size(); i++) {
         drawEntityNode(scene, *siblings[i]);
-        drawInsertionSlot(id, i+1);
+        drawInsertionSlot(id, i + 1);
     }
-
 }
 
 void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
@@ -340,7 +339,7 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
         );
 
         if (payload->IsDelivery()) {
-            const EntityId sourceId = *static_cast<const EntityId*>(payload->Data);
+            const EntityId sourceId = *static_cast<const EntityId *>(payload->Data);
             pendingMoveReq = {
                 .sourceId = sourceId,
                 .newParentId = id,
@@ -350,6 +349,19 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
     }
 
     ImGui::EndDragDropTarget();
+}
+
+RenderExtent Editor::drawSceneView(GLuint textureId) {
+    ImGui::Begin("Scene");
+    const ImVec2 available = ImGui::GetContentRegionAvail();
+    const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
+    ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+    ImGui::End();
+
+    return {
+        .width = static_cast<int>(available.x * scale.x),
+        .height = static_cast<int>(available.y * scale.y)
+    };
 }
 
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
@@ -383,7 +395,7 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     if (ImGui::BeginDragDropTarget()) {
         const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY");
         if (payload && payload->IsDelivery()) {
-            const EntityId sourceId = *static_cast<const EntityId*>(payload->Data);
+            const EntityId sourceId = *static_cast<const EntityId *>(payload->Data);
             auto children = scene.getChildren(entity.id);
             pendingMoveReq = EntityMoveRequest{
                 .sourceId = sourceId,
