@@ -72,7 +72,7 @@ class Renderer {
     GLuint lightsUBO = 0;
 
     void updateCameraBuffer(Scene& scene, const RenderExtent& size);
-    void updateLightsBuffer(Scene& scene);
+    void updateLightsBuffer(const Scene& scene);
 
     /** passes */
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);

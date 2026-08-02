@@ -3,6 +3,7 @@
 #include <array>
 
 #include "../camera/FreeLookCameraController.h"
+#include "../rendering/Lights.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 
@@ -183,25 +184,31 @@ void Application::createSandboxScene() {
     windowRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
     /* lights */
-    scene.ambientLight.intensity = 0.1f;
-    scene.pointLights.push_back({
-        .position = {0.0f, 1.5f, 1.5f},
-        .range = 5.0f,
-        .color = {1.0f, 1.0f, 1.0f},
-        .intensity = 1.0f,
-    });
+    Entity &ambientLightEntity = scene.createEntity("Ambient Light");
+    AmbientLightComponent &ambientLight =
+            ambientLightEntity.addComponent<AmbientLightComponent>();
+    ambientLight.intensity = 0.1f;
 
-    scene.directionalLights.push_back({
-        .direction = glm::vec3{0.0f, -1.0f, 0.0f},
-        .color = glm::vec3{1.0f},
-        .intensity = 0.1f
-    });
+    Entity &pointLightEntity = scene.createEntity("Point Light");
+    pointLightEntity.getComponent<TransformComponent>().local.position = {0.0f, 1.5f, 1.5f};
+    PointLightComponent &pointLight = pointLightEntity.addComponent<PointLightComponent>();
+    pointLight.range = 5.0f;
+    pointLight.color = {1.0f, 1.0f, 1.0f};
+    pointLight.intensity = 1.0f;
 
-    scene.spotLights.push_back({
-        .direction = glm::vec3{0.0f, -1.0f, 0.0f},
-        .position = glm::vec3{0.0f, 4.0f, 0.0},
-        .range = 5.0f,
-        .color = glm::vec3{0.8f, 0.4f, 0.4f},
-        .intensity = 10.0f,
-    });
+    Entity &directionalLightEntity = scene.createEntity("Directional Light");
+    directionalLightEntity.getComponent<TransformComponent>().local.rotation = {-90.0f, 0.0f, 0.0f};
+    DirectionalLightComponent &directionalLight =
+            directionalLightEntity.addComponent<DirectionalLightComponent>();
+    directionalLight.color = {1.0f, 1.0f, 1.0f};
+    directionalLight.intensity = 0.1f;
+
+    Entity &spotLightEntity = scene.createEntity("Spot Light");
+    Transform &spotLightTransform = spotLightEntity.getComponent<TransformComponent>().local;
+    spotLightTransform.position = {0.0f, 4.0f, 0.0f};
+    spotLightTransform.rotation = {-90.0f, 0.0f, 0.0f};
+    SpotLightComponent &spotLight = spotLightEntity.addComponent<SpotLightComponent>();
+    spotLight.range = 5.0f;
+    spotLight.color = {0.8f, 0.4f, 0.4f};
+    spotLight.intensity = 10.0f;
 }

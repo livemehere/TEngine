@@ -1,34 +1,33 @@
 #pragma once
+
 #include <glm/vec3.hpp>
 
-struct AmbientLight {
+#include "../scene/Component.h"
+
+class AmbientLightComponent final : public Component {
+public:
     glm::vec3 color{1.0f};
     float intensity{0.1f};
 };
 
-struct PointLight {
-    glm::vec3 position{0.0f};
+class PointLightComponent final : public Component {
+public:
     float range{1.0f};
-
     glm::vec3 color{1.0f};
     float intensity{1.0f};
 };
 
-struct DirectionalLight {
-    glm::vec3 direction{0.0f, -1.0f, 0.0f};
+class DirectionalLightComponent final : public Component {
+public:
     glm::vec3 color{1.0f};
     float intensity{1.0f};
 };
 
-struct SpotLight {
-    glm::vec3 direction{0.0f, -1.0f, 0.0f};
-
-    glm::vec3 position{0.0f};
+class SpotLightComponent final : public Component {
+public:
     float range{10.0f};
-
     glm::vec3 color{1.0f};
     float intensity{1.0f};
-
     float innerAngle{12.5f};
     float outerAngle{17.5f};
 };

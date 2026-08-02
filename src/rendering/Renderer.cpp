@@ -1,10 +1,15 @@
 #include "Renderer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
+
+#include <glm/geometric.hpp>
+#include <glm/mat3x3.hpp>
 
 #include "../resources/ResourceManager.h"
 #include "../graphics/CubeMap.h"
+#include "Lights.h"
 #include "skybox/SkyboxComponent.h"
 
 namespace {
@@ -57,6 +62,20 @@ namespace {
 
         return current->id;
     }
+
+    glm::vec3 getWorldPosition(const Scene &scene, const Entity &entity) {
+        return glm::vec3(scene.getWorldMatrix(entity)[3]);
+    }
+
+    glm::vec3 getWorldForward(const Scene &scene, const Entity &entity) {
+        const glm::vec3 forward = glm::mat3(scene.getWorldMatrix(entity)) *
+                                  glm::vec3(0.0f, 0.0f, -1.0f);
+        const float lengthSquared = glm::dot(forward, forward);
+        if (lengthSquared <= 1e-8f) {
+            return {0.0f, 0.0f, -1.0f};
+        }
+        return forward / std::sqrt(lengthSquared);
+    }
 }
 
 /*layout (std140) uniform ExampleBlock
@@ -104,48 +123,60 @@ void Renderer::updateCameraBuffer(Scene &scene, const RenderExtent& size) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void Renderer::updateLightsBuffer(Scene &scene) {
+void Renderer::updateLightsBuffer(const Scene &scene) {
     // TODO: upload light to GPU, only closed to camera for performance
     glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO);
     GPULightingData data{};
-    data.ambientLightColorIntensity = glm::vec4(scene.ambientLight.color, scene.ambientLight.intensity);
 
-    const auto directionalLightCount = static_cast<size_t>(std::min(scene.directionalLights.size(),
-                                                                    MAX_DIRECTIONAL_LIGHTS));
-    const auto pointLightCount = static_cast<size_t>(std::min(scene.pointLights.size(), MAX_POINT_LIGHTS));
-    const auto spotLightCount = static_cast<size_t>(std::min(scene.spotLights.size(), MAX_SPOT_LIGHTS));
+    glm::vec3 ambientColor{0.0f};
+    size_t directionalLightCount = 0;
+    size_t pointLightCount = 0;
+    size_t spotLightCount = 0;
 
+    for (const Entity &entity: scene.getEntities()) {
+        if (const AmbientLightComponent *light =
+                    entity.tryGetComponent<AmbientLightComponent>();
+            light && light->enabled) {
+            ambientColor += light->color * light->intensity;
+        }
+
+        if (const DirectionalLightComponent *light =
+                    entity.tryGetComponent<DirectionalLightComponent>();
+            light && light->enabled && directionalLightCount < MAX_DIRECTIONAL_LIGHTS) {
+            GPUDirectionalLLight &destination = data.directionalLights[directionalLightCount++];
+            destination.colorIntensity = glm::vec4(light->color, light->intensity);
+            destination.direction = glm::vec4(getWorldForward(scene, entity), 0.0f);
+        }
+
+        if (const PointLightComponent *light = entity.tryGetComponent<PointLightComponent>();
+            light && light->enabled && pointLightCount < MAX_POINT_LIGHTS) {
+            GPUPointLight &destination = data.pointLights[pointLightCount++];
+            destination.colorIntensity = glm::vec4(light->color, light->intensity);
+            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light->range);
+        }
+
+        if (const SpotLightComponent *light = entity.tryGetComponent<SpotLightComponent>();
+            light && light->enabled && spotLightCount < MAX_SPOT_LIGHTS) {
+            GPUSpotLight &destination = data.spotLights[spotLightCount++];
+            destination.direction = glm::vec4(getWorldForward(scene, entity), 0.0f);
+            destination.colorIntensity = glm::vec4(light->color, light->intensity);
+            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light->range);
+            destination.coneAngles = glm::vec4(
+                std::cos(glm::radians(light->innerAngle)),
+                std::cos(glm::radians(light->outerAngle)),
+                0.0f,
+                0.0f
+            );
+        }
+    }
+
+    data.ambientLightColorIntensity = glm::vec4(ambientColor, 1.0f);
     data.lightCounts = glm::ivec4(
-        directionalLightCount,
-        pointLightCount,
-        spotLightCount,
+        static_cast<int>(directionalLightCount),
+        static_cast<int>(pointLightCount),
+        static_cast<int>(spotLightCount),
         0
     );
-
-    for (int i = 0; i < directionalLightCount; i++) {
-        const DirectionalLight &source = scene.directionalLights[i];
-        data.directionalLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
-        data.directionalLights[i].direction = glm::vec4(source.direction, 0.0f);
-    }
-
-    for (int i = 0; i < pointLightCount; i++) {
-        const PointLight &source = scene.pointLights[i];
-        data.pointLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
-        data.pointLights[i].positionRange = glm::vec4(source.position, source.range);
-    }
-
-    for (int i = 0; i < spotLightCount; i++) {
-        const SpotLight &source = scene.spotLights[i];
-        data.spotLights[i].direction = glm::vec4(source.direction, 0.0f);
-        data.spotLights[i].colorIntensity = glm::vec4(source.color, source.intensity);
-        data.spotLights[i].positionRange = glm::vec4(source.position, source.range);
-        data.spotLights[i].coneAngles = glm::vec4(
-            std::cos(glm::radians(source.innerAngle)),
-            std::cos(glm::radians(source.outerAngle)),
-            0.0f,
-            0.0f
-        );
-    }
 
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPULightingData), &data);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);

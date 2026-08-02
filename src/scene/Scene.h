@@ -4,7 +4,6 @@
 
 #include "Entity.h"
 #include "../camera/Camera.h"
-#include "../rendering/Lights.h"
 #include "../rendering/model/Model.h"
 
 class Scene {
@@ -15,12 +14,6 @@ class Scene {
 
 public:
     Camera camera;
-
-    /* Lights */
-    AmbientLight ambientLight;
-    std::vector<DirectionalLight> directionalLights;
-    std::vector<PointLight> pointLights;
-    std::vector<SpotLight> spotLights;
 
     Scene() = default;
     ~Scene();
