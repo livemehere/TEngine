@@ -40,3 +40,9 @@ stencil
 #### .obj, .glb, .gltf .. all kind of model load and auto load materials(still phong...)
 
 <img width="1630" height="1010" alt="image" src="https://github.com/user-attachments/assets/da64b37f-7d93-4b7b-bad0-e0e3db632ac1" />
+
+#### Post Processing
+
+> gray scale example
+
+<img width="1718" height="923" alt="image" src="https://github.com/user-attachments/assets/cf4572c7-583a-48b0-9970-d5311091b004" />
