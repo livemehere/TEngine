@@ -1,4 +1,5 @@
 #include "Editor.h"
+#include "EditorTheme.h"
 
 #include <algorithm>
 #include <format>
@@ -14,6 +15,7 @@
 
 Editor::Editor(const ComponentTypeRegistry &componentTypes)
     : componentTypes(componentTypes) {
+    EditorTheme::applyModernDark();
     registerDefaultComponentDrawers(componentDrawers);
 }
 

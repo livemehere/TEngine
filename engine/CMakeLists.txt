@@ -26,6 +26,8 @@ add_library(TEngine STATIC
     src/editor/ComponentDrawers.cpp
     src/editor/Editor.cpp
     src/editor/Editor.h
+    src/editor/EditorTheme.cpp
+    src/editor/EditorTheme.h
 
     src/graphics/Cubemap.cpp
     src/graphics/CubeMap.h
