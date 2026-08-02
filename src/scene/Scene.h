@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+#include <functional>
 #include <vector>
 
 #include "Entity.h"
@@ -21,7 +23,54 @@ public:
     void update(float dt);
 
     Entity& createEntity(const std::string& name);
-    const std::vector<Entity>& getEntities() const { return entities; }
+
+    template<typename... Components, typename Function>
+        requires (std::derived_from<Components, Component> && ...)
+    void each(Function&& function) {
+        static_assert(sizeof...(Components) > 0, "Scene::each requires at least one component type");
+        constexpr bool acceptsEntity =
+                std::invocable<Function&, Entity&, Components&...>;
+        constexpr bool acceptsComponents =
+                std::invocable<Function&, Components&...>;
+        static_assert(
+            acceptsEntity || acceptsComponents,
+            "Scene::each callback has an incompatible parameter list"
+        );
+
+        for (Entity& entity: entities) {
+            if ((entity.hasComponent<Components>() && ...)) {
+                if constexpr (acceptsEntity) {
+                    std::invoke(function, entity, entity.getComponent<Components>()...);
+                } else {
+                    std::invoke(function, entity.getComponent<Components>()...);
+                }
+            }
+        }
+    }
+
+    template<typename... Components, typename Function>
+        requires (std::derived_from<Components, Component> && ...)
+    void each(Function&& function) const {
+        static_assert(sizeof...(Components) > 0, "Scene::each requires at least one component type");
+        constexpr bool acceptsEntity =
+                std::invocable<Function&, const Entity&, const Components&...>;
+        constexpr bool acceptsComponents =
+                std::invocable<Function&, const Components&...>;
+        static_assert(
+            acceptsEntity || acceptsComponents,
+            "Scene::each callback has an incompatible parameter list"
+        );
+
+        for (const Entity& entity: entities) {
+            if ((entity.hasComponent<Components>() && ...)) {
+                if constexpr (acceptsEntity) {
+                    std::invoke(function, entity, entity.getComponent<Components>()...);
+                } else {
+                    std::invoke(function, entity.getComponent<Components>()...);
+                }
+            }
+        }
+    }
 
     Entity* findEntity(EntityId id);
     const Entity* findEntity(EntityId id) const;

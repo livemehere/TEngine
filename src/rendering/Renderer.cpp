@@ -133,42 +133,59 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
     size_t pointLightCount = 0;
     size_t spotLightCount = 0;
 
-    for (const Entity &entity: scene.getEntities()) {
-        if (const AmbientLightComponent *light =
-                    entity.tryGetComponent<AmbientLightComponent>();
-            light && light->enabled) {
-            ambientColor += light->color * light->intensity;
+    scene.each<AmbientLightComponent>(
+        [&](const AmbientLightComponent &light) {
+            if (light.enabled) {
+                ambientColor += light.color * light.intensity;
+            }
         }
+    );
 
-        if (const DirectionalLightComponent *light =
-                    entity.tryGetComponent<DirectionalLightComponent>();
-            light && light->enabled && directionalLightCount < MAX_DIRECTIONAL_LIGHTS) {
+    scene.each<TransformComponent, DirectionalLightComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const DirectionalLightComponent &light) {
+            if (!light.enabled || directionalLightCount >= MAX_DIRECTIONAL_LIGHTS) {
+                return;
+            }
             GPUDirectionalLLight &destination = data.directionalLights[directionalLightCount++];
-            destination.colorIntensity = glm::vec4(light->color, light->intensity);
+            destination.colorIntensity = glm::vec4(light.color, light.intensity);
             destination.direction = glm::vec4(getWorldForward(scene, entity), 0.0f);
         }
+    );
 
-        if (const PointLightComponent *light = entity.tryGetComponent<PointLightComponent>();
-            light && light->enabled && pointLightCount < MAX_POINT_LIGHTS) {
+    scene.each<TransformComponent, PointLightComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const PointLightComponent &light) {
+            if (!light.enabled || pointLightCount >= MAX_POINT_LIGHTS) {
+                return;
+            }
             GPUPointLight &destination = data.pointLights[pointLightCount++];
-            destination.colorIntensity = glm::vec4(light->color, light->intensity);
-            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light->range);
+            destination.colorIntensity = glm::vec4(light.color, light.intensity);
+            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light.range);
         }
+    );
 
-        if (const SpotLightComponent *light = entity.tryGetComponent<SpotLightComponent>();
-            light && light->enabled && spotLightCount < MAX_SPOT_LIGHTS) {
+    scene.each<TransformComponent, SpotLightComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const SpotLightComponent &light) {
+            if (!light.enabled || spotLightCount >= MAX_SPOT_LIGHTS) {
+                return;
+            }
             GPUSpotLight &destination = data.spotLights[spotLightCount++];
             destination.direction = glm::vec4(getWorldForward(scene, entity), 0.0f);
-            destination.colorIntensity = glm::vec4(light->color, light->intensity);
-            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light->range);
+            destination.colorIntensity = glm::vec4(light.color, light.intensity);
+            destination.positionRange = glm::vec4(getWorldPosition(scene, entity), light.range);
             destination.coneAngles = glm::vec4(
-                std::cos(glm::radians(light->innerAngle)),
-                std::cos(glm::radians(light->outerAngle)),
+                std::cos(glm::radians(light.innerAngle)),
+                std::cos(glm::radians(light.outerAngle)),
                 0.0f,
                 0.0f
             );
         }
-    }
+    );
 
     data.ambientLightColorIntensity = glm::vec4(ambientColor, 1.0f);
     data.lightCounts = glm::ivec4(
@@ -257,13 +274,11 @@ void Renderer::drawMeshOutline(
 
 void Renderer::skyboxRenderPass(const Scene &scene) {
     const CubeMap* cubeMap = nullptr;
-    for (const Entity& entity : scene.getEntities()) {
-        const SkyboxComponent* skybox = entity.tryGetComponent<SkyboxComponent>();
-        if (skybox && skybox->enabled && skybox->cubeMap) {
-            cubeMap = skybox->cubeMap;
-            break;
+    scene.each<SkyboxComponent>([&](const Entity &, const SkyboxComponent &skybox) {
+        if (!cubeMap && skybox.enabled && skybox.cubeMap) {
+            cubeMap = skybox.cubeMap;
         }
-    }
+    });
 
     if (!cubeMap) {
         return;
@@ -328,42 +343,44 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     skyboxRenderPass(scene);
 
     // Scene mesh pass: finish the depth buffer and mark visible-only outlines.
-    for (const Entity &entity: scene.getEntities()) {
-        const MeshRendererComponent* component =
-                entity.tryGetComponent<MeshRendererComponent>();
-        if (!component || !component->enabled || !component->mesh || !component->material) {
-            continue;
-        }
-
-        const std::optional<OutlineVisibility> visibility = getOutlineVisibility(entity);
-        const bool visibleOnly = visibility == OutlineVisibility::VisibleOnly;
-
-        auto worldMatrix = scene.getWorldMatrix(entity);
-        meshRenderPass(worldMatrix, *component->mesh, *component->material, visibleOnly);
-
-        hasVisibleOutline |= visibleOnly;
-
-        if (visibility == OutlineVisibility::AlwaysVisible) {
-            const EntityId groupId = isHighlighted(entity)
-                                         ? *options.highlightedEntityId
-                                         : getTopLevelAncestorId(scene, entity);
-
-            auto group = std::ranges::find(
-                xRayOutlineGroups,
-                groupId,
-                &XRayOutlineGroup::id
-            );
-
-            if (group == xRayOutlineGroups.end()) {
-                group = xRayOutlineGroups.insert(
-                    xRayOutlineGroups.end(),
-                    XRayOutlineGroup{.id = groupId}
-                );
+    scene.each<TransformComponent, MeshRendererComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const MeshRendererComponent &component) {
+            if (!component.enabled || !component.mesh || !component.material) {
+                return;
             }
 
-            group->entities.push_back(&entity);
+            const std::optional<OutlineVisibility> visibility = getOutlineVisibility(entity);
+            const bool visibleOnly = visibility == OutlineVisibility::VisibleOnly;
+
+            const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
+            meshRenderPass(worldMatrix, *component.mesh, *component.material, visibleOnly);
+
+            hasVisibleOutline |= visibleOnly;
+
+            if (visibility == OutlineVisibility::AlwaysVisible) {
+                const EntityId groupId = isHighlighted(entity)
+                                             ? *options.highlightedEntityId
+                                             : getTopLevelAncestorId(scene, entity);
+
+                auto group = std::ranges::find(
+                    xRayOutlineGroups,
+                    groupId,
+                    &XRayOutlineGroup::id
+                );
+
+                if (group == xRayOutlineGroups.end()) {
+                    group = xRayOutlineGroups.insert(
+                        xRayOutlineGroups.end(),
+                        XRayOutlineGroup{.id = groupId}
+                    );
+                }
+
+                group->entities.push_back(&entity);
+            }
         }
-    }
+    );
 
     if (hasVisibleOutline) {
         // Visible-only outline pass: use the completed scene depth buffer.
@@ -375,20 +392,21 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
 
-        for (const Entity &entity: scene.getEntities()) {
-            const MeshRendererComponent* component =
-                    entity.tryGetComponent<MeshRendererComponent>();
-            if (!component ||
-                !component->enabled ||
-                !component->mesh ||
-                !component->material ||
-                getOutlineVisibility(entity) != OutlineVisibility::VisibleOnly) {
-                continue;
-            }
+        scene.each<TransformComponent, MeshRendererComponent>(
+            [&](const Entity &entity,
+                const TransformComponent &,
+                const MeshRendererComponent &component) {
+                if (!component.enabled ||
+                    !component.mesh ||
+                    !component.material ||
+                    getOutlineVisibility(entity) != OutlineVisibility::VisibleOnly) {
+                    return;
+                }
 
-            const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-            drawMeshOutline(worldMatrix, *component->mesh, component->outlineMode, outlineWidth);
-        }
+                const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
+                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
+            }
+        );
 
         glDepthMask(GL_TRUE);
         glStencilMask(0xFF);
