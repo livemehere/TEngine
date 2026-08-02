@@ -44,8 +44,7 @@ void Application::run() {
             renderer.endFrame();
 
             /* post process */
-            finalFBO.bind();
-            postProcessor.render(sceneFBO.getTextureId());
+            postProcessor.render(sceneFBO, finalFBO);
 
         }
 

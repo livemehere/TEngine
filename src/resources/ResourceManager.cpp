@@ -76,8 +76,6 @@ const Shader & ResourceManager::getPostProcessShader() {
             resolvePath("shaders/postProcess.vert"),
             resolvePath("shaders/postProcess.frag")
         );
-        const auto shader = postProcessShader.get();
-        shader->bindUniformBlock("CameraData", UniformBinding::Camera);
     }
     return *postProcessShader;
 

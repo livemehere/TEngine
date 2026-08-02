@@ -2,16 +2,20 @@
 
 #include <glad/glad.h>
 
-#include "../resources/ResourceManager.h"
-
+class FrameBuffer;
+class ResourceManager;
+class Shader;
 
 class PostProcessor {
-    GLuint vao;
+    GLuint vao = 0;
     const Shader& shader;
 
 public:
     PostProcessor(ResourceManager& resourceManager);
     ~PostProcessor();
 
-    void render(GLuint textureId);
+    PostProcessor(const PostProcessor&) = delete;
+    PostProcessor& operator=(const PostProcessor&) = delete;
+
+    void render(const FrameBuffer& source, FrameBuffer& destination);
 };

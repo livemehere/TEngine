@@ -30,8 +30,8 @@ public:
           resourceManager(ASSET_ROOT),
           renderer(resourceManager),
           postProcessor(resourceManager),
-          sceneFBO(RenderExtent{1, 1}),
-          finalFBO(RenderExtent{1, 1}) {}
+          sceneFBO({.extent = {1, 1}, .hasDepthStencil = true}),
+          finalFBO({.extent = {1, 1}, .hasDepthStencil = false}) {}
     ~Application() = default;
 
     void run();

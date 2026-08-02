@@ -1,11 +1,5 @@
 #version 410 core
 
-layout (std140) uniform CameraData {
-    mat4 view;
-    mat4 projection;
-    vec4 position;
-} camera;
-
 out vec2 vTexCoord;
 
 const vec2 positions[3] = vec2[](
