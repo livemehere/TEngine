@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include "../rendering/mesh/MeshRendererComponent.h"
+#include "Behaviour.h"
 
 Scene::~Scene() {
     // Detach components while the Scene and its services are still alive.
@@ -31,14 +32,100 @@ bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
     return false;
 }
 
-void Scene::update(float dt) {
+void Scene::endComponentIteration() noexcept {
+    if (componentIterationDepth == 0) {
+        return;
+    }
+
+    --componentIterationDepth;
+    if (componentIterationDepth == 0) {
+        flushPendingComponentChanges();
+    }
+}
+
+void Scene::flushPendingComponentChanges() noexcept {
+    const size_t entityCount = entities.size();
+    for (size_t index = 0; index < entityCount; ++index) {
+        entities[index].flushPendingComponentChanges();
+    }
+}
+
+void Scene::updateEditor(float dt) {
     camera.update(dt);
+}
+
+void Scene::updateRuntime(float dt) {
+    camera.update(dt);
+
+    // Start runs once, immediately before the first update of an enabled Behaviour.
+    {
+        ComponentIterationScope iterationScope(*this);
+        const size_t entityCount = entities.size();
+        for (size_t index = 0; index < entityCount; ++index) {
+            Entity &entity = entities[index];
+            for (auto &[type, component]: entity.components_) {
+                if (entity.pendingComponentRemovals_.contains(type)) {
+                    continue;
+                }
+
+                auto *behaviour = dynamic_cast<Behaviour *>(component.get());
+                if (!behaviour || !behaviour->enabled || behaviour->started_) {
+                    continue;
+                }
+
+                behaviour->started_ = true;
+                behaviour->start();
+            }
+        }
+    }
+
+    {
+        ComponentIterationScope iterationScope(*this);
+        const size_t entityCount = entities.size();
+        for (size_t index = 0; index < entityCount; ++index) {
+            Entity &entity = entities[index];
+            for (auto &[type, component]: entity.components_) {
+                if (entity.pendingComponentRemovals_.contains(type)) {
+                    continue;
+                }
+
+                auto *behaviour = dynamic_cast<Behaviour *>(component.get());
+                if (behaviour && behaviour->enabled && behaviour->started_) {
+                    behaviour->update(dt);
+                }
+            }
+        }
+    }
+
+    {
+        ComponentIterationScope iterationScope(*this);
+        const size_t entityCount = entities.size();
+        for (size_t index = 0; index < entityCount; ++index) {
+            Entity &entity = entities[index];
+            for (auto &[type, component]: entity.components_) {
+                if (entity.pendingComponentRemovals_.contains(type)) {
+                    continue;
+                }
+
+                auto *behaviour = dynamic_cast<Behaviour *>(component.get());
+                if (behaviour && behaviour->enabled && behaviour->started_) {
+                    behaviour->lateUpdate(dt);
+                }
+            }
+        }
+    }
 }
 
 Entity &Scene::createEntity(const std::string &name) {
     const size_t siblingIndex = getChildren(std::nullopt).size();
 
-    return entities.emplace_back(*this, entitySeq++, name, siblingIndex);
+    return entities.emplace_back(
+        *this,
+        componentIterationDepth,
+        entitySeq++,
+        name,
+        siblingIndex
+    );
 }
 
 Entity *Scene::findEntity(const EntityId id) {

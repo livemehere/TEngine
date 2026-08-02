@@ -32,7 +32,7 @@ void Application::run() {
         const RenderExtent viewport = editor.drawSceneView(finalFBO.getTextureId());
         const bool canRenderScene = viewport.width > 0 && viewport.height > 0;
 
-        scene.update(dt);
+        scene.updateEditor(dt);
 
         if (canRenderScene) {
             sceneFBO.resize(viewport);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <deque>
 #include <functional>
 #include <vector>
 
@@ -10,7 +11,27 @@
 
 class Scene {
     EntityId entitySeq = 0;
-    std::vector<Entity> entities;
+    std::deque<Entity> entities;
+    mutable size_t componentIterationDepth = 0;
+
+    void endComponentIteration() noexcept;
+    void flushPendingComponentChanges() noexcept;
+
+    class ComponentIterationScope {
+        Scene &scene;
+
+    public:
+        explicit ComponentIterationScope(Scene &scene) : scene(scene) {
+            ++scene.componentIterationDepth;
+        }
+
+        ~ComponentIterationScope() {
+            scene.endComponentIteration();
+        }
+
+        ComponentIterationScope(const ComponentIterationScope &) = delete;
+        ComponentIterationScope &operator=(const ComponentIterationScope &) = delete;
+    };
 
     bool wouldCreateCycle(EntityId childId, EntityId parentId);
 
@@ -20,7 +41,8 @@ public:
     Scene() = default;
     ~Scene();
 
-    void update(float dt);
+    void updateEditor(float dt);
+    void updateRuntime(float dt);
 
     Entity& createEntity(const std::string& name);
 
@@ -37,7 +59,10 @@ public:
             "Scene::each callback has an incompatible parameter list"
         );
 
-        for (Entity& entity: entities) {
+        ComponentIterationScope iterationScope(*this);
+        const size_t entityCount = entities.size();
+        for (size_t index = 0; index < entityCount; ++index) {
+            Entity& entity = entities[index];
             if ((entity.hasComponent<Components>() && ...)) {
                 if constexpr (acceptsEntity) {
                     std::invoke(function, entity, entity.getComponent<Components>()...);
@@ -61,7 +86,10 @@ public:
             "Scene::each callback has an incompatible parameter list"
         );
 
-        for (const Entity& entity: entities) {
+        ComponentIterationScope iterationScope(const_cast<Scene &>(*this));
+        const size_t entityCount = entities.size();
+        for (size_t index = 0; index < entityCount; ++index) {
+            const Entity& entity = entities[index];
             if ((entity.hasComponent<Components>() && ...)) {
                 if constexpr (acceptsEntity) {
                     std::invoke(function, entity, entity.getComponent<Components>()...);
