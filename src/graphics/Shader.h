@@ -1,11 +1,16 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
 class Shader {
     GLuint id = 0;
+    mutable std::unordered_map<std::string, GLint> uniformLocationCache;
+
+    GLint getUniformLocation(const char* name) const;
+
 public:
     Shader(const std::string& vsPath, const std::string& fsPath);
     ~Shader() {
