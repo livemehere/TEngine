@@ -63,6 +63,7 @@ struct RenderOptions {
 
 class Renderer {
     const Shader &outlineShader;
+    const Shader &skyboxShader;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
 
@@ -74,6 +75,7 @@ class Renderer {
 
     /** passes */
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
+    void skyboxRenderPass(const Scene& scene);
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);
 
 public:

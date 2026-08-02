@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../resources/ResourceManager.h"
+#include "../graphics/CubeMap.h"
 
 namespace {
     void applyCullMode(CullMode mode) {
@@ -74,7 +75,8 @@ namespace {
 }; */
 
 Renderer::Renderer(ResourceManager &resourceManager)
-    : outlineShader(resourceManager.getOutlineShader()) {
+    : outlineShader(resourceManager.getOutlineShader()),
+      skyboxShader(resourceManager.getSkyboxShader()) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -221,6 +223,37 @@ void Renderer::drawMeshOutline(
     mesh.draw();
 }
 
+void Renderer::skyboxRenderPass(const Scene &scene) {
+    const CubeMap* cubeMap = nullptr;
+    for (const Entity& entity : scene.getEntities()) {
+        if (entity.skyboxComponent &&
+            entity.skyboxComponent->enabled &&
+            entity.skyboxComponent->cubeMap) {
+            cubeMap = entity.skyboxComponent->cubeMap;
+            break;
+        }
+    }
+
+    if (!cubeMap) {
+        return;
+    }
+
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+
+    skyboxShader.use();
+    cubeMap->bind(0);
+    cubeMap->draw();
+
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_BLEND);
+}
+
 void Renderer::render(const Scene &scene, const RenderOptions &options) {
     const auto isHighlighted = [&](const Entity &entity) {
         return options.highlightedEntityId &&
@@ -253,6 +286,10 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 
     bool hasVisibleOutline = false;
     std::vector<XRayOutlineGroup> xRayOutlineGroups;
+
+    // Establish the background first without writing depth. Scene meshes can
+    // then overwrite it normally and populate the depth buffer.
+    skyboxRenderPass(scene);
 
     // Scene mesh pass: finish the depth buffer and mark visible-only outlines.
     for (const Entity &entity: scene.getEntities()) {

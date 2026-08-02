@@ -5,6 +5,7 @@
 
 #include "../rendering/Transform.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
+#include "../rendering/skybox/SkyboxComponent.h"
 
 using EntityId = std::uint64_t;
 
@@ -21,6 +22,7 @@ struct Entity {
     size_t siblingIndex = 0;
 
     std::optional<MeshRendererComponent> meshRenderComponent;
+    std::optional<SkyboxComponent> skyboxComponent;
 };
 
 struct EntityMoveRequest {

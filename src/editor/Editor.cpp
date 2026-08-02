@@ -350,6 +350,24 @@ void Editor::drawInspectorContent(Scene &scene) {
         }
     }
 
+    if (entity->skyboxComponent) {
+        constexpr ImGuiTreeNodeFlags skyboxFlags =
+            ImGuiTreeNodeFlags_DefaultOpen |
+            ImGuiTreeNodeFlags_Framed |
+            ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_FramePadding;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+        const bool skyboxOpen = ImGui::TreeNodeEx("Skybox", skyboxFlags);
+        ImGui::PopStyleVar();
+
+        if (skyboxOpen) {
+            ImGui::Checkbox("Enabled", &entity->skyboxComponent->enabled);
+            ImGui::TextDisabled("The skybox follows the camera; entity transform is ignored.");
+            ImGui::TreePop();
+        }
+    }
+
 }
 
 void Editor::drawDebug(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {

@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include <array>
+
 #include "../camera/FreeLookCameraController.h"
 
 void Application::run() {
@@ -70,10 +72,24 @@ void Application::createSandboxScene() {
     const Texture2D &boxTexture = resourceManager.loadTexture("textures/box.png");
     const Texture2D &boxSpecularMapTexture = resourceManager.loadTexture("textures/box_specular_map.png");
     const Texture2D &grassTexture = resourceManager.loadTexture("textures/grass.png");
+    const std::array<std::string, 6> skyboxFaces{
+        "textures/skybox/right.jpg",
+        "textures/skybox/left.jpg",
+        "textures/skybox/top.jpg",
+        "textures/skybox/bottom.jpg",
+        "textures/skybox/front.jpg",
+        "textures/skybox/back.jpg"
+    };
+    const CubeMap &skyboxCubeMap = resourceManager.loadCubeMap("defaultSkybox", skyboxFaces);
 
     /* shaders */
     const Shader &litShader = resourceManager.getLitShader();
     const Shader &unlitShader = resourceManager.getUnlitShader();
+
+    Entity &skybox = scene.createEntity("Skybox");
+    skybox.skyboxComponent = {
+        .cubeMap = &skyboxCubeMap
+    };
 
     /* materials */
     LitMaterial &whiteMaterial = resourceManager.loadLitMaterial("white", litShader, whiteTexture);

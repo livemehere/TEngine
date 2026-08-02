@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "../graphics/Shader.h"
+#include "../graphics/CubeMap.h"
 #include "../graphics/Texture2D.h"
 #include "../rendering/mesh/Mesh.h"
 #include "../rendering/mesh/materials/LitMaterial.h"
@@ -25,9 +26,11 @@ class ResourceManager {
     std::unique_ptr<Shader> unlitShader;
     std::unique_ptr<Shader> outlineShader;
     std::unique_ptr<Shader> postProcessShader;
+    std::unique_ptr<Shader> skyboxShader;
 
     /* externally loaded resources */
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
+    std::unordered_map<std::string, std::unique_ptr<CubeMap> > cubeMaps;
     std::unordered_map<std::string, std::unique_ptr<Model> > models;
 
     std::unordered_map<std::string, std::unique_ptr<LitMaterial> > litMaterials;
@@ -54,6 +57,8 @@ public:
 
     const Shader &getPostProcessShader();
 
+    const Shader &getSkyboxShader();
+
     LitMaterial &loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 
     UnlitMaterial &loadUnlitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
@@ -70,6 +75,11 @@ public:
         int width,
         int height,
         std::span<const std::uint8_t> rgbaPixels
+    );
+
+    const CubeMap &loadCubeMap(
+        const std::string& key,
+        std::span<const std::string> faces
     );
 
     const Model &loadModel(const std::string &path, bool flipUVs);

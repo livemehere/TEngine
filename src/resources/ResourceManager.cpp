@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include <array>
+#include <vector>
 
 #include "../rendering/Renderer.h"
 #include "../rendering/mesh/primitives/PrimitiveMeshes.h"
@@ -79,6 +80,23 @@ const Shader & ResourceManager::getPostProcessShader() {
     }
     return *postProcessShader;
 
+}
+
+const Shader &ResourceManager::getSkyboxShader() {
+    if (!skyboxShader) {
+        skyboxShader = std::make_unique<Shader>(
+            resolvePath("shaders/skybox.vert"),
+            resolvePath("shaders/skybox.frag")
+        );
+        skyboxShader->bindUniformBlock("CameraData", UniformBinding::Camera);
+
+        GLint previousProgram = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+        skyboxShader->use();
+        skyboxShader->setInt("uSkybox", 0);
+        glUseProgram(previousProgram);
+    }
+    return *skyboxShader;
 }
 
 LitMaterial &ResourceManager::loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
@@ -162,6 +180,25 @@ const Texture2D &ResourceManager::loadRawTexture(
         std::move(texture)
     );
 
+    return *it->second;
+}
+
+const CubeMap &ResourceManager::loadCubeMap(
+    const std::string& key,
+    std::span<const std::string> faces
+) {
+    if (const auto it = cubeMaps.find(key); it != cubeMaps.end()) {
+        return *it->second;
+    }
+
+    std::vector<std::string> resolvedFaces;
+    resolvedFaces.reserve(faces.size());
+    for (const std::string& face : faces) {
+        resolvedFaces.push_back(resolvePath(face).lexically_normal().string());
+    }
+
+    auto cubeMap = std::make_unique<CubeMap>(resolvedFaces);
+    auto [it, inserted] = cubeMaps.emplace(key, std::move(cubeMap));
     return *it->second;
 }
 

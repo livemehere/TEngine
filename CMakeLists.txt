@@ -62,7 +62,8 @@ add_executable(TEngine src/main.cpp
         src/rendering/PostProcessor.cpp
         src/rendering/PostProcessor.h
         src/graphics/Cubemap.cpp
-        src/graphics/Cubemap.h
+        src/graphics/CubeMap.h
+        src/rendering/skybox/SkyboxComponent.h
 )
 
 target_link_libraries(TEngine PRIVATE
