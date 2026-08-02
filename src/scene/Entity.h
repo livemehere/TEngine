@@ -16,9 +16,11 @@
 #include "TransformComponent.h"
 
 class Scene;
+class SceneSerializer;
 
 class Entity {
     friend class Scene;
+    friend class SceneSerializer;
 
     Scene *scene_;
     size_t *componentIterationDepth_;

@@ -7,6 +7,7 @@
 #include "../scene/Entity.h"
 
 class Scene;
+class ComponentTypeRegistry;
 struct MouseState;
 struct WindowSize;
 
@@ -21,6 +22,7 @@ class Editor {
         std::optional<EntityId> parentId;
     };
 
+    const ComponentTypeRegistry &componentTypes;
     ComponentDrawerRegistry componentDrawers;
     std::optional<EntityId> selectedEntityId;
     std::optional<EntityMoveRequest> pendingMoveReq;
@@ -35,7 +37,7 @@ class Editor {
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
-    Editor();
+    explicit Editor(const ComponentTypeRegistry &componentTypes);
 
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
     std::optional<PlayModeRequest> consumePlayModeRequest();

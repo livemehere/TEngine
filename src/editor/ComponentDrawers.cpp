@@ -273,7 +273,7 @@ void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry) {
         }
     );
 
-    registry.registerCustomDrawer(
+    registry.registerCustomDrawer<MeshRendererComponent>(
         "Mesh Renderer",
         [](Scene &scene, Entity &entity) {
             return !collectMeshRendererComponents(scene, entity.id).empty();
@@ -361,12 +361,4 @@ void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry) {
             );
         }
     );
-
-    registry.registerComponent<MeshRendererComponent>("Mesh Renderer");
-    registry.registerComponent<CameraComponent>("Camera");
-    registry.registerComponent<AmbientLightComponent>("Ambient Light");
-    registry.registerComponent<DirectionalLightComponent>("Directional Light");
-    registry.registerComponent<PointLightComponent>("Point Light");
-    registry.registerComponent<SpotLightComponent>("Spot Light");
-    registry.registerComponent<SkyboxComponent>("Skybox");
 }

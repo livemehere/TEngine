@@ -3,9 +3,24 @@
 #include <array>
 
 #include "../camera/FreeLookCameraController.h"
+#include "../game/components/TestComponent.h"
 #include "../rendering/Lights.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
+#include "../scene/SceneSerializer.h"
+
+Application::Application()
+    : window(1920, 1080, "TEngine", true),
+      input(window),
+      resourceManager(ASSET_ROOT),
+      renderer(resourceManager),
+      postProcessor(resourceManager),
+      sceneFBO({.extent = {1, 1}, .hasDepthStencil = true}),
+      finalFBO({.extent = {1, 1}, .hasDepthStencil = false}),
+      editor(componentTypes) {
+    registerBuiltinComponentTypes(componentTypes);
+    componentTypes.registerComponent<TestComponent>("Test Component");
+}
 
 void Application::run() {
     createSandboxScene();
@@ -37,7 +52,10 @@ void Application::run() {
         if (const std::optional<PlayModeRequest> request =
                 editor.consumePlayModeRequest()) {
             if (*request == PlayModeRequest::Play && !runtimeScene) {
-                runtimeScene = scene.clone();
+                runtimeScene = SceneSerializer::cloneForRuntime(
+                    scene,
+                    componentTypes
+                );
             } else if (*request == PlayModeRequest::Stop && runtimeScene) {
                 runtimeScene->stopRuntime();
                 runtimeScene.reset();
@@ -96,7 +114,6 @@ void Application::createSandboxScene() {
     cameraTransform.lookAt(glm::vec3(0.0f));
     cameraEntity.addComponent<CameraComponent>();
     scene.setActiveCamera(cameraEntity.id);
-
 
     /* meshes*/
     const Mesh &planeMesh = resourceManager.getPlaneMesh();
@@ -204,6 +221,7 @@ void Application::createSandboxScene() {
             grass.addComponent<MeshRendererComponent>(&planeMesh, &grassMaterial);
     grassRenderer.outlineMode = OutlineMode::ScaleFromPivot;
     grass.siblingIndex = 3;
+    // grass.addComponent<TestComponent>();
 
     Entity &window = scene.createEntity("window");
     Transform &windowTransform = window.getComponent<TransformComponent>().local;

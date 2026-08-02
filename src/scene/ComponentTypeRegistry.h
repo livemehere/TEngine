@@ -18,6 +18,7 @@ struct ComponentTypeDescriptor {
     std::string name;
     bool addable = true;
     std::function<bool(const Entity &)> has;
+    std::function<Component *(Entity &)> get;
     std::function<void(Entity &)> addDefault;
     std::function<std::any(const Component &)> serialize;
     std::function<std::unique_ptr<Component>(const std::any &)> instantiate;
@@ -43,6 +44,9 @@ public:
             .addable = addable,
             .has = [](const Entity &entity) {
                 return entity.hasComponent<T>();
+            },
+            .get = [](Entity &entity) -> Component * {
+                return entity.tryGetComponent<T>();
             },
             .addDefault = [](Entity &entity) {
                 entity.addComponent<T>();
@@ -70,6 +74,9 @@ public:
             .addable = addable,
             .has = [](const Entity &entity) {
                 return entity.hasComponent<T>();
+            },
+            .get = [](Entity &entity) -> Component * {
+                return entity.tryGetComponent<T>();
             },
             .addDefault = [](Entity &entity) {
                 entity.addComponent<T>();

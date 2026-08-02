@@ -58,6 +58,12 @@ add_executable(TEngine src/main.cpp
         src/scene/Component.h
         src/scene/Behaviour.h
         src/scene/TransformComponent.h
+        src/scene/ComponentTypeRegistry.cpp
+        src/scene/ComponentTypeRegistry.h
+        src/scene/SceneSerializer.cpp
+        src/scene/SceneSerializer.h
+        src/game/components/TestComponent.cpp
+        src/game/components/TestComponent.h
         src/editor/Editor.cpp
         src/editor/Editor.h
         src/editor/ComponentDrawerRegistry.cpp
@@ -72,6 +78,8 @@ add_executable(TEngine src/main.cpp
         src/graphics/Cubemap.cpp
         src/graphics/CubeMap.h
         src/rendering/skybox/SkyboxComponent.h
+        src/game/components/TestComponent.cpp
+        src/game/components/TestComponent.h
 )
 
 target_link_libraries(TEngine PRIVATE

@@ -9,6 +9,8 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include "../scene/ComponentTypeRegistry.h"
+
 namespace {
     bool containsCaseInsensitive(std::string_view text, std::string_view query) {
         return std::ranges::search(
@@ -28,39 +30,81 @@ void ComponentDrawerRegistry::registerCustomDrawer(
     Drawer drawer
 ) {
     entries.push_back({
+        .componentType = std::nullopt,
         .label = std::move(label),
         .predicate = std::move(predicate),
         .drawer = std::move(drawer)
     });
 }
 
-void ComponentDrawerRegistry::drawComponents(Scene &scene, Entity &entity) const {
+void ComponentDrawerRegistry::drawComponents(
+    Scene &scene,
+    Entity &entity,
+    const ComponentTypeRegistry &componentTypes
+) const {
     constexpr ImGuiTreeNodeFlags componentFlags =
             ImGuiTreeNodeFlags_DefaultOpen |
             ImGuiTreeNodeFlags_Framed |
             ImGuiTreeNodeFlags_SpanAvailWidth |
             ImGuiTreeNodeFlags_FramePadding;
 
+    const auto drawPanel = [&](const std::string &label, const auto &drawContent) {
+        ImGui::PushID(label.c_str());
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+        const bool open = ImGui::TreeNodeEx(label.c_str(), componentFlags);
+        ImGui::PopStyleVar();
+
+        if (open) {
+            ImGui::Spacing();
+            drawContent();
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
+    };
+
     for (const Entry &entry: entries) {
         if (!entry.predicate(scene, entity)) {
             continue;
         }
 
-        ImGui::PushID(entry.label.c_str());
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
-        const bool open = ImGui::TreeNodeEx(entry.label.c_str(), componentFlags);
-        ImGui::PopStyleVar();
-
-        if (open) {
-            ImGui::Spacing();
+        drawPanel(entry.label, [&] {
             entry.drawer(scene, entity);
-            ImGui::TreePop();
+        });
+    }
+
+    for (const ComponentTypeDescriptor &componentType:
+         componentTypes.getDescriptors()) {
+        if (!componentType.has(entity)) {
+            continue;
         }
-        ImGui::PopID();
+
+        const bool hasCustomDrawer = std::ranges::any_of(
+            entries,
+            [&](const Entry &entry) {
+                return entry.componentType &&
+                       *entry.componentType == componentType.type;
+            }
+        );
+        if (hasCustomDrawer) {
+            continue;
+        }
+
+        drawPanel(componentType.name, [&] {
+            Component *component = componentType.get(entity);
+            if (!component) {
+                return;
+            }
+
+            ImGui::Checkbox("Enabled", &component->enabled);
+            ImGui::TextDisabled("No custom inspector is registered.");
+        });
     }
 }
 
-void ComponentDrawerRegistry::drawAddComponent(Entity &entity) {
+void ComponentDrawerRegistry::drawAddComponent(
+    Entity &entity,
+    const ComponentTypeRegistry &componentTypes
+) {
     ImGui::Spacing();
     ImGui::Separator();
 
@@ -87,17 +131,19 @@ void ComponentDrawerRegistry::drawAddComponent(Entity &entity) {
     ImGui::Separator();
 
     bool hasSearchResult = false;
-    for (const FactoryEntry &factory: factories) {
-        if (!containsCaseInsensitive(factory.label, componentSearch)) {
+    for (const ComponentTypeDescriptor &componentType:
+         componentTypes.getDescriptors()) {
+        if (!componentType.addable ||
+            !containsCaseInsensitive(componentType.name, componentSearch)) {
             continue;
         }
 
         hasSearchResult = true;
-        const bool canAdd = factory.canAdd(entity);
+        const bool canAdd = !componentType.has(entity);
         ImGui::BeginDisabled(!canAdd);
 
-        if (ImGui::Selectable(factory.label.c_str())) {
-            factory.add(entity);
+        if (ImGui::Selectable(componentType.name.c_str())) {
+            componentType.addDefault(entity);
             componentSearch.clear();
             ImGui::CloseCurrentPopup();
         }

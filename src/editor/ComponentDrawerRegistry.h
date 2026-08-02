@@ -2,69 +2,74 @@
 
 #include <concepts>
 #include <functional>
+#include <optional>
 #include <string>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
 #include "../scene/Entity.h"
 
 class Scene;
+class ComponentTypeRegistry;
 
 class ComponentDrawerRegistry {
 public:
     using Predicate = std::function<bool(Scene &, Entity &)>;
     using Drawer = std::function<void(Scene &, Entity &)>;
-    using ComponentFactory = std::function<void(Entity &)>;
 
 private:
     struct Entry {
+        std::optional<std::type_index> componentType;
         std::string label;
         Predicate predicate;
         Drawer drawer;
     };
 
-    struct FactoryEntry {
-        std::string label;
-        std::function<bool(const Entity &)> canAdd;
-        ComponentFactory add;
-    };
-
     std::vector<Entry> entries;
-    std::vector<FactoryEntry> factories;
     std::string componentSearch;
 
 public:
     template<typename T, typename Function>
         requires std::derived_from<T, Component>
     void registerDrawer(std::string label, Function &&function) {
-        registerCustomDrawer(
-            std::move(label),
-            [](Scene &, Entity &entity) {
+        entries.push_back({
+            .componentType = std::type_index(typeid(T)),
+            .label = std::move(label),
+            .predicate = [](Scene &, Entity &entity) {
                 return entity.hasComponent<T>();
             },
-            [drawer = std::forward<Function>(function)](Scene &scene, Entity &entity) mutable {
+            .drawer = [drawer = std::forward<Function>(function)](
+                Scene &scene,
+                Entity &entity
+            ) mutable {
                 drawer(scene, entity, entity.getComponent<T>());
-            }
-        );
-    }
-
-    template<typename T>
-        requires std::derived_from<T, Component> && std::default_initializable<T>
-    void registerComponent(std::string label) {
-        factories.push_back({
-            .label = std::move(label),
-            .canAdd = [](const Entity &entity) {
-                return !entity.hasComponent<T>();
-            },
-            .add = [](Entity &entity) {
-                entity.addComponent<T>();
             }
         });
     }
 
+    template<typename T>
+        requires std::derived_from<T, Component>
+    void registerCustomDrawer(
+        std::string label,
+        Predicate predicate,
+        Drawer drawer
+    ) {
+        entries.push_back({
+            .componentType = std::type_index(typeid(T)),
+            .label = std::move(label),
+            .predicate = std::move(predicate),
+            .drawer = std::move(drawer)
+        });
+    }
+
     void registerCustomDrawer(std::string label, Predicate predicate, Drawer drawer);
-    void drawComponents(Scene &scene, Entity &entity) const;
-    void drawAddComponent(Entity &entity);
+    void drawComponents(
+        Scene &scene,
+        Entity &entity,
+        const ComponentTypeRegistry &componentTypes
+    ) const;
+    void drawAddComponent(Entity &entity, const ComponentTypeRegistry &componentTypes);
 };
 
 void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry);

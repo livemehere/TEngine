@@ -12,7 +12,8 @@
 #include "../core/Input.h"
 #include "../scene/Scene.h"
 
-Editor::Editor() {
+Editor::Editor(const ComponentTypeRegistry &componentTypes)
+    : componentTypes(componentTypes) {
     registerDefaultComponentDrawers(componentDrawers);
 }
 
@@ -122,8 +123,8 @@ void Editor::drawInspectorContent(Scene &scene) {
         "ID: %llu",
         static_cast<unsigned long long>(entity->id)
     );
-    componentDrawers.drawComponents(scene, *entity);
-    componentDrawers.drawAddComponent(*entity);
+    componentDrawers.drawComponents(scene, *entity, componentTypes);
+    componentDrawers.drawAddComponent(*entity, componentTypes);
 }
 
 void Editor::drawDebug(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {
