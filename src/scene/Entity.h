@@ -12,8 +12,6 @@
 #include "Component.h"
 #include "EntityId.h"
 #include "TransformComponent.h"
-#include "../rendering/mesh/MeshRendererComponent.h"
-#include "../rendering/skybox/SkyboxComponent.h"
 
 class Scene;
 
@@ -36,9 +34,6 @@ public:
     std::optional<EntityId> parentId = std::nullopt;
     size_t siblingIndex = 0;
 
-    std::optional<MeshRendererComponent> meshRenderComponent;
-    std::optional<SkyboxComponent> skyboxComponent;
-
     Entity(Scene &scene, EntityId id, std::string name, size_t siblingIndex)
         : id(id), name(std::move(name)), siblingIndex(siblingIndex), scene_(&scene) {
         addComponent<TransformComponent>();
@@ -59,8 +54,6 @@ public:
         name = std::move(other.name);
         parentId = other.parentId;
         siblingIndex = other.siblingIndex;
-        meshRenderComponent = std::move(other.meshRenderComponent);
-        skyboxComponent = std::move(other.skyboxComponent);
         scene_ = other.scene_;
         components_ = std::move(other.components_);
 

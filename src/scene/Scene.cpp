@@ -6,6 +6,8 @@
 
 #include <glm/gtc/matrix_inverse.hpp>
 
+#include "../rendering/mesh/MeshRendererComponent.h"
+
 Scene::~Scene() {
     // Detach components while the Scene and its services are still alive.
     entities.clear();
@@ -231,10 +233,10 @@ EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMat
         if (modelNode.partIndices.size() == 1) {
             const ModelPart &part = parts[modelNode.partIndices[0]];
             Entity *target = findEntity(nodeEntityId);
-            target->meshRenderComponent = {
-                .mesh = part.mesh.get(),
-                .material = resolvePartMaterial(part)
-            };
+            target->addComponent<MeshRendererComponent>(
+                part.mesh.get(),
+                resolvePartMaterial(part)
+            );
         } else {
             // one node has multiple meshes
             for (size_t partOrder = 0; partOrder < modelNode.partIndices.size(); partOrder++) {
@@ -243,10 +245,10 @@ EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMat
                 Entity &meshEntity = createEntity(std::format("{}_Mesh_{}", modelNode.name, partOrder));
                 const EntityId meshEntityId = meshEntity.id;
 
-                meshEntity.meshRenderComponent = {
-                    .mesh = part.mesh.get(),
-                    .material = resolvePartMaterial(part)
-                };
+                meshEntity.addComponent<MeshRendererComponent>(
+                    part.mesh.get(),
+                    resolvePartMaterial(part)
+                );
 
                 moveEntity(meshEntityId, nodeEntityId, partOrder, true);
             }

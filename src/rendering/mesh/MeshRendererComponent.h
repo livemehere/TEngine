@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../scene/Component.h"
 #include "Mesh.h"
 #include "materials/Material.h"
 
@@ -13,10 +14,16 @@ enum class OutlineVisibility : int {
     AlwaysVisible = 1
 };
 
-struct MeshRendererComponent {
+class MeshRendererComponent final : public Component {
+public:
     const Mesh* mesh = nullptr;
     const Material* material = nullptr;
     bool outlineEnabled = false;
     OutlineMode outlineMode = OutlineMode::NormalExtrusion;
     OutlineVisibility outlineVisibility = OutlineVisibility::VisibleOnly;
+
+    MeshRendererComponent() = default;
+
+    MeshRendererComponent(const Mesh* mesh, const Material* material)
+        : mesh(mesh), material(material) {}
 };

@@ -1,8 +1,13 @@
 #pragma once
 
+#include "../../scene/Component.h"
+
 class CubeMap;
 
-struct SkyboxComponent {
+class SkyboxComponent final : public Component {
+public:
     const CubeMap* cubeMap = nullptr;
-    bool enabled = true;
+
+    SkyboxComponent() = default;
+    explicit SkyboxComponent(const CubeMap* cubeMap) : cubeMap(cubeMap) {}
 };

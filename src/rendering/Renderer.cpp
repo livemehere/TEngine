@@ -5,6 +5,7 @@
 
 #include "../resources/ResourceManager.h"
 #include "../graphics/CubeMap.h"
+#include "skybox/SkyboxComponent.h"
 
 namespace {
     void applyCullMode(CullMode mode) {
@@ -226,10 +227,9 @@ void Renderer::drawMeshOutline(
 void Renderer::skyboxRenderPass(const Scene &scene) {
     const CubeMap* cubeMap = nullptr;
     for (const Entity& entity : scene.getEntities()) {
-        if (entity.skyboxComponent &&
-            entity.skyboxComponent->enabled &&
-            entity.skyboxComponent->cubeMap) {
-            cubeMap = entity.skyboxComponent->cubeMap;
+        const SkyboxComponent* skybox = entity.tryGetComponent<SkyboxComponent>();
+        if (skybox && skybox->enabled && skybox->cubeMap) {
+            cubeMap = skybox->cubeMap;
             break;
         }
     }
@@ -266,17 +266,22 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 
     const auto getOutlineVisibility = [&](const Entity &entity)
         -> std::optional<OutlineVisibility> {
-        const MeshRendererComponent &component = *entity.meshRenderComponent;
+        const MeshRendererComponent* component =
+                entity.tryGetComponent<MeshRendererComponent>();
+
+        if (!component || !component->enabled || !component->mesh || !component->material) {
+            return std::nullopt;
+        }
 
         if (isHighlighted(entity)) {
             return OutlineVisibility::AlwaysVisible;
         }
 
-        if (!component.outlineEnabled) {
+        if (!component->outlineEnabled) {
             return std::nullopt;
         }
 
-        return component.outlineVisibility;
+        return component->outlineVisibility;
     };
 
     struct XRayOutlineGroup {
@@ -293,36 +298,39 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 
     // Scene mesh pass: finish the depth buffer and mark visible-only outlines.
     for (const Entity &entity: scene.getEntities()) {
-        if (entity.meshRenderComponent) {
-            const MeshRendererComponent &component = *entity.meshRenderComponent;
-            const std::optional<OutlineVisibility> visibility = getOutlineVisibility(entity);
-            const bool visibleOnly = visibility == OutlineVisibility::VisibleOnly;
+        const MeshRendererComponent* component =
+                entity.tryGetComponent<MeshRendererComponent>();
+        if (!component || !component->enabled || !component->mesh || !component->material) {
+            continue;
+        }
 
-            auto worldMatrix = scene.getWorldMatrix(entity);
-            meshRenderPass(worldMatrix, *component.mesh, *component.material, visibleOnly);
+        const std::optional<OutlineVisibility> visibility = getOutlineVisibility(entity);
+        const bool visibleOnly = visibility == OutlineVisibility::VisibleOnly;
 
-            hasVisibleOutline |= visibleOnly;
+        auto worldMatrix = scene.getWorldMatrix(entity);
+        meshRenderPass(worldMatrix, *component->mesh, *component->material, visibleOnly);
 
-            if (visibility == OutlineVisibility::AlwaysVisible) {
-                const EntityId groupId = isHighlighted(entity)
-                                             ? *options.highlightedEntityId
-                                             : getTopLevelAncestorId(scene, entity);
+        hasVisibleOutline |= visibleOnly;
 
-                auto group = std::ranges::find(
-                    xRayOutlineGroups,
-                    groupId,
-                    &XRayOutlineGroup::id
+        if (visibility == OutlineVisibility::AlwaysVisible) {
+            const EntityId groupId = isHighlighted(entity)
+                                         ? *options.highlightedEntityId
+                                         : getTopLevelAncestorId(scene, entity);
+
+            auto group = std::ranges::find(
+                xRayOutlineGroups,
+                groupId,
+                &XRayOutlineGroup::id
+            );
+
+            if (group == xRayOutlineGroups.end()) {
+                group = xRayOutlineGroups.insert(
+                    xRayOutlineGroups.end(),
+                    XRayOutlineGroup{.id = groupId}
                 );
-
-                if (group == xRayOutlineGroups.end()) {
-                    group = xRayOutlineGroups.insert(
-                        xRayOutlineGroups.end(),
-                        XRayOutlineGroup{.id = groupId}
-                    );
-                }
-
-                group->entities.push_back(&entity);
             }
+
+            group->entities.push_back(&entity);
         }
     }
 
@@ -337,14 +345,18 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         glDepthMask(GL_FALSE);
 
         for (const Entity &entity: scene.getEntities()) {
-            if (!entity.meshRenderComponent ||
+            const MeshRendererComponent* component =
+                    entity.tryGetComponent<MeshRendererComponent>();
+            if (!component ||
+                !component->enabled ||
+                !component->mesh ||
+                !component->material ||
                 getOutlineVisibility(entity) != OutlineVisibility::VisibleOnly) {
                 continue;
             }
 
-            const MeshRendererComponent &component = *entity.meshRenderComponent;
             const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-            drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
+            drawMeshOutline(worldMatrix, *component->mesh, component->outlineMode, outlineWidth);
         }
 
         glDepthMask(GL_TRUE);
@@ -367,7 +379,8 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
             for (const Entity *entity : group.entities) {
-                const MeshRendererComponent &component = *entity->meshRenderComponent;
+                const MeshRendererComponent &component =
+                        entity->getComponent<MeshRendererComponent>();
                 const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
                 drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, 0.0f);
             }
@@ -379,7 +392,8 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
             for (const Entity *entity : group.entities) {
-                const MeshRendererComponent &component = *entity->meshRenderComponent;
+                const MeshRendererComponent &component =
+                        entity->getComponent<MeshRendererComponent>();
                 const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
                 drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
             }

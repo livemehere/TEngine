@@ -3,6 +3,8 @@
 #include <array>
 
 #include "../camera/FreeLookCameraController.h"
+#include "../rendering/mesh/MeshRendererComponent.h"
+#include "../rendering/skybox/SkyboxComponent.h"
 
 void Application::run() {
     createSandboxScene();
@@ -87,9 +89,7 @@ void Application::createSandboxScene() {
     const Shader &unlitShader = resourceManager.getUnlitShader();
 
     Entity &skybox = scene.createEntity("Skybox");
-    skybox.skyboxComponent = {
-        .cubeMap = &skyboxCubeMap
-    };
+    skybox.addComponent<SkyboxComponent>(&skyboxCubeMap);
 
     /* materials */
     LitMaterial &whiteMaterial = resourceManager.loadLitMaterial("white", litShader, whiteTexture);
@@ -115,26 +115,24 @@ void Application::createSandboxScene() {
     groundTransform.position = {0.0f, 0.0f, 0.0f};
     groundTransform.rotation = {-90.0f, 0.0f, 0.0f};
     groundTransform.scale = {5.0f, 5.0f, 5.0f};
-    ground.meshRenderComponent = {
-        .mesh = &planeMesh,
-        .material = &whiteMaterial,
-        .outlineMode = OutlineMode::ScaleFromPivot
-    };
+    MeshRendererComponent &groundRenderer =
+            ground.addComponent<MeshRendererComponent>(&planeMesh, &whiteMaterial);
+    groundRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
     Entity &box = scene.createEntity("box");
     EntityId boxId = box.id;
-    box.meshRenderComponent = {
-        .mesh = &resourceManager.getCubeMesh(),
-        .material = &whiteMaterial,
-        .outlineMode = OutlineMode::ScaleFromPivot
-    };
+    MeshRendererComponent &boxRenderer = box.addComponent<MeshRendererComponent>(
+        &resourceManager.getCubeMesh(),
+        &whiteMaterial
+    );
+    boxRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
     Entity &box2 = scene.createEntity("box2");
-    box2.meshRenderComponent = {
-        .mesh = &resourceManager.getCubeMesh(),
-        .material = &whiteMaterial,
-        .outlineMode = OutlineMode::ScaleFromPivot
-    };
+    MeshRendererComponent &box2Renderer = box2.addComponent<MeshRendererComponent>(
+        &resourceManager.getCubeMesh(),
+        &whiteMaterial
+    );
+    box2Renderer.outlineMode = OutlineMode::ScaleFromPivot;
     box2.getComponent<TransformComponent>().local.position.x = 3.0f;
     box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
@@ -170,11 +168,9 @@ void Application::createSandboxScene() {
     grassTransform.position = {0.0f, 0.5f, 2.0f};
     grassTransform.rotation = {0.0f, 0.0f, 0.0f};
     grassTransform.scale = {1.0f, 1.0f, 1.0f};
-    grass.meshRenderComponent = {
-        .mesh = &planeMesh,
-        .material = &grassMaterial,
-        .outlineMode = OutlineMode::ScaleFromPivot
-    };
+    MeshRendererComponent &grassRenderer =
+            grass.addComponent<MeshRendererComponent>(&planeMesh, &grassMaterial);
+    grassRenderer.outlineMode = OutlineMode::ScaleFromPivot;
     grass.siblingIndex = 3;
 
     Entity &window = scene.createEntity("window");
@@ -182,11 +178,9 @@ void Application::createSandboxScene() {
     windowTransform.position = {0.0f, 0.0f, 5.0f};
     windowTransform.rotation = {0.0f, 0.0f, 0.0f};
     windowTransform.scale = {10.0f, 10.0f, 10.0f};
-    window.meshRenderComponent = {
-        .mesh = &planeMesh,
-        .material = &windowMaterial,
-        .outlineMode = OutlineMode::ScaleFromPivot
-    };
+    MeshRendererComponent &windowRenderer =
+            window.addComponent<MeshRendererComponent>(&planeMesh, &windowMaterial);
+    windowRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
     /* lights */
     scene.ambientLight.intensity = 0.1f;

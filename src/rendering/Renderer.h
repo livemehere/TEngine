@@ -6,6 +6,7 @@
 
 #include "../scene/Scene.h"
 #include "RenderExtent.h"
+#include "mesh/MeshRendererComponent.h"
 
 class ResourceManager;
 class Shader;

@@ -11,6 +11,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../core/Input.h"
+#include "../rendering/mesh/MeshRendererComponent.h"
+#include "../rendering/skybox/SkyboxComponent.h"
 #include "../scene/Scene.h"
 
 namespace {
@@ -24,8 +26,8 @@ namespace {
             return;
         }
 
-        if (entity->meshRenderComponent) {
-            result.push_back(&*entity->meshRenderComponent);
+        if (MeshRendererComponent *component = entity->tryGetComponent<MeshRendererComponent>()) {
+            result.push_back(component);
         }
 
         for (const Entity *child: scene.getChildren(rootId)) {
@@ -351,7 +353,7 @@ void Editor::drawInspectorContent(Scene &scene) {
         }
     }
 
-    if (entity->skyboxComponent) {
+    if (SkyboxComponent *skybox = entity->tryGetComponent<SkyboxComponent>()) {
         constexpr ImGuiTreeNodeFlags skyboxFlags =
             ImGuiTreeNodeFlags_DefaultOpen |
             ImGuiTreeNodeFlags_Framed |
@@ -363,7 +365,7 @@ void Editor::drawInspectorContent(Scene &scene) {
         ImGui::PopStyleVar();
 
         if (skyboxOpen) {
-            ImGui::Checkbox("Enabled", &entity->skyboxComponent->enabled);
+            ImGui::Checkbox("Enabled", &skybox->enabled);
             ImGui::TextDisabled("The skybox follows the camera; entity transform is ignored.");
             ImGui::TreePop();
         }
