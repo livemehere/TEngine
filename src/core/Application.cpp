@@ -91,7 +91,6 @@ void Application::createSandboxScene() {
 
     /* models */
     const Model &bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);
-    const Model &personModel = resourceManager.loadModel("models/person/scene.gltf", false);
     const Model &fourArmsModel = resourceManager.loadModel("models/ben10-four-arms.glb", false);
     const Model &fireManModel = resourceManager.loadModel("models/fire-elementals.glb", false);
 
@@ -129,14 +128,6 @@ void Application::createSandboxScene() {
         .position = {0.0f, 1.0f, 0.0f},
         .rotation = {0.0f, 0.0f, 0.0f},
         .scale = {0.5f, 0.5f, 0.5f},
-    };
-
-    auto personId = scene.instantiateModel(personModel, whiteMaterial, "person");
-    Entity *personEntity = scene.findEntity(personId);
-    personEntity->localTransform = {
-        .position = {2.0f, 1.0f, 0.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {1.0f, 1.0f, 1.0f},
     };
 
     auto fourArmsId = scene.instantiateModel(fourArmsModel, whiteMaterial, "fourArms");
