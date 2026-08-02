@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "Input.h"
-#include "utils.h"
 #include "Window.h"
 #include "../rendering/Renderer.h"
 #include "../resources/ResourceManager.h"
@@ -13,7 +12,10 @@
 #include "../graphics/FrameBuffer.h"
 #include "../rendering/PostProcessor.h"
 
+class GameModule;
+
 class Application {
+    GameModule &game;
     Window window;
     Input input;
 
@@ -29,9 +31,8 @@ class Application {
     std::unique_ptr<Scene> runtimeScene;
     Editor editor;
 public:
-    Application();
+    explicit Application(GameModule &game);
     ~Application() = default;
 
     void run();
-    void createSandboxScene();
 };
