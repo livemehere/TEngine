@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
-#include <stdexcept>
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -135,54 +134,6 @@ void Scene::stopRuntime() {
             behaviour->started_ = false;
         }
     }
-}
-
-std::unique_ptr<Scene> Scene::clone() const {
-    auto result = std::make_unique<Scene>();
-    result->entitySeq = entitySeq;
-    result->activeCameraId = activeCameraId;
-    std::vector<Component *> componentsToAttach;
-
-    for (const Entity &source: entities) {
-        Entity &target = result->entities.emplace_back(
-            *result,
-            result->componentIterationDepth,
-            source.id,
-            source.name,
-            source.siblingIndex
-        );
-        target.parentId = source.parentId;
-
-        const TransformComponent &sourceTransform =
-                source.getComponent<TransformComponent>();
-        TransformComponent &targetTransform =
-                target.getComponent<TransformComponent>();
-        targetTransform.enabled = sourceTransform.enabled;
-        targetTransform.local = sourceTransform.local;
-
-        for (const auto &[type, component]: source.components_) {
-            if (type == std::type_index(typeid(TransformComponent))) {
-                continue;
-            }
-
-            std::unique_ptr<Component> componentCopy = component->clone();
-            if (!componentCopy) {
-                throw std::logic_error("Component clone returned null");
-            }
-
-            Component *attachedComponent = componentCopy.get();
-            attachedComponent->attachTo(*result, target.id);
-            target.components_.emplace(type, std::move(componentCopy));
-            componentsToAttach.push_back(attachedComponent);
-        }
-    }
-
-    // Components see a complete hierarchy when their runtime copy is attached.
-    for (Component *component: componentsToAttach) {
-        component->onAttach();
-    }
-
-    return result;
 }
 
 Entity &Scene::createEntity(const std::string &name) {

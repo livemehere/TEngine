@@ -1,15 +1,15 @@
 #pragma once
 
-#include <memory>
-
 #include "EntityId.h"
 
 class Entity;
 class Scene;
+class SceneSerializer;
 
 class Component {
     friend class Entity;
     friend class Scene;
+    friend class SceneSerializer;
 
     Scene* scene_ = nullptr;
     EntityId entityId_ = 0;
@@ -25,6 +25,9 @@ class Component {
     }
 
 protected:
+    Component(const Component& other) noexcept
+        : enabled(other.enabled) {}
+
     virtual void onAttach() noexcept {}
     virtual void onDetach() noexcept {}
 
@@ -34,12 +37,9 @@ public:
     Component() = default;
     virtual ~Component() = default;
 
-    Component(const Component&) = delete;
     Component& operator=(const Component&) = delete;
     Component(Component&&) = delete;
     Component& operator=(Component&&) = delete;
-
-    [[nodiscard]] virtual std::unique_ptr<Component> clone() const = 0;
 
     [[nodiscard]] Scene& getScene() { return *scene_; }
     [[nodiscard]] const Scene& getScene() const { return *scene_; }

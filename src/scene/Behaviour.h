@@ -10,14 +10,15 @@ class Behaviour : public Component {
     bool started_ = false;
 
 protected:
+    Behaviour() = default;
+    Behaviour(const Behaviour &other) noexcept
+        : Component(other) {}
+
     virtual void start() {}
     virtual void update(float dt) {}
     virtual void lateUpdate(float dt) {}
     virtual void stop() {}
 
 public:
-    // Concrete behaviours must clone their editable state so Play mode can run
-    // in an isolated Scene without modifying the editor Scene.
-    [[nodiscard]] virtual std::unique_ptr<Component> clone() const override = 0;
     [[nodiscard]] bool hasStarted() const noexcept { return started_; }
 };

@@ -3,7 +3,6 @@
 #include <concepts>
 #include <deque>
 #include <functional>
-#include <memory>
 #include <vector>
 
 #include "Entity.h"
@@ -11,6 +10,8 @@
 #include "../rendering/model/Model.h"
 
 class Scene {
+    friend class SceneSerializer;
+
     EntityId entitySeq = 0;
     std::deque<Entity> entities;
     mutable size_t componentIterationDepth = 0;
@@ -44,8 +45,6 @@ public:
     void updateEditor(float dt);
     void updateRuntime(float dt);
     void stopRuntime();
-
-    [[nodiscard]] std::unique_ptr<Scene> clone() const;
 
     Entity& createEntity(const std::string& name);
 
