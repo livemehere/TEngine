@@ -10,6 +10,7 @@
 #include <imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "../core/Input.h"
 #include "../scene/Scene.h"
 
 namespace {
@@ -150,38 +151,53 @@ void Editor::beginFrame() {
         nullptr,
         &centerId
     );
-    const ImGuiID rightId = ImGui::DockBuilderSplitNode(
+    ImGuiID rightId = ImGui::DockBuilderSplitNode(
         centerId,
         ImGuiDir_Right,
         0.25f,
         nullptr,
         &centerId
     );
+    const ImGuiID debugId = ImGui::DockBuilderSplitNode(
+        rightId,
+        ImGuiDir_Down,
+        0.35f,
+        nullptr,
+        &rightId
+    );
 
     ImGui::DockBuilderDockWindow("Hierarchy", leftId);
     ImGui::DockBuilderDockWindow("Scene", centerId);
     ImGui::DockBuilderDockWindow("Inspector", rightId);
+    ImGui::DockBuilderDockWindow("Debug", debugId);
     ImGui::DockBuilderFinish(dockspaceId);
 }
 
-void Editor::draw(Scene &scene) {
+void Editor::draw(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {
     drawHierarchy(scene);
     drawInspector(scene);
+    drawDebug(scene, windowSize, mouseState);
 }
 
 void Editor::drawInspector(Scene &scene) {
-    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoCollapse);
+    const bool visible = ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoCollapse);
+    if (visible) {
+        ImGui::PushTextWrapPos(0.0f);
+        drawInspectorContent(scene);
+        ImGui::PopTextWrapPos();
+    }
+    ImGui::End();
+}
 
+void Editor::drawInspectorContent(Scene &scene) {
     if (!selectedEntityId) {
         ImGui::TextDisabled("No entity selected");
-        ImGui::End();
         return;
     }
 
     Entity *entity = scene.findEntity(*selectedEntityId);
     if (!entity) {
         selectedEntityId.reset();
-        ImGui::End();
         return;
     }
 
@@ -334,12 +350,45 @@ void Editor::drawInspector(Scene &scene) {
         }
     }
 
+}
+
+void Editor::drawDebug(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {
+    if (ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoCollapse)) {
+        ImGui::SeparatorText("Performance");
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+        ImGui::SeparatorText("Window");
+        ImGui::Text("Logical: %d x %d", windowSize.w, windowSize.h);
+        ImGui::Text("Framebuffer: %d x %d", windowSize.fb_w, windowSize.fb_h);
+
+        ImGui::SeparatorText("Input");
+        ImGui::Text("Cursor: %.2f, %.2f", mouseState.screenX, mouseState.screenY);
+        ImGui::Text("Delta: %.2f, %.2f", mouseState.deltaX, mouseState.deltaY);
+        ImGui::Text("Left: %s", mouseState.leftBtnDown ? "Pressed" : "None");
+        ImGui::Text("Right: %s", mouseState.rightBtnDown ? "Pressed" : "None");
+
+        ImGui::SeparatorText("Camera");
+        ImGui::DragFloat3("Position##Camera", glm::value_ptr(scene.camera.transform.position), 1.0f);
+        ImGui::DragFloat3("Rotation##Camera", glm::value_ptr(scene.camera.transform.rotation), 1.0f);
+
+        const bool isPerspective = std::holds_alternative<PerspectiveProjection>(scene.camera.projection);
+        if (ImGui::BeginCombo("Projection", isPerspective ? "Perspective" : "Orthographic")) {
+            if (ImGui::Selectable("Perspective", isPerspective)) {
+                scene.camera.projection = PerspectiveProjection{};
+            }
+            if (ImGui::Selectable("Orthographic", !isPerspective)) {
+                scene.camera.projection = OrthoGraphicProjection{};
+            }
+            ImGui::EndCombo();
+        }
+    }
     ImGui::End();
 }
 
 void Editor::drawHierarchy(Scene &scene) {
-    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoCollapse);
-    drawSiblingList(scene, std::nullopt);
+    if (ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoCollapse)) {
+        drawSiblingList(scene, std::nullopt);
+    }
     ImGui::End();
 
     if (pendingMoveReq) {
@@ -361,8 +410,13 @@ void Editor::drawSiblingList(Scene &scene, std::optional<EntityId> id) {
 
 void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
     auto slotId = std::format("##DropSlot_{}_{}", id.value_or(std::numeric_limits<EntityId>::max()), insertIndex);
+    const float availableWidth = ImGui::GetContentRegionAvail().x;
 
-    ImGui::InvisibleButton(slotId.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 2.0f));
+    if (availableWidth <= 0.0f) {
+        return;
+    }
+
+    ImGui::InvisibleButton(slotId.c_str(), ImVec2(availableWidth, 2.0f));
 
     if (!ImGui::BeginDragDropTarget()) {
         return;
@@ -397,7 +451,16 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
 }
 
 RenderExtent Editor::drawSceneView(GLuint textureId) {
-    if (!ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoCollapse)) {
+    constexpr ImGuiWindowFlags windowFlags =
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    const bool visible = ImGui::Begin("Scene", nullptr, windowFlags);
+    ImGui::PopStyleVar();
+
+    if (!visible) {
         ImGui::End();
         return {};
     }

@@ -6,6 +6,8 @@
 #include "../scene/Entity.h"
 
 class Scene;
+struct MouseState;
+struct WindowSize;
 
 
 
@@ -15,12 +17,14 @@ class Editor {
 
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
+    void drawInspectorContent(Scene& scene);
+    void drawDebug(Scene& scene, const WindowSize& windowSize, const MouseState& mouseState);
     void drawEntityNode(Scene& scene, const Entity& entity);
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
     void beginFrame();
-    void draw(Scene& scene);
+    void draw(Scene& scene, const WindowSize& windowSize, const MouseState& mouseState);
     RenderExtent drawSceneView(GLuint textureId);
 };

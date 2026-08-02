@@ -1,8 +1,5 @@
 #include "Application.h"
 
-#include <imgui.h>
-#include <glm/gtc/type_ptr.hpp>
-
 #include "../camera/FreeLookCameraController.h"
 
 void Application::run() {
@@ -51,74 +48,7 @@ void Application::run() {
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});
         glClear(GL_COLOR_BUFFER_BIT);
 
-        editor.draw(scene);
-
-        /* render debug */
-        // ImGui::SetNextWindowSize(ImVec2(250, 150), ImGuiCond_Once);
-        // ImGui::Begin("Debug");
-        // ImGui::Text("FPS %.1f FPS", ImGui::GetIO().Framerate);
-        // ImGui::Text("size : %dx%d", size.w, size.h);
-        // ImGui::Text("buffer size : %dx%d", size.fb_w, size.fb_h);
-        // ImGui::Text("screen pos : %.2fx%.2f", mouseState.screenX, mouseState.screenY);
-        // ImGui::Text("cursor delta : %.2fx%.2f", mouseState.deltaX, mouseState.deltaY);
-        //
-        // ImGui::Text(
-        //     "Left : %s",
-        //     mouseState.leftBtnDown ? "Pressed" : "NONE"
-        // );
-        //
-        // ImGui::Text(
-        //     "Right : %s",
-        //     mouseState.rightBtnDown ? "Pressed" : "NONE"
-        // );
-        //
-        // ImGui::End();
-        //
-        // ImGui::Begin("Properties");
-        // ImGui::SeparatorText("Camera");
-        // ImGui::DragFloat3("position", glm::value_ptr(scene.camera.transform.position), 1.0f);
-        // ImGui::DragFloat3("rotation", glm::value_ptr(scene.camera.transform.rotation), 1.0f);
-        //
-        // static bool is3DMode = true;
-        // if (ImGui::Selectable(is3DMode ? "3D" : "2D", is3DMode)) {
-        //     is3DMode = !is3DMode;
-        //     if (is3DMode) {
-        //         scene.camera.projection = PerspectiveProjection{};
-        //     } else {
-        //         scene.camera.projection = OrthoGraphicProjection{};
-        //     }
-        // }
-        //
-        // ImGui::SeparatorText("Ambient Light");
-        // ImGui::DragFloat("ambientLight.intensity", &scene.ambientLight.intensity, 0.1f);
-        //
-        // if (!scene.directionalLights.empty()) {
-        //     ImGui::SeparatorText("Directional Light");
-        //     ImGui::DragFloat3("directionalLight.direction", glm::value_ptr(scene.directionalLights[0].direction), 0.1f);
-        //     ImGui::DragFloat("directionalLight.intensity", &scene.directionalLights[0].intensity, 0.1f);
-        // }
-        //
-        // if (!scene.pointLights.empty()) {
-        //     ImGui::SeparatorText("Point Light");
-        //     ImGui::DragFloat("pointLight.intensity", &scene.pointLights[0].intensity, 0.1f);
-        //     ImGui::DragFloat3("pointLight.position", glm::value_ptr(scene.pointLights[0].position), 0.1f);
-        // }
-        //
-        // if (!scene.spotLights.empty()) {
-        //     ImGui::SeparatorText("Spot Light");
-        //     ImGui::DragFloat("spotLight.intensity", &scene.spotLights[0].intensity, 0.1f);
-        //     ImGui::DragFloat("spotLight.range", &scene.spotLights[0].range, 0.1f);
-        //     ImGui::DragFloat("spotLight.innerAngle", &scene.spotLights[0].innerAngle, 0.1f);
-        //     ImGui::DragFloat("spotLight.outerAngle", &scene.spotLights[0].outerAngle, 0.1f);
-        //     ImGui::DragFloat3("spotLight.position", glm::value_ptr(scene.spotLights[0].position), 0.1f);
-        //     ImGui::DragFloat3("spotLight.color", glm::value_ptr(scene.spotLights[0].color), 0.1f);
-        // }
-        //
-        // // ImGui::SeparatorText("LitMaterial");
-        // // ImGui::DragFloat("shininess", &boxMaterial.shininess, 0.1f);
-        // // ImGui::DragFloat("specularStrength", &boxMaterial.specularStrength, 0.1f);
-
-        // ImGui::End();
+        editor.draw(scene, size, mouseState);
 
         window.update();
     }
