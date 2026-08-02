@@ -8,6 +8,7 @@
 #include "../scene/Scene.h"
 #include "../editor/Editor.h"
 #include "../graphics/FrameBuffer.h"
+#include "../rendering/PostProcessor.h"
 
 class Application {
     Window window;
@@ -16,7 +17,9 @@ class Application {
     ResourceManager resourceManager;
 
     Renderer renderer;
+    PostProcessor postProcessor;
     FrameBuffer sceneFBO;
+    FrameBuffer finalFBO;
 
     Scene scene;
     Editor editor;
@@ -26,7 +29,9 @@ public:
           input(window),
           resourceManager(ASSET_ROOT),
           renderer(resourceManager),
-          sceneFBO(RenderExtent{1, 1}) {}
+          postProcessor(resourceManager),
+          sceneFBO(RenderExtent{1, 1}),
+          finalFBO(RenderExtent{1, 1}) {}
     ~Application() = default;
 
     void run();

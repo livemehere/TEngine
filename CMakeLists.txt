@@ -59,6 +59,8 @@ add_executable(TEngine src/main.cpp
         src/rendering/model/ModelImporter.h
         src/graphics/FrameBuffer.cpp
         src/graphics/FrameBuffer.h
+        src/rendering/PostProcessor.cpp
+        src/rendering/PostProcessor.h
 )
 
 target_link_libraries(TEngine PRIVATE

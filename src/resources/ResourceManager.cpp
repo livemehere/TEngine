@@ -70,6 +70,19 @@ const Shader &ResourceManager::getOutlineShader() {
     return *outlineShader;
 }
 
+const Shader & ResourceManager::getPostProcessShader() {
+    if (!postProcessShader) {
+        postProcessShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/postProcess.frag")
+        );
+        const auto shader = postProcessShader.get();
+        shader->bindUniformBlock("CameraData", UniformBinding::Camera);
+    }
+    return *postProcessShader;
+
+}
+
 LitMaterial &ResourceManager::loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
     if (const auto it = litMaterials.find(key); it != litMaterials.end()) {
         return *it->second;

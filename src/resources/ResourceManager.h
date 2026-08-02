@@ -24,6 +24,7 @@ class ResourceManager {
     std::unique_ptr<Shader> litShader;
     std::unique_ptr<Shader> unlitShader;
     std::unique_ptr<Shader> outlineShader;
+    std::unique_ptr<Shader> postProcessShader;
 
     /* externally loaded resources */
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
@@ -50,6 +51,8 @@ public:
     const Shader &getUnlitShader();
 
     const Shader &getOutlineShader();
+
+    const Shader &getPostProcessShader();
 
     LitMaterial &loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 

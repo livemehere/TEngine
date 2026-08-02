@@ -27,20 +27,26 @@ void Application::run() {
         const MouseState &mouseState = input.getMouseState();
 
 
-        const RenderExtent viewport = editor.drawSceneView(sceneFBO.getTextureId());
+        const RenderExtent viewport = editor.drawSceneView(finalFBO.getTextureId());
         const bool canRenderScene = viewport.width > 0 && viewport.height > 0;
 
         scene.update(dt);
 
         if (canRenderScene) {
             sceneFBO.resize(viewport);
-            sceneFBO.bind();
+            finalFBO.resize(viewport);
 
+            sceneFBO.bind();
             renderer.beginFrame(scene, viewport);
             renderer.render(scene, {
                 .highlightedEntityId = editor.getSelectedEntityId()
             });
             renderer.endFrame();
+
+            /* post process */
+            finalFBO.bind();
+            postProcessor.render(sceneFBO.getTextureId());
+
         }
 
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});
