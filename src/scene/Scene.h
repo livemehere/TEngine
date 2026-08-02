@@ -6,13 +6,14 @@
 #include <vector>
 
 #include "Entity.h"
-#include "../camera/Camera.h"
+#include "../camera/CameraComponent.h"
 #include "../rendering/model/Model.h"
 
 class Scene {
     EntityId entitySeq = 0;
     std::deque<Entity> entities;
     mutable size_t componentIterationDepth = 0;
+    std::optional<EntityId> activeCameraId;
 
     void endComponentIteration() noexcept;
     void flushPendingComponentChanges() noexcept;
@@ -36,8 +37,6 @@ class Scene {
     bool wouldCreateCycle(EntityId childId, EntityId parentId);
 
 public:
-    Camera camera;
-
     Scene() = default;
     ~Scene();
 
@@ -45,6 +44,11 @@ public:
     void updateRuntime(float dt);
 
     Entity& createEntity(const std::string& name);
+
+    bool setActiveCamera(EntityId entityId);
+    [[nodiscard]] std::optional<EntityId> getActiveCameraId() const;
+    [[nodiscard]] Entity* getActiveCameraEntity();
+    [[nodiscard]] const Entity* getActiveCameraEntity() const;
 
     template<typename... Components, typename Function>
         requires (std::derived_from<Components, Component> && ...)

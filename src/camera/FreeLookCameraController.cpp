@@ -1,14 +1,14 @@
 #include "FreeLookCameraController.h"
 
-void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
+void FreeLookCameraController::update(Transform &transform, Input &input, float dt) {
     auto& mouseState = input.getMouseState();
     // cursor lock control
     if (mouseState.rightBtnDown) {
         input.setCursorLockState(true);
         // view rotation
-        camera.transform.rotation.y -= mouseState.deltaX * hSensitivity;
-        camera.transform.rotation.x -= mouseState.deltaY * vSensitivity;
-        camera.transform.rotation.x = glm::clamp(camera.transform.rotation.x, -89.0f, 89.0f);
+        transform.rotation.y -= mouseState.deltaX * hSensitivity;
+        transform.rotation.x -= mouseState.deltaY * vSensitivity;
+        transform.rotation.x = glm::clamp(transform.rotation.x, -89.0f, 89.0f);
     } else {
         input.setCursorLockState(false);
     }
@@ -34,20 +34,15 @@ void FreeLookCameraController::update(Camera &camera, Input &input, float dt) {
 
     float applySpeed = input.isKeyDown(Key::LeftShift) ? sprintSpeed : speed;
 
-    camera.transform.position += camera.getForward() * moveInput.y * applySpeed * dt;
-    camera.transform.position += camera.getRight() * moveInput.x * applySpeed * dt;
+    transform.position += transform.getForward() * moveInput.y * applySpeed * dt;
+    transform.position += transform.getRight() * moveInput.x * applySpeed * dt;
 
     // up, down
     if (input.isKeyDown(Key::E)) {
-        camera.transform.position += glm::vec3(0.0f, 1.0f,0.0f) * applySpeed * dt;
+        transform.position += glm::vec3(0.0f, 1.0f,0.0f) * applySpeed * dt;
     }
 
     if (input.isKeyDown(Key::Q)) {
-        camera.transform.position += glm::vec3(0.0f, -1.0f,0.0f) * applySpeed * dt;
+        transform.position += glm::vec3(0.0f, -1.0f,0.0f) * applySpeed * dt;
     }
-
-
-
-
-
 }

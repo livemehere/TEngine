@@ -6,6 +6,7 @@
 
 #include <glm/gtc/matrix_inverse.hpp>
 
+#include "../common.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "Behaviour.h"
 
@@ -50,13 +51,10 @@ void Scene::flushPendingComponentChanges() noexcept {
     }
 }
 
-void Scene::updateEditor(float dt) {
-    camera.update(dt);
+void Scene::updateEditor(float) {
 }
 
 void Scene::updateRuntime(float dt) {
-    camera.update(dt);
-
     // Start runs once, immediately before the first update of an enabled Behaviour.
     {
         ComponentIterationScope iterationScope(*this);
@@ -126,6 +124,58 @@ Entity &Scene::createEntity(const std::string &name) {
         name,
         siblingIndex
     );
+}
+
+bool Scene::setActiveCamera(EntityId entityId) {
+    Entity *entity = findEntity(entityId);
+    const std::type_index cameraType = typeid(CameraComponent);
+    if (!entity ||
+        (!entity->hasComponent<CameraComponent>() &&
+         !entity->pendingComponents_.contains(cameraType))) {
+        return false;
+    }
+
+    activeCameraId = entityId;
+    return true;
+}
+
+std::optional<EntityId> Scene::getActiveCameraId() const {
+    if (!activeCameraId) {
+        return std::nullopt;
+    }
+
+    const Entity *entity = findEntity(*activeCameraId);
+    if (!entity || !entity->hasComponent<CameraComponent>()) {
+        return std::nullopt;
+    }
+
+    return activeCameraId;
+}
+
+Entity *Scene::getActiveCameraEntity() {
+    const std::optional<EntityId> cameraId = getActiveCameraId();
+    if (!cameraId) {
+        return nullptr;
+    }
+
+    Entity *entity = findEntity(*cameraId);
+    CameraComponent *camera = entity
+                                  ? entity->tryGetComponent<CameraComponent>()
+                                  : nullptr;
+    return camera && camera->enabled ? entity : nullptr;
+}
+
+const Entity *Scene::getActiveCameraEntity() const {
+    const std::optional<EntityId> cameraId = getActiveCameraId();
+    if (!cameraId) {
+        return nullptr;
+    }
+
+    const Entity *entity = findEntity(*cameraId);
+    const CameraComponent *camera = entity
+                                        ? entity->tryGetComponent<CameraComponent>()
+                                        : nullptr;
+    return camera && camera->enabled ? entity : nullptr;
 }
 
 Entity *Scene::findEntity(const EntityId id) {

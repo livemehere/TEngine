@@ -1,6 +1,7 @@
 #pragma once
-#include "Camera.h"
+
 #include "../core/Input.h"
+#include "../rendering/Transform.h"
 
 class FreeLookCameraController {
 public:
@@ -12,5 +13,5 @@ public:
     FreeLookCameraController() = default;
     ~FreeLookCameraController() = default;
 
-    void update(Camera& camera, Input& input, float dt);
+    void update(Transform& transform, Input& input, float dt);
 };

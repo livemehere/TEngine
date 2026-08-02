@@ -112,13 +112,30 @@ Renderer::Renderer(ResourceManager &resourceManager)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void Renderer::updateCameraBuffer(Scene &scene, const RenderExtent& size) {
+void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) {
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
-    const GPUCameraData data{
-        .viewMatrix = scene.camera.getViewMatrix(),
-        .projectionMatrix = scene.camera.getProjectionMatrix(size),
-        .position = glm::vec4(scene.camera.transform.position, 1.0f)
+    GPUCameraData data{
+        .viewMatrix = glm::mat4(1.0f),
+        .projectionMatrix = glm::mat4(1.0f),
+        .position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
     };
+
+    if (const Entity *cameraEntity = scene.getActiveCameraEntity()) {
+        const CameraComponent &camera = cameraEntity->getComponent<CameraComponent>();
+        const glm::mat4 worldMatrix = scene.getWorldMatrix(*cameraEntity);
+
+        Transform cameraWorldTransform;
+        if (Transform::decompose(worldMatrix, cameraWorldTransform)) {
+            cameraWorldTransform.scale = {1.0f, 1.0f, 1.0f};
+            data.viewMatrix = glm::inverse(cameraWorldTransform.getLocalMatrix());
+        } else {
+            data.viewMatrix = glm::inverse(worldMatrix);
+        }
+
+        data.projectionMatrix = camera.getProjectionMatrix(size);
+        data.position = glm::vec4(glm::vec3(worldMatrix[3]), 1.0f);
+    }
+
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUCameraData), &data);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
@@ -200,7 +217,7 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
 }
 
 
-void Renderer::beginFrame(Scene &scene, const RenderExtent& size) {
+void Renderer::beginFrame(const Scene &scene, const RenderExtent& size) {
     updateCameraBuffer(scene, size);
     updateLightsBuffer(scene);
 

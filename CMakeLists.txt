@@ -19,8 +19,8 @@ add_executable(TEngine src/main.cpp
         src/core/Input.cpp
         src/core/Input.h
         src/common.h
-        src/camera/Camera.cpp
-        src/camera/Camera.h
+        src/camera/CameraComponent.cpp
+        src/camera/CameraComponent.h
         src/camera/FreeLookCameraController.cpp
         src/camera/FreeLookCameraController.h
         src/graphics/ShaderStage.cpp

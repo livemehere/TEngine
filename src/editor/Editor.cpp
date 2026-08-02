@@ -389,18 +389,50 @@ void Editor::drawDebug(Scene &scene, const WindowSize& windowSize, const MouseSt
         ImGui::Text("Right: %s", mouseState.rightBtnDown ? "Pressed" : "None");
 
         ImGui::SeparatorText("Camera");
-        ImGui::DragFloat3("Position##Camera", glm::value_ptr(scene.camera.transform.position), 1.0f);
-        ImGui::DragFloat3("Rotation##Camera", glm::value_ptr(scene.camera.transform.rotation), 1.0f);
+        const std::optional<EntityId> activeCameraId = scene.getActiveCameraId();
+        const Entity *configuredCameraEntity = activeCameraId
+                                                   ? scene.findEntity(*activeCameraId)
+                                                   : nullptr;
+        const char *activeCameraPreview = configuredCameraEntity
+                                              ? configuredCameraEntity->name.c_str()
+                                              : "None";
 
-        const bool isPerspective = std::holds_alternative<PerspectiveProjection>(scene.camera.projection);
-        if (ImGui::BeginCombo("Projection", isPerspective ? "Perspective" : "Orthographic")) {
-            if (ImGui::Selectable("Perspective", isPerspective)) {
-                scene.camera.projection = PerspectiveProjection{};
-            }
-            if (ImGui::Selectable("Orthographic", !isPerspective)) {
-                scene.camera.projection = OrthoGraphicProjection{};
-            }
+        if (ImGui::BeginCombo("Active Camera", activeCameraPreview)) {
+            scene.each<CameraComponent>(
+                [&](Entity &entity, CameraComponent &) {
+                    const bool selected = activeCameraId && *activeCameraId == entity.id;
+                    const std::string label = std::format("{}##Camera_{}", entity.name, entity.id);
+                    if (ImGui::Selectable(label.c_str(), selected)) {
+                        scene.setActiveCamera(entity.id);
+                    }
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+            );
             ImGui::EndCombo();
+        }
+
+        if (Entity *cameraEntity = scene.getActiveCameraEntity()) {
+            Transform &transform = cameraEntity->getComponent<TransformComponent>().local;
+            CameraComponent &camera = cameraEntity->getComponent<CameraComponent>();
+
+            ImGui::Text("Active: %s", cameraEntity->name.c_str());
+            ImGui::DragFloat3("Position##Camera", glm::value_ptr(transform.position), 1.0f);
+            ImGui::DragFloat3("Rotation##Camera", glm::value_ptr(transform.rotation), 1.0f);
+
+            const bool isPerspective = std::holds_alternative<PerspectiveProjection>(camera.projection);
+            if (ImGui::BeginCombo("Projection", isPerspective ? "Perspective" : "Orthographic")) {
+                if (ImGui::Selectable("Perspective", isPerspective)) {
+                    camera.projection = PerspectiveProjection{};
+                }
+                if (ImGui::Selectable("Orthographic", !isPerspective)) {
+                    camera.projection = OrthoGraphicProjection{};
+                }
+                ImGui::EndCombo();
+            }
+        } else {
+            ImGui::TextDisabled("No active camera");
         }
     }
     ImGui::End();

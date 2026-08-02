@@ -71,7 +71,7 @@ class Renderer {
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
 
-    void updateCameraBuffer(Scene& scene, const RenderExtent& size);
+    void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
 
     /** passes */
@@ -92,7 +92,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void beginFrame(Scene& scene, const RenderExtent& size);
+    void beginFrame(const Scene& scene, const RenderExtent& size);
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
 };

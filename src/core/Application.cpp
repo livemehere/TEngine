@@ -23,7 +23,11 @@ void Application::run() {
         /* update */
         window.pollEvents();
         input.update();
-        cameraController.update(scene.camera, input, dt);
+        if (Entity *cameraEntity = scene.getActiveCameraEntity()) {
+            Transform &cameraTransform =
+                    cameraEntity->getComponent<TransformComponent>().local;
+            cameraController.update(cameraTransform, input, dt);
+        }
 
         const WindowSize &size = window.get_size();
         const MouseState &mouseState = input.getMouseState();
@@ -61,10 +65,12 @@ void Application::run() {
 
 void Application::createSandboxScene() {
     /* camera */
-    scene.camera.transform.position.x = 3.0f;
-    scene.camera.transform.position.z = 3.0f;
-    scene.camera.transform.position.y = 3.0f;
-    scene.camera.lookAt(glm::vec3(0.0f));
+    Entity &cameraEntity = scene.createEntity("Editor Camera");
+    Transform &cameraTransform = cameraEntity.getComponent<TransformComponent>().local;
+    cameraTransform.position = {3.0f, 3.0f, 3.0f};
+    cameraTransform.lookAt(glm::vec3(0.0f));
+    cameraEntity.addComponent<CameraComponent>();
+    scene.setActiveCamera(cameraEntity.id);
 
 
     /* meshes*/
