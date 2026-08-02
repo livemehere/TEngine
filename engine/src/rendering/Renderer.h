@@ -7,6 +7,7 @@
 #include "../scene/Scene.h"
 #include "RenderExtent.h"
 #include "RenderQueue.h"
+#include "RenderSettings.h"
 #include "mesh/MeshRendererComponent.h"
 
 class ResourceManager;
@@ -19,6 +20,7 @@ constexpr std::size_t MAX_SPOT_LIGHTS = 8;
 namespace UniformBinding {
     constexpr GLuint Camera = 0;
     constexpr GLuint Lights = 1;
+    constexpr GLuint Debug = 2;
 }
 
 struct alignas(16) GPUCameraData {
@@ -59,6 +61,15 @@ struct alignas(16) GPULightingData {
     std::array<GPUSpotLight,MAX_SPOT_LIGHTS> spotLights;
 };
 
+struct alignas(16) GPUDebugData {
+    int viewMode;
+    float depthNear;
+    float depthFar;
+    int padding;
+};
+
+static_assert(sizeof(GPUDebugData) == 16);
+
 struct RenderOptions {
     std::optional<EntityId> highlightedEntityId;
 };
@@ -71,9 +82,12 @@ class Renderer {
 
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
+    GLuint debugUBO = 0;
+    RenderSettings currentSettings;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
+    void updateDebugBuffer();
 
     /** passes */
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
@@ -93,11 +107,18 @@ public:
         if (lightsUBO != 0) {
             glDeleteBuffers(1, &lightsUBO);
         }
+        if (debugUBO != 0) {
+            glDeleteBuffers(1, &debugUBO);
+        }
     }
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void beginFrame(const Scene& scene, const RenderExtent& size);
+    void beginFrame(
+        const Scene& scene,
+        const RenderExtent& size,
+        const RenderSettings& settings
+    );
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
 };

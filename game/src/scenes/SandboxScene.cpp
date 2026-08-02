@@ -6,7 +6,7 @@
 #include <graphics/CubeMap.h>
 #include <rendering/Lights.h>
 #include <rendering/mesh/MeshRendererComponent.h>
-#include <rendering/mesh/materials/LitMaterial.h>
+#include <rendering/mesh/materials/PhongMaterial.h>
 #include <rendering/mesh/materials/UnlitMaterial.h>
 #include <rendering/skybox/SkyboxComponent.h>
 #include <resources/ResourceManager.h>
@@ -41,22 +41,22 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     const CubeMap &skyboxCubeMap =
             resourceManager.loadCubeMap("defaultSkybox", skyboxFaces);
 
-    const Shader &litShader = resourceManager.getLitShader();
+    const Shader &phongShader = resourceManager.getPhongShader();
     const Shader &unlitShader = resourceManager.getUnlitShader();
 
     Entity &skybox = scene.createEntity("Skybox");
     skybox.addComponent<SkyboxComponent>(&skyboxCubeMap);
 
-    LitMaterial &whiteMaterial =
-            resourceManager.loadLitMaterial("white", litShader, whiteTexture);
+    PhongMaterial &whiteMaterial =
+            resourceManager.loadPhongMaterial("white", phongShader, whiteTexture);
 
-    LitMaterial &boxMaterial =
-            resourceManager.loadLitMaterial("box", litShader, boxTexture);
+    PhongMaterial &boxMaterial =
+            resourceManager.loadPhongMaterial("box", phongShader, boxTexture);
     boxMaterial.baseColor = {0.2f, 0.2f, 0.2f, 1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
 
-    LitMaterial &windowMaterial =
-            resourceManager.loadLitMaterial("window", litShader, whiteTexture);
+    PhongMaterial &windowMaterial =
+            resourceManager.loadPhongMaterial("window", phongShader, whiteTexture);
     windowMaterial.baseColor = {1.0f, 0.0f, 0.0f, 0.3f};
     windowMaterial.rasterState.cullMode = CullMode::None;
     windowMaterial.renderQueue = RenderQueueType::Transparent;

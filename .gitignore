@@ -1,5 +1,5 @@
 build/
 local/
 
-assets/
+assets/*
 !assets/shaders/

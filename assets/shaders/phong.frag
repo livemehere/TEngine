@@ -47,6 +47,13 @@ layout (std140) uniform LightsData {
     SpotLight spotLights[MAX_SPOT_LIGHTS];
 } lights;
 
+layout (std140) uniform DebugData {
+    int viewMode;
+    float depthNear;
+    float depthFar;
+    int padding;
+} debugData;
+
 in vec2 vTexCoord;
 in vec3 vNormal;
 in vec3 vPos;
@@ -63,6 +70,23 @@ struct Material {
 uniform Material material;
 
 out vec4 FragColor;
+
+vec4 applyDebugView(vec4 shadedColor)
+{
+    if(debugData.viewMode == 1){
+        float depth = -(camera.view * vec4(vPos, 1.0)).z;
+        float depthRange = max(debugData.depthFar - debugData.depthNear, 0.0001);
+        float gray = clamp((depth - debugData.depthNear) / depthRange, 0.0, 1.0);
+        return vec4(vec3(gray), 1.0);
+    }
+
+    if(debugData.viewMode == 2){
+        vec3 normal = normalize(vNormal);
+        return vec4(normal * 0.5 + 0.5, 1.0);
+    }
+
+    return shadedColor;
+}
 
 vec3 calculateAmbient(vec3 albedo)
 {
@@ -203,25 +227,12 @@ void main()
     }
 
     float alpha = textureColor.a * material.baseColor.a;
-//    FragColor = vec4(result, alpha);
-    /** for normal direction debug */
-//     FragColor = vec4(vNormal * 0.5 + 0.5, 0.8);
-    /** depth-buffer */
     float distanceToCamera = length(camera.position.xyz - vPos);
     float fogStart = 40.0;
     float fogEnd = 100.0;
     float fogAmount = smoothstep(fogStart, fogEnd, distanceToCamera);
-//    FragColor = vec4(vec3(fogAmount),1.0); // debug
 
     vec3 fogColor = vec3(0.5, 0.6,0.7);
     vec3 finalColor = mix(result, fogColor, fogAmount);
-    FragColor = vec4(finalColor, alpha);
-
-
-    /** debug depth buffer*/
-//    float depth = -(camera.view * vec4(vPos, 1.0)).z;
-//    float debugNear = 0.0;
-//    float debugFar = 30.0;
-//    float gray = clamp((depth - debugNear) / (debugFar - debugNear),0.0, 1.0);
-//    FragColor = vec4(vec3(gray),1.0);
+    FragColor = applyDebugView(vec4(finalColor, alpha));
 }

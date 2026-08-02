@@ -111,6 +111,13 @@ Renderer::Renderer(ResourceManager &resourceManager)
     glBufferData(GL_UNIFORM_BUFFER, sizeof(GPULightingData), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, UniformBinding::Lights, lightsUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    /* debug view */
+    glGenBuffers(1, &debugUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, debugUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(GPUDebugData), nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, UniformBinding::Debug, debugUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) {
@@ -217,10 +224,29 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+void Renderer::updateDebugBuffer() {
+    const GPUDebugData data{
+        .viewMode = static_cast<int>(currentSettings.debugView),
+        .depthNear = currentSettings.debugDepthNear,
+        .depthFar = currentSettings.debugDepthFar,
+        .padding = 0
+    };
 
-void Renderer::beginFrame(const Scene &scene, const RenderExtent& size) {
+    glBindBuffer(GL_UNIFORM_BUFFER, debugUBO);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUDebugData), &data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+
+void Renderer::beginFrame(
+    const Scene &scene,
+    const RenderExtent& size,
+    const RenderSettings& settings
+) {
+    currentSettings = settings;
     updateCameraBuffer(scene, size);
     updateLightsBuffer(scene);
+    updateDebugBuffer();
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glDisable(GL_BLEND);
@@ -464,6 +490,12 @@ void Renderer::opaqueRenderPass(const RenderQueue &queue) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
+    glPolygonMode(
+        GL_FRONT_AND_BACK,
+        currentSettings.rasterization == RasterizationMode::Wireframe
+            ? GL_LINE
+            : GL_FILL
+    );
 
     const auto drawItem = [&](const RenderItem &item) {
         meshRenderPass(
@@ -480,6 +512,8 @@ void Renderer::opaqueRenderPass(const RenderQueue &queue) {
     for (const RenderItem &item : queue.alphaCutout) {
         drawItem(item);
     }
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Renderer::transparentRenderPass(const RenderQueue &queue) {
@@ -492,6 +526,12 @@ void Renderer::transparentRenderPass(const RenderQueue &queue) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glDepthMask(GL_FALSE);
+    glPolygonMode(
+        GL_FRONT_AND_BACK,
+        currentSettings.rasterization == RasterizationMode::Wireframe
+            ? GL_LINE
+            : GL_FILL
+    );
 
     for (const RenderItem &item : queue.transparent) {
         meshRenderPass(
@@ -504,6 +544,7 @@ void Renderer::transparentRenderPass(const RenderQueue &queue) {
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Renderer::outlineRenderPass(const RenderQueue &queue) {
@@ -585,9 +626,13 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     // Complete the opaque depth buffer first. The skybox then fills only the
     // untouched background, followed by sorted transparent geometry.
     opaqueRenderPass(queue);
-    skyboxRenderPass(scene);
+    if (currentSettings.debugView == DebugViewMode::Shaded) {
+        skyboxRenderPass(scene);
+    }
     transparentRenderPass(queue);
-    outlineRenderPass(queue);
+    if (currentSettings.rasterization == RasterizationMode::Fill) {
+        outlineRenderPass(queue);
+    }
 }
 
 void Renderer::endFrame() {

@@ -21,6 +21,7 @@ class Application {
 
     ResourceManager resourceManager;
 
+    RenderSettings renderSettings;
     Renderer renderer;
     PostProcessor postProcessor;
     FrameBuffer sceneFBO;

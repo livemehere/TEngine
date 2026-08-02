@@ -75,7 +75,7 @@ void Application::run() {
             finalFBO.resize(viewport);
 
             sceneFBO.bind();
-            renderer.beginFrame(activeScene, viewport);
+            renderer.beginFrame(activeScene, viewport, renderSettings);
             renderer.render(activeScene, {
                 .highlightedEntityId = editor.getSelectedEntityId()
             });
@@ -87,7 +87,7 @@ void Application::run() {
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});
         glClear(GL_COLOR_BUFFER_BIT);
 
-        editor.draw(activeScene, size, mouseState);
+        editor.draw(activeScene, size, mouseState, renderSettings);
         window.update();
     }
 

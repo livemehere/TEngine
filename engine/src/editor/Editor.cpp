@@ -77,10 +77,15 @@ void Editor::beginFrame() {
     ImGui::DockBuilderFinish(dockspaceId);
 }
 
-void Editor::draw(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {
+void Editor::draw(
+    Scene &scene,
+    const WindowSize& windowSize,
+    const MouseState& mouseState,
+    RenderSettings& renderSettings
+) {
     drawHierarchy(scene);
     drawInspector(scene);
-    drawDebug(scene, windowSize, mouseState);
+    drawDebug(scene, windowSize, mouseState, renderSettings);
 }
 
 void Editor::drawInspector(Scene &scene) {
@@ -129,10 +134,53 @@ void Editor::drawInspectorContent(Scene &scene) {
     componentDrawers.drawAddComponent(*entity, componentTypes);
 }
 
-void Editor::drawDebug(Scene &scene, const WindowSize& windowSize, const MouseState& mouseState) {
+void Editor::drawDebug(
+    Scene &scene,
+    const WindowSize& windowSize,
+    const MouseState& mouseState,
+    RenderSettings& renderSettings
+) {
     if (ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::SeparatorText("Performance");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+        ImGui::SeparatorText("Rendering");
+        constexpr const char *debugViewNames[] = {
+            "Shaded",
+            "Depth",
+            "World Normal"
+        };
+        int debugView = static_cast<int>(renderSettings.debugView);
+        if (ImGui::Combo(
+            "View Mode",
+            &debugView,
+            debugViewNames,
+            IM_ARRAYSIZE(debugViewNames)
+        )) {
+            renderSettings.debugView =
+                    static_cast<DebugViewMode>(debugView);
+        }
+
+        bool wireframe = renderSettings.rasterization ==
+                         RasterizationMode::Wireframe;
+        if (ImGui::Checkbox("Wireframe", &wireframe)) {
+            renderSettings.rasterization = wireframe
+                                               ? RasterizationMode::Wireframe
+                                               : RasterizationMode::Fill;
+        }
+
+        if (renderSettings.debugView == DebugViewMode::Depth) {
+            ImGui::DragFloatRange2(
+                "Depth Range",
+                &renderSettings.debugDepthNear,
+                &renderSettings.debugDepthFar,
+                0.1f,
+                0.0f,
+                1000.0f,
+                "Near: %.1f",
+                "Far: %.1f"
+            );
+        }
 
         ImGui::SeparatorText("Window");
         ImGui::Text("Logical: %d x %d", windowSize.w, windowSize.h);

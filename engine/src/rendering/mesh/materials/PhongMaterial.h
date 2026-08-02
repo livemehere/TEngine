@@ -4,7 +4,7 @@
 #include "../../../graphics/Texture2D.h"
 
 
-class LitMaterial : public Material {
+class PhongMaterial : public Material {
 public:
     const Texture2D& albedoTexture;
     const Texture2D* specularTexture = nullptr;
@@ -12,7 +12,7 @@ public:
     float shininess;
     float specularStrength;
 
-    LitMaterial(
+    PhongMaterial(
         const Shader &shader,
         const Texture2D& albedoTexture,
         glm::vec4 baseColor = glm::vec4(1.0f),
@@ -24,7 +24,7 @@ public:
         shininess(shininess),
         specularStrength(specularStrength) {}
 
-    ~LitMaterial() override = default;
+    ~PhongMaterial() override = default;
 
     void bind() const override;
 };

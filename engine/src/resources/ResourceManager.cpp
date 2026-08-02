@@ -40,14 +40,15 @@ const Texture2D &ResourceManager::getWhiteTexture() {
 }
 
 /* shaders */
-const Shader &ResourceManager::getLitShader() {
-    if (!litShader) {
-        litShader = std::make_unique<Shader>(resolvePath("shaders/basic.vert"), resolvePath("shaders/lit.frag"));
-        const auto shader = litShader.get();
+const Shader &ResourceManager::getPhongShader() {
+    if (!phongShader) {
+        phongShader = std::make_unique<Shader>(resolvePath("shaders/basic.vert"), resolvePath("shaders/phong.frag"));
+        const auto shader = phongShader.get();
         shader->bindUniformBlock("CameraData", UniformBinding::Camera);
         shader->bindUniformBlock("LightsData", UniformBinding::Lights);
+        shader->bindUniformBlock("DebugData", UniformBinding::Debug);
     }
-    return *litShader;
+    return *phongShader;
 }
 
 const Shader &ResourceManager::getUnlitShader() {
@@ -55,6 +56,7 @@ const Shader &ResourceManager::getUnlitShader() {
         unlitShader = std::make_unique<Shader>(resolvePath("shaders/basic.vert"), resolvePath("shaders/unlit.frag"));
         const auto shader = unlitShader.get();
         shader->bindUniformBlock("CameraData", UniformBinding::Camera);
+        shader->bindUniformBlock("DebugData", UniformBinding::Debug);
     }
     return *unlitShader;
 }
@@ -99,14 +101,14 @@ const Shader &ResourceManager::getSkyboxShader() {
     return *skyboxShader;
 }
 
-LitMaterial &ResourceManager::loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
-    if (const auto it = litMaterials.find(key); it != litMaterials.end()) {
+PhongMaterial &ResourceManager::loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
+    if (const auto it = phongMaterials.find(key); it != phongMaterials.end()) {
         return *it->second;
     }
 
-    auto material = std::make_unique<LitMaterial>(shader, texture);
+    auto material = std::make_unique<PhongMaterial>(shader, texture);
 
-    auto [it, inserted] = litMaterials.emplace(key, std::move(material));
+    auto [it, inserted] = phongMaterials.emplace(key, std::move(material));
 
     return *it->second;
 }

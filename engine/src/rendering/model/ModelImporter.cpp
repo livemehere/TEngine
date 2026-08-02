@@ -13,7 +13,7 @@
 
 #include "../../common.h"
 #include "../../resources/ResourceManager.h"
-#include "../mesh/materials/LitMaterial.h"
+#include "../mesh/materials/PhongMaterial.h"
 
 ModelImporter::ModelImporter(
     ResourceManager &resourceManager
@@ -272,10 +272,10 @@ void ModelImporter::processMaterials(
                         materialIndex
                     );
 
-            LitMaterial &importedMaterial =
-                    resourceManager.loadLitMaterial(
+            PhongMaterial &importedMaterial =
+                    resourceManager.loadPhongMaterial(
                         materialKey,
-                        resourceManager.getLitShader(),
+                        resourceManager.getPhongShader(),
                         *albedoTexture
                     );
 

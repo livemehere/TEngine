@@ -11,7 +11,7 @@
 #include "../graphics/CubeMap.h"
 #include "../graphics/Texture2D.h"
 #include "../rendering/mesh/Mesh.h"
-#include "../rendering/mesh/materials/LitMaterial.h"
+#include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/mesh/materials/UnlitMaterial.h"
 #include "../rendering/model/Model.h"
 
@@ -22,7 +22,7 @@ class ResourceManager {
     std::unique_ptr<Mesh> planeMesh;
     std::unique_ptr<Mesh> cubeMesh;
     std::unique_ptr<Texture2D> whiteTexture;
-    std::unique_ptr<Shader> litShader;
+    std::unique_ptr<Shader> phongShader;
     std::unique_ptr<Shader> unlitShader;
     std::unique_ptr<Shader> outlineShader;
     std::unique_ptr<Shader> postProcessShader;
@@ -33,7 +33,7 @@ class ResourceManager {
     std::unordered_map<std::string, std::unique_ptr<CubeMap> > cubeMaps;
     std::unordered_map<std::string, std::unique_ptr<Model> > models;
 
-    std::unordered_map<std::string, std::unique_ptr<LitMaterial> > litMaterials;
+    std::unordered_map<std::string, std::unique_ptr<PhongMaterial> > phongMaterials;
     std::unordered_map<std::string, std::unique_ptr<UnlitMaterial> > unlitMaterials;
 
 
@@ -49,7 +49,7 @@ public:
 
     const Texture2D &getWhiteTexture();
 
-    const Shader &getLitShader();
+    const Shader &getPhongShader();
 
     const Shader &getUnlitShader();
 
@@ -59,7 +59,7 @@ public:
 
     const Shader &getSkyboxShader();
 
-    LitMaterial &loadLitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
+    PhongMaterial &loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 
     UnlitMaterial &loadUnlitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 

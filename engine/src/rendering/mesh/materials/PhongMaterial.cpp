@@ -1,6 +1,6 @@
-#include "LitMaterial.h"
+#include "PhongMaterial.h"
 
-void LitMaterial::bind() const {
+void PhongMaterial::bind() const {
     shader.use();
 
     // this material
