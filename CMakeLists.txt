@@ -61,6 +61,8 @@ add_executable(TEngine src/main.cpp
         src/graphics/FrameBuffer.h
         src/rendering/PostProcessor.cpp
         src/rendering/PostProcessor.h
+        src/graphics/Cubemap.cpp
+        src/graphics/Cubemap.h
 )
 
 target_link_libraries(TEngine PRIVATE
