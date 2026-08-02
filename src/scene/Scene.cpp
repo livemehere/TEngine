@@ -6,6 +6,11 @@
 
 #include <glm/gtc/matrix_inverse.hpp>
 
+Scene::~Scene() {
+    // Detach components while the Scene and its services are still alive.
+    entities.clear();
+}
+
 bool Scene::wouldCreateCycle(EntityId childId, EntityId parentId) {
     Entity *current = findEntity(parentId);
     while (current) {
@@ -31,11 +36,7 @@ void Scene::update(float dt) {
 Entity &Scene::createEntity(const std::string &name) {
     const size_t siblingIndex = getChildren(std::nullopt).size();
 
-    Entity &entity = entities.emplace_back();
-    entity.id = entitySeq++;
-    entity.name = name;
-    entity.siblingIndex = siblingIndex;
-    return entity;
+    return entities.emplace_back(*this, entitySeq++, name, siblingIndex);
 }
 
 Entity *Scene::findEntity(const EntityId id) {

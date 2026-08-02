@@ -23,7 +23,7 @@ public:
     std::vector<SpotLight> spotLights;
 
     Scene() = default;
-    ~Scene() = default;
+    ~Scene();
 
     void update(float dt);
 

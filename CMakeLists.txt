@@ -53,6 +53,9 @@ add_executable(TEngine src/main.cpp
         src/core/Application.cpp
         src/core/Application.h
         src/scene/Entity.h
+        src/scene/EntityId.h
+        src/scene/Component.h
+        src/scene/Behaviour.h
         src/editor/Editor.cpp
         src/editor/Editor.h
         src/rendering/model/ModelImporter.cpp
