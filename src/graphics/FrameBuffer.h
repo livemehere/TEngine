@@ -4,17 +4,23 @@
 
 #include "../rendering/RenderExtent.h"
 
+struct FrameBufferSpecification {
+    RenderExtent extent;
+    bool hasDepthStencil = true;
+};
+
 class FrameBuffer {
     GLuint id = 0;
     GLuint textureId = 0;
     GLuint rboId = 0;
     int width = 0;
     int height = 0;
+    bool hasDepthStencil = true;
 
     void allocateAttachments();
 
 public:
-    explicit FrameBuffer(RenderExtent extent);
+    explicit FrameBuffer(FrameBufferSpecification specification);
     ~FrameBuffer();
 
     FrameBuffer(const FrameBuffer&) = delete;

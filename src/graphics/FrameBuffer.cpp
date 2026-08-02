@@ -2,22 +2,28 @@
 
 #include <stdexcept>
 
-FrameBuffer::FrameBuffer(RenderExtent extent)
-    : width(extent.width), height(extent.height) {
+FrameBuffer::FrameBuffer(const FrameBufferSpecification specification)
+    : width(specification.extent.width),
+      height(specification.extent.height),
+      hasDepthStencil(specification.hasDepthStencil) {
     if (width <= 0 || height <= 0) {
         throw std::invalid_argument("Framebuffer extent must be positive");
     }
 
     glGenFramebuffers(1, &id);
     glGenTextures(1, &textureId);
-    glGenRenderbuffers(1, &rboId);
+    if (hasDepthStencil) {
+        glGenRenderbuffers(1, &rboId);
+    }
 
     try {
         allocateAttachments();
     } catch (...) {
         glDeleteFramebuffers(1, &id);
         glDeleteTextures(1, &textureId);
-        glDeleteRenderbuffers(1, &rboId);
+        if (rboId != 0) {
+            glDeleteRenderbuffers(1, &rboId);
+        }
         throw;
     }
 }
@@ -25,7 +31,9 @@ FrameBuffer::FrameBuffer(RenderExtent extent)
 FrameBuffer::~FrameBuffer() {
     glDeleteFramebuffers(1, &id);
     glDeleteTextures(1, &textureId);
-    glDeleteRenderbuffers(1, &rboId);
+    if (rboId != 0) {
+        glDeleteRenderbuffers(1, &rboId);
+    }
 }
 
 void FrameBuffer::allocateAttachments() {
@@ -48,9 +56,6 @@ void FrameBuffer::allocateAttachments() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glBindRenderbuffer(GL_RENDERBUFFER, rboId);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-
     glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_COLOR_ATTACHMENT0,
@@ -58,12 +63,16 @@ void FrameBuffer::allocateAttachments() {
         textureId,
         0
     );
-    glFramebufferRenderbuffer(
-        GL_FRAMEBUFFER,
-        GL_DEPTH_STENCIL_ATTACHMENT,
-        GL_RENDERBUFFER,
-        rboId
-    );
+    if (hasDepthStencil) {
+        glBindRenderbuffer(GL_RENDERBUFFER, rboId);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+        glFramebufferRenderbuffer(
+            GL_FRAMEBUFFER,
+            GL_DEPTH_STENCIL_ATTACHMENT,
+            GL_RENDERBUFFER,
+            rboId
+        );
+    }
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         glBindTexture(GL_TEXTURE_2D, 0);
