@@ -1,3 +1,5 @@
 build/
 local/
-assets/models/
+
+assets/
+!assets/shaders/
