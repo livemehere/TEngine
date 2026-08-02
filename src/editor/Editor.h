@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 
+#include "ComponentDrawerRegistry.h"
 #include "../rendering/RenderExtent.h"
 #include "../scene/Entity.h"
 
@@ -9,11 +10,22 @@ class Scene;
 struct MouseState;
 struct WindowSize;
 
+enum class PlayModeRequest {
+    Play,
+    Stop
+};
 
 
 class Editor {
+    struct EntityCreationRequest {
+        std::optional<EntityId> parentId;
+    };
+
+    ComponentDrawerRegistry componentDrawers;
     std::optional<EntityId> selectedEntityId;
     std::optional<EntityMoveRequest> pendingMoveReq;
+    std::optional<EntityCreationRequest> pendingEntityCreation;
+    std::optional<PlayModeRequest> pendingPlayModeRequest;
 
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
@@ -23,8 +35,11 @@ class Editor {
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
+    Editor();
+
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
+    std::optional<PlayModeRequest> consumePlayModeRequest();
     void beginFrame();
     void draw(Scene& scene, const WindowSize& windowSize, const MouseState& mouseState);
-    RenderExtent drawSceneView(GLuint textureId);
+    RenderExtent drawSceneView(GLuint textureId, bool isPlaying);
 };

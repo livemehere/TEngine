@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "Input.h"
 #include "utils.h"
 #include "Window.h"
@@ -22,6 +24,7 @@ class Application {
     FrameBuffer finalFBO;
 
     Scene scene;
+    std::unique_ptr<Scene> runtimeScene;
     Editor editor;
 public:
     Application()

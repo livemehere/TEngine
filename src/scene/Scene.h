@@ -3,6 +3,7 @@
 #include <concepts>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "Entity.h"
@@ -42,6 +43,9 @@ public:
 
     void updateEditor(float dt);
     void updateRuntime(float dt);
+    void stopRuntime();
+
+    [[nodiscard]] std::unique_ptr<Scene> clone() const;
 
     Entity& createEntity(const std::string& name);
 

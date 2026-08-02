@@ -26,4 +26,13 @@ public:
 
     MeshRendererComponent(const Mesh* mesh, const Material* material)
         : mesh(mesh), material(material) {}
+
+    [[nodiscard]] std::unique_ptr<Component> clone() const override {
+        auto result = std::make_unique<MeshRendererComponent>(mesh, material);
+        result->enabled = enabled;
+        result->outlineEnabled = outlineEnabled;
+        result->outlineMode = outlineMode;
+        result->outlineVisibility = outlineVisibility;
+        return result;
+    }
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "EntityId.h"
 
 class Entity;
@@ -7,6 +9,7 @@ class Scene;
 
 class Component {
     friend class Entity;
+    friend class Scene;
 
     Scene* scene_ = nullptr;
     EntityId entityId_ = 0;
@@ -35,6 +38,8 @@ public:
     Component& operator=(const Component&) = delete;
     Component(Component&&) = delete;
     Component& operator=(Component&&) = delete;
+
+    [[nodiscard]] virtual std::unique_ptr<Component> clone() const = 0;
 
     [[nodiscard]] Scene& getScene() { return *scene_; }
     [[nodiscard]] const Scene& getScene() const { return *scene_; }

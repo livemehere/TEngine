@@ -23,28 +23,48 @@ void Application::run() {
         /* update */
         window.pollEvents();
         input.update();
-        if (Entity *cameraEntity = scene.getActiveCameraEntity()) {
-            Transform &cameraTransform =
-                    cameraEntity->getComponent<TransformComponent>().local;
-            cameraController.update(cameraTransform, input, dt);
-        }
 
         const WindowSize &size = window.get_size();
         const MouseState &mouseState = input.getMouseState();
 
         editor.beginFrame();
-        const RenderExtent viewport = editor.drawSceneView(finalFBO.getTextureId());
+        const RenderExtent viewport = editor.drawSceneView(
+            finalFBO.getTextureId(),
+            runtimeScene != nullptr
+        );
         const bool canRenderScene = viewport.width > 0 && viewport.height > 0;
 
-        scene.updateEditor(dt);
+        if (const std::optional<PlayModeRequest> request =
+                editor.consumePlayModeRequest()) {
+            if (*request == PlayModeRequest::Play && !runtimeScene) {
+                runtimeScene = scene.clone();
+            } else if (*request == PlayModeRequest::Stop && runtimeScene) {
+                runtimeScene->stopRuntime();
+                runtimeScene.reset();
+            }
+        }
+
+        Scene &activeScene = runtimeScene ? *runtimeScene : scene;
+
+        if (Entity *cameraEntity = activeScene.getActiveCameraEntity()) {
+            Transform &cameraTransform =
+                    cameraEntity->getComponent<TransformComponent>().local;
+            cameraController.update(cameraTransform, input, dt);
+        }
+
+        if (runtimeScene) {
+            activeScene.updateRuntime(dt);
+        } else {
+            activeScene.updateEditor(dt);
+        }
 
         if (canRenderScene) {
             sceneFBO.resize(viewport);
             finalFBO.resize(viewport);
 
             sceneFBO.bind();
-            renderer.beginFrame(scene, viewport);
-            renderer.render(scene, {
+            renderer.beginFrame(activeScene, viewport);
+            renderer.render(activeScene, {
                 .highlightedEntityId = editor.getSelectedEntityId()
             });
             renderer.endFrame();
@@ -57,9 +77,14 @@ void Application::run() {
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});
         glClear(GL_COLOR_BUFFER_BIT);
 
-        editor.draw(scene, size, mouseState);
+        editor.draw(activeScene, size, mouseState);
 
         window.update();
+    }
+
+    if (runtimeScene) {
+        runtimeScene->stopRuntime();
+        runtimeScene.reset();
     }
 }
 
@@ -170,8 +195,6 @@ void Application::createSandboxScene() {
         .scale = {1.0f, 1.0f, 1.0f},
     };
 
-    // TODO: transparent entities must be re-ordered in scene render pipeline.
-    // must be render after none-transparent object.
     Entity &grass = scene.createEntity("grass");
     Transform &grassTransform = grass.getComponent<TransformComponent>().local;
     grassTransform.position = {0.0f, 0.5f, 2.0f};

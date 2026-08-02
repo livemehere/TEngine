@@ -60,6 +60,9 @@ add_executable(TEngine src/main.cpp
         src/scene/TransformComponent.h
         src/editor/Editor.cpp
         src/editor/Editor.h
+        src/editor/ComponentDrawerRegistry.cpp
+        src/editor/ComponentDrawerRegistry.h
+        src/editor/ComponentDrawers.cpp
         src/rendering/model/ModelImporter.cpp
         src/rendering/model/ModelImporter.h
         src/graphics/FrameBuffer.cpp

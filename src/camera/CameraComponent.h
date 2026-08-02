@@ -25,5 +25,12 @@ class CameraComponent final : public Component {
 public:
     Projection projection = PerspectiveProjection{};
 
+    [[nodiscard]] std::unique_ptr<Component> clone() const override {
+        auto result = std::make_unique<CameraComponent>();
+        result->enabled = enabled;
+        result->projection = projection;
+        return result;
+    }
+
     [[nodiscard]] glm::mat4 getProjectionMatrix(const RenderExtent& size) const;
 };
