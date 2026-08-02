@@ -6,6 +6,7 @@
 
 #include "../scene/Scene.h"
 #include "RenderExtent.h"
+#include "RenderQueue.h"
 #include "mesh/MeshRendererComponent.h"
 
 class ResourceManager;
@@ -75,6 +76,10 @@ class Renderer {
     void updateLightsBuffer(const Scene& scene);
 
     /** passes */
+    [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
+    void opaqueRenderPass(const RenderQueue& queue);
+    void transparentRenderPass(const RenderQueue& queue);
+    void outlineRenderPass(const RenderQueue& queue);
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
     void skyboxRenderPass(const Scene& scene);
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);

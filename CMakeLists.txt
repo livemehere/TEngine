@@ -45,6 +45,7 @@ add_executable(TEngine src/main.cpp
         src/rendering/Lights.h
         src/rendering/Renderer.cpp
         src/rendering/Renderer.h
+        src/rendering/RenderQueue.h
         src/rendering/RenderExtent.h
         src/rendering/mesh/materials/UnlitMaterial.cpp
         src/rendering/mesh/materials/UnlitMaterial.h

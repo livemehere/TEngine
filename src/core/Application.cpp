@@ -108,9 +108,11 @@ void Application::createSandboxScene() {
     LitMaterial &windowMaterial = resourceManager.loadLitMaterial("window", litShader, whiteTexture);
     windowMaterial.baseColor = {1.0f, 0.0f, 0.0f, 0.3f};
     windowMaterial.rasterState.cullMode = CullMode::None;
+    windowMaterial.renderQueue = RenderQueueType::Transparent;
 
     UnlitMaterial &grassMaterial = resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
     grassMaterial.rasterState.cullMode = CullMode::None;
+    grassMaterial.renderQueue = RenderQueueType::Transparent;
 
     /* models */
     const Model &bagModel = resourceManager.loadModel("models/backpack/backpack.obj", true);

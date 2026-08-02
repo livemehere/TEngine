@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <vector>
 
 #include <glm/geometric.hpp>
@@ -222,7 +223,7 @@ void Renderer::beginFrame(const Scene &scene, const RenderExtent& size) {
     updateLightsBuffer(scene);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -314,10 +315,20 @@ void Renderer::skyboxRenderPass(const Scene &scene) {
 
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
-    glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
 }
 
-void Renderer::render(const Scene &scene, const RenderOptions &options) {
+RenderQueue Renderer::buildRenderQueue(
+    const Scene &scene,
+    const RenderOptions &options
+) const {
+    RenderQueue queue;
+
+    glm::vec3 cameraPosition{0.0f};
+    if (const Entity *cameraEntity = scene.getActiveCameraEntity()) {
+        cameraPosition = glm::vec3(scene.getWorldMatrix(*cameraEntity)[3]);
+    }
+
     const auto isHighlighted = [&](const Entity &entity) {
         return options.highlightedEntityId &&
                isEntityOrDescendantOf(
@@ -327,39 +338,22 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
                );
     };
 
-    const auto getOutlineVisibility = [&](const Entity &entity)
+    const auto getOutlineVisibility = [&](
+        const Entity &entity,
+        const MeshRendererComponent &component
+    )
         -> std::optional<OutlineVisibility> {
-        const MeshRendererComponent* component =
-                entity.tryGetComponent<MeshRendererComponent>();
-
-        if (!component || !component->enabled || !component->mesh || !component->material) {
-            return std::nullopt;
-        }
-
         if (isHighlighted(entity)) {
             return OutlineVisibility::AlwaysVisible;
         }
 
-        if (!component->outlineEnabled) {
+        if (!component.outlineEnabled) {
             return std::nullopt;
         }
 
-        return component->outlineVisibility;
+        return component.outlineVisibility;
     };
 
-    struct XRayOutlineGroup {
-        EntityId id;
-        std::vector<const Entity *> entities;
-    };
-
-    bool hasVisibleOutline = false;
-    std::vector<XRayOutlineGroup> xRayOutlineGroups;
-
-    // Establish the background first without writing depth. Scene meshes can
-    // then overwrite it normally and populate the depth buffer.
-    skyboxRenderPass(scene);
-
-    // Scene mesh pass: finish the depth buffer and mark visible-only outlines.
     scene.each<TransformComponent, MeshRendererComponent>(
         [&](const Entity &entity,
             const TransformComponent &,
@@ -368,38 +362,152 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
                 return;
             }
 
-            const std::optional<OutlineVisibility> visibility = getOutlineVisibility(entity);
-            const bool visibleOnly = visibility == OutlineVisibility::VisibleOnly;
-
             const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-            meshRenderPass(worldMatrix, *component.mesh, *component.material, visibleOnly);
+            const glm::vec3 offset = glm::vec3(worldMatrix[3]) - cameraPosition;
 
-            hasVisibleOutline |= visibleOnly;
+            RenderItem item{
+                .entity = &entity,
+                .meshRenderer = &component,
+                .worldMatrix = worldMatrix,
+                .cameraDistanceSquared = glm::dot(offset, offset),
+                .outlineVisibility = getOutlineVisibility(entity, component)
+            };
 
-            if (visibility == OutlineVisibility::AlwaysVisible) {
-                const EntityId groupId = isHighlighted(entity)
-                                             ? *options.highlightedEntityId
-                                             : getTopLevelAncestorId(scene, entity);
-
-                auto group = std::ranges::find(
-                    xRayOutlineGroups,
-                    groupId,
-                    &XRayOutlineGroup::id
-                );
-
-                if (group == xRayOutlineGroups.end()) {
-                    group = xRayOutlineGroups.insert(
-                        xRayOutlineGroups.end(),
-                        XRayOutlineGroup{.id = groupId}
-                    );
-                }
-
-                group->entities.push_back(&entity);
+            switch (component.material->renderQueue) {
+                case RenderQueueType::Opaque:
+                    queue.opaque.push_back(std::move(item));
+                    break;
+                case RenderQueueType::AlphaCutout:
+                    queue.alphaCutout.push_back(std::move(item));
+                    break;
+                case RenderQueueType::Transparent:
+                    queue.transparent.push_back(std::move(item));
+                    break;
             }
         }
     );
 
-    if (hasVisibleOutline) {
+    const auto sortByRenderState = [](const RenderItem &left, const RenderItem &right) {
+        const Material *leftMaterial = left.meshRenderer->material;
+        const Material *rightMaterial = right.meshRenderer->material;
+
+        if (&leftMaterial->shader != &rightMaterial->shader) {
+            return std::less<const Shader *>{}(
+                &leftMaterial->shader,
+                &rightMaterial->shader
+            );
+        }
+        if (leftMaterial != rightMaterial) {
+            return std::less<const Material *>{}(leftMaterial, rightMaterial);
+        }
+        return std::less<const Mesh *>{}(
+            left.meshRenderer->mesh,
+            right.meshRenderer->mesh
+        );
+    };
+
+    std::sort(queue.opaque.begin(), queue.opaque.end(), sortByRenderState);
+    std::sort(queue.alphaCutout.begin(), queue.alphaCutout.end(), sortByRenderState);
+    std::stable_sort(
+        queue.transparent.begin(),
+        queue.transparent.end(),
+        [](const RenderItem &left, const RenderItem &right) {
+            return left.cameraDistanceSquared > right.cameraDistanceSquared;
+        }
+    );
+
+    const auto collectOutline = [&](const RenderItem &item) {
+        if (!item.outlineVisibility) {
+            return;
+        }
+
+        if (*item.outlineVisibility == OutlineVisibility::VisibleOnly) {
+            queue.visibleOutlines.push_back(item);
+            return;
+        }
+
+        const EntityId groupId = isHighlighted(*item.entity)
+                                     ? *options.highlightedEntityId
+                                     : getTopLevelAncestorId(scene, *item.entity);
+
+        auto group = std::ranges::find(
+            queue.xRayOutlineGroups,
+            groupId,
+            &XRayOutlineGroup::id
+        );
+
+        if (group == queue.xRayOutlineGroups.end()) {
+            group = queue.xRayOutlineGroups.insert(
+                queue.xRayOutlineGroups.end(),
+                XRayOutlineGroup{.id = groupId}
+            );
+        }
+
+        group->items.push_back(item);
+    };
+
+    for (const RenderItem &item : queue.opaque) {
+        collectOutline(item);
+    }
+    for (const RenderItem &item : queue.alphaCutout) {
+        collectOutline(item);
+    }
+    for (const RenderItem &item : queue.transparent) {
+        collectOutline(item);
+    }
+
+    return queue;
+}
+
+void Renderer::opaqueRenderPass(const RenderQueue &queue) {
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+
+    const auto drawItem = [&](const RenderItem &item) {
+        meshRenderPass(
+            item.worldMatrix,
+            *item.meshRenderer->mesh,
+            *item.meshRenderer->material,
+            item.outlineVisibility == OutlineVisibility::VisibleOnly
+        );
+    };
+
+    for (const RenderItem &item : queue.opaque) {
+        drawItem(item);
+    }
+    for (const RenderItem &item : queue.alphaCutout) {
+        drawItem(item);
+    }
+}
+
+void Renderer::transparentRenderPass(const RenderQueue &queue) {
+    if (queue.transparent.empty()) {
+        return;
+    }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_FALSE);
+
+    for (const RenderItem &item : queue.transparent) {
+        meshRenderPass(
+            item.worldMatrix,
+            *item.meshRenderer->mesh,
+            *item.meshRenderer->material,
+            item.outlineVisibility == OutlineVisibility::VisibleOnly
+        );
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+
+void Renderer::outlineRenderPass(const RenderQueue &queue) {
+    if (!queue.visibleOutlines.empty()) {
         // Visible-only outline pass: use the completed scene depth buffer.
         glEnable(GL_STENCIL_TEST);
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
@@ -409,33 +517,26 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
 
-        scene.each<TransformComponent, MeshRendererComponent>(
-            [&](const Entity &entity,
-                const TransformComponent &,
-                const MeshRendererComponent &component) {
-                if (!component.enabled ||
-                    !component.mesh ||
-                    !component.material ||
-                    getOutlineVisibility(entity) != OutlineVisibility::VisibleOnly) {
-                    return;
-                }
-
-                const glm::mat4 worldMatrix = scene.getWorldMatrix(entity);
-                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
-            }
-        );
+        for (const RenderItem &item : queue.visibleOutlines) {
+            drawMeshOutline(
+                item.worldMatrix,
+                *item.meshRenderer->mesh,
+                item.meshRenderer->outlineMode,
+                outlineWidth
+            );
+        }
 
         glDepthMask(GL_TRUE);
         glStencilMask(0xFF);
         glDisable(GL_STENCIL_TEST);
     }
 
-    if (!xRayOutlineGroups.empty()) {
+    if (!queue.xRayOutlineGroups.empty()) {
         glEnable(GL_STENCIL_TEST);
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
 
-        for (const XRayOutlineGroup &group : xRayOutlineGroups) {
+        for (const XRayOutlineGroup &group : queue.xRayOutlineGroups) {
             // Each group needs its own stencil mask. Otherwise a large selected
             // object can suppress the X-ray outline of an unrelated object.
             glStencilMask(0xFF);
@@ -444,11 +545,13 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-            for (const Entity *entity : group.entities) {
-                const MeshRendererComponent &component =
-                        entity->getComponent<MeshRendererComponent>();
-                const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
-                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, 0.0f);
+            for (const RenderItem &item : group.items) {
+                drawMeshOutline(
+                    item.worldMatrix,
+                    *item.meshRenderer->mesh,
+                    item.meshRenderer->outlineMode,
+                    0.0f
+                );
             }
 
             // Draw only outside this group's original silhouette, ignoring depth.
@@ -457,11 +560,13 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             glStencilMask(0x00);
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-            for (const Entity *entity : group.entities) {
-                const MeshRendererComponent &component =
-                        entity->getComponent<MeshRendererComponent>();
-                const glm::mat4 worldMatrix = scene.getWorldMatrix(*entity);
-                drawMeshOutline(worldMatrix, *component.mesh, component.outlineMode, outlineWidth);
+            for (const RenderItem &item : group.items) {
+                drawMeshOutline(
+                    item.worldMatrix,
+                    *item.meshRenderer->mesh,
+                    item.meshRenderer->outlineMode,
+                    outlineWidth
+                );
             }
         }
 
@@ -470,6 +575,19 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         glStencilMask(0xFF);
         glDisable(GL_STENCIL_TEST);
     }
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+}
+
+void Renderer::render(const Scene &scene, const RenderOptions &options) {
+    const RenderQueue queue = buildRenderQueue(scene, options);
+
+    // Complete the opaque depth buffer first. The skybox then fills only the
+    // untouched background, followed by sorted transparent geometry.
+    opaqueRenderPass(queue);
+    skyboxRenderPass(scene);
+    transparentRenderPass(queue);
+    outlineRenderPass(queue);
 }
 
 void Renderer::endFrame() {
