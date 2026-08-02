@@ -24,8 +24,8 @@ struct PerspectiveProjection {
 using Projection = std::variant<OrthoGraphicProjection, PerspectiveProjection>;
 
 class Camera {
-    glm::mat4 viewMatrix;
-    glm::mat4 projectionMatrix;
+    glm::mat4 viewMatrix{1.0f};
+    glm::mat4 projectionMatrix{1.0f};
 
 public:
     Transform transform {

@@ -26,7 +26,7 @@ public:
           input(window),
           resourceManager(ASSET_ROOT),
           renderer(resourceManager),
-          sceneFBO(1,1) {}
+          sceneFBO(RenderExtent{1, 1}) {}
     ~Application() = default;
 
     void run();

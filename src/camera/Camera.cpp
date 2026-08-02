@@ -24,7 +24,9 @@ glm::mat4 Camera::getViewMatrix() const {
 }
 
 glm::mat4 Camera::getProjectionMatrix(const RenderExtent &size) {
-    // if (size.w == 0 || size.h == 0) return projectionMatrix;
+    if (size.width <= 0 || size.height <= 0) {
+        return projectionMatrix;
+    }
 
     if (std::holds_alternative<PerspectiveProjection>(projection)) {
         const auto &perspective = std::get<PerspectiveProjection>(projection);

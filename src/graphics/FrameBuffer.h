@@ -2,21 +2,29 @@
 
 #include <glad/glad.h>
 
+#include "../rendering/RenderExtent.h"
 
 class FrameBuffer {
     GLuint id = 0;
     GLuint textureId = 0;
     GLuint rboId = 0;
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
+
+    void allocateAttachments();
+
 public:
-    FrameBuffer(int width, int height);
+    explicit FrameBuffer(RenderExtent extent);
     ~FrameBuffer();
 
-    void resize(int newWidth, int newHeight);
+    FrameBuffer(const FrameBuffer&) = delete;
+    FrameBuffer& operator=(const FrameBuffer&) = delete;
+
+    void resize(RenderExtent extent);
 
     GLuint getTextureId() const { return textureId; }
+    RenderExtent getExtent() const { return {width, height}; }
 
-    void bind();
-    void unBind();
+    void bind() const;
+    static void bindDefault(RenderExtent windowExtent);
 };

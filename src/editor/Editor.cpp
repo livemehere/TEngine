@@ -352,16 +352,25 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
 }
 
 RenderExtent Editor::drawSceneView(GLuint textureId) {
-    ImGui::Begin("Scene");
+    if (!ImGui::Begin("Scene")) {
+        ImGui::End();
+        return {};
+    }
+
     const ImVec2 available = ImGui::GetContentRegionAvail();
     const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
-    ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-    ImGui::End();
 
-    return {
+    const RenderExtent extent{
         .width = static_cast<int>(available.x * scale.x),
         .height = static_cast<int>(available.y * scale.y)
     };
+
+    if (extent.width > 0 && extent.height > 0) {
+        ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+    }
+
+    ImGui::End();
+    return extent;
 }
 
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {

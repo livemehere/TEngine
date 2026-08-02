@@ -2,69 +2,100 @@
 
 #include <stdexcept>
 
-FrameBuffer::FrameBuffer(int width, int height) : width(width), height(height) {
-    /* FBO */
+FrameBuffer::FrameBuffer(RenderExtent extent)
+    : width(extent.width), height(extent.height) {
+    if (width <= 0 || height <= 0) {
+        throw std::invalid_argument("Framebuffer extent must be positive");
+    }
+
     glGenFramebuffers(1, &id);
-    glBindFramebuffer(GL_FRAMEBUFFER, id);
-
-    /* TEXTURE */
     glGenTextures(1, &textureId);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    /* RENDER BUFFER */
     glGenRenderbuffers(1, &rboId);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboId);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
 
-    /* attach */
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboId);
-
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    try {
+        allocateAttachments();
+    } catch (...) {
         glDeleteFramebuffers(1, &id);
         glDeleteTextures(1, &textureId);
         glDeleteRenderbuffers(1, &rboId);
+        throw;
+    }
+}
+
+FrameBuffer::~FrameBuffer() {
+    glDeleteFramebuffers(1, &id);
+    glDeleteTextures(1, &textureId);
+    glDeleteRenderbuffers(1, &rboId);
+}
+
+void FrameBuffer::allocateAttachments() {
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA8,
+        width,
+        height,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        nullptr
+    );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, rboId);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        textureId,
+        0
+    );
+    glFramebufferRenderbuffer(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_STENCIL_ATTACHMENT,
+        GL_RENDERBUFFER,
+        rboId
+    );
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         throw std::runtime_error("Framebuffer incomplete");
     }
 
-    /* cleanup */
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-FrameBuffer::~FrameBuffer() {
-    if (id != 0) {
-        glDeleteFramebuffers(1, &id);
-        glDeleteTextures(1, &textureId);
-        glDeleteRenderbuffers(1, &rboId);
+void FrameBuffer::resize(RenderExtent extent) {
+    if (extent.width <= 0 || extent.height <= 0) {
+        return;
     }
+    if (width == extent.width && height == extent.height) {
+        return;
+    }
+
+    width = extent.width;
+    height = extent.height;
+    allocateAttachments();
 }
 
-void FrameBuffer::resize(int newWidth, int newHeight) {
-    if (newWidth <= 0 || newHeight <= 0) return;
-    if (width == newWidth || height == newHeight) return;
-
-    width = newWidth;
-    height = newHeight;
-
-    /* texture */
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-
-    /* render buffer */
-    glBindRenderbuffer(GL_RENDERBUFFER, rboId);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-}
-
-void FrameBuffer::bind() {
+void FrameBuffer::bind() const {
     glBindFramebuffer(GL_FRAMEBUFFER, id);
-    glViewport(0,0,width,height);
+    glViewport(0, 0, width, height);
 }
 
-void FrameBuffer::unBind() {
+void FrameBuffer::bindDefault(RenderExtent windowExtent) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, windowExtent.width, windowExtent.height);
 }
