@@ -11,7 +11,7 @@
 
 #include "Component.h"
 #include "EntityId.h"
-#include "../rendering/Transform.h"
+#include "TransformComponent.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 
@@ -32,11 +32,6 @@ class Entity {
 public:
     EntityId id;
     std::string name = "Entity";
-    Transform localTransform{
-        .position = {0.0f, 0.0f, 0.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {1.0f, 1.0f, 1.0f}
-    };
 
     std::optional<EntityId> parentId = std::nullopt;
     size_t siblingIndex = 0;
@@ -46,6 +41,7 @@ public:
 
     Entity(Scene &scene, EntityId id, std::string name, size_t siblingIndex)
         : id(id), name(std::move(name)), siblingIndex(siblingIndex), scene_(&scene) {
+        addComponent<TransformComponent>();
     }
     ~Entity() { clearComponents(); }
 
@@ -61,7 +57,6 @@ public:
 
         id = other.id;
         name = std::move(other.name);
-        localTransform = other.localTransform;
         parentId = other.parentId;
         siblingIndex = other.siblingIndex;
         meshRenderComponent = std::move(other.meshRenderComponent);
@@ -132,6 +127,11 @@ public:
     template<typename T>
         requires std::derived_from<T, Component>
     bool removeComponent() noexcept {
+        static_assert(
+            !std::same_as<T, TransformComponent>,
+            "TransformComponent is required and cannot be removed"
+        );
+
         const auto it = components_.find(std::type_index(typeid(T)));
         if (it == components_.end()) {
             return false;

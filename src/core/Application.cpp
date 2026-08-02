@@ -111,9 +111,10 @@ void Application::createSandboxScene() {
     const Model &fireManModel = resourceManager.loadModel("models/fire-elementals.glb", false);
 
     Entity &ground = scene.createEntity("ground");
-    ground.localTransform.position = {0.0f, 0.0f, 0.0f};
-    ground.localTransform.rotation = {-90.0f, 0.0f, 0.0f};
-    ground.localTransform.scale = {5.0f, 5.0f, 5.0f};
+    Transform &groundTransform = ground.getComponent<TransformComponent>().local;
+    groundTransform.position = {0.0f, 0.0f, 0.0f};
+    groundTransform.rotation = {-90.0f, 0.0f, 0.0f};
+    groundTransform.scale = {5.0f, 5.0f, 5.0f};
     ground.meshRenderComponent = {
         .mesh = &planeMesh,
         .material = &whiteMaterial,
@@ -134,13 +135,13 @@ void Application::createSandboxScene() {
         .material = &whiteMaterial,
         .outlineMode = OutlineMode::ScaleFromPivot
     };
-    box2.localTransform.position.x = 3.0f;
+    box2.getComponent<TransformComponent>().local.position.x = 3.0f;
     box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
 
     auto bagId = scene.instantiateModel(bagModel, whiteMaterial, "bag");
     Entity *bagEntity = scene.findEntity(bagId);
-    bagEntity->localTransform = {
+    bagEntity->getComponent<TransformComponent>().local = {
         .position = {0.0f, 1.0f, 0.0f},
         .rotation = {0.0f, 0.0f, 0.0f},
         .scale = {0.5f, 0.5f, 0.5f},
@@ -148,7 +149,7 @@ void Application::createSandboxScene() {
 
     auto fourArmsId = scene.instantiateModel(fourArmsModel, whiteMaterial, "fourArms");
     Entity *fourArmsEntity = scene.findEntity(fourArmsId);
-    fourArmsEntity->localTransform = {
+    fourArmsEntity->getComponent<TransformComponent>().local = {
         .position = {-2.0f, 1.0f, 0.0f},
         .rotation = {0.0f, 0.0f, 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
@@ -156,7 +157,7 @@ void Application::createSandboxScene() {
 
     auto fireManId = scene.instantiateModel(fireManModel, whiteMaterial, "fireman");
     Entity *fireManEntity = scene.findEntity(fireManId);
-    fireManEntity->localTransform = {
+    fireManEntity->getComponent<TransformComponent>().local = {
         .position = {1.0f, 1.0f, 1.0f},
         .rotation = {0.0f, 0.0f, 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
@@ -165,9 +166,10 @@ void Application::createSandboxScene() {
     // TODO: transparent entities must be re-ordered in scene render pipeline.
     // must be render after none-transparent object.
     Entity &grass = scene.createEntity("grass");
-    grass.localTransform.position = {0.0f, 0.5f, 2.0f};
-    grass.localTransform.rotation = {0.0f, 0.0f, 0.0f};
-    grass.localTransform.scale = {1.0f, 1.0f, 1.0f};
+    Transform &grassTransform = grass.getComponent<TransformComponent>().local;
+    grassTransform.position = {0.0f, 0.5f, 2.0f};
+    grassTransform.rotation = {0.0f, 0.0f, 0.0f};
+    grassTransform.scale = {1.0f, 1.0f, 1.0f};
     grass.meshRenderComponent = {
         .mesh = &planeMesh,
         .material = &grassMaterial,
@@ -176,9 +178,10 @@ void Application::createSandboxScene() {
     grass.siblingIndex = 3;
 
     Entity &window = scene.createEntity("window");
-    window.localTransform.position = {0.0f, 0.0f, 5.0f};
-    window.localTransform.rotation = {0.0f, 0.0f, 0.0f};
-    window.localTransform.scale = {10.0f, 10.0f, 10.0f};
+    Transform &windowTransform = window.getComponent<TransformComponent>().local;
+    windowTransform.position = {0.0f, 0.0f, 5.0f};
+    windowTransform.rotation = {0.0f, 0.0f, 0.0f};
+    windowTransform.scale = {10.0f, 10.0f, 10.0f};
     window.meshRenderComponent = {
         .mesh = &planeMesh,
         .material = &windowMaterial,

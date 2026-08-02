@@ -221,9 +221,10 @@ void Editor::drawInspectorContent(Scene &scene) {
     if (transformOpen) {
         ImGui::Spacing();
 
-        bool positionChanged = drawVec3Control("position", entity->localTransform.position, 0.0f, 0.1f);
-        bool rotationChanged = drawVec3Control("rotation", entity->localTransform.rotation, 0.0f, 0.1f);
-        bool scaleChanged = drawVec3Control("scale", entity->localTransform.scale, 1.0f, 0.1f);
+        Transform &localTransform = entity->getComponent<TransformComponent>().local;
+        bool positionChanged = drawVec3Control("position", localTransform.position, 0.0f, 0.1f);
+        bool rotationChanged = drawVec3Control("rotation", localTransform.rotation, 0.0f, 0.1f);
+        bool scaleChanged = drawVec3Control("scale", localTransform.scale, 1.0f, 0.1f);
 
         if (positionChanged || rotationChanged || scaleChanged) {
             // TODO: dirty, undo

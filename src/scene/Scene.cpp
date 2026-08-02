@@ -125,7 +125,7 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
         --insertIndex;
     }
 
-    Transform newLocalTransform = source->localTransform;
+    Transform newLocalTransform = source->getComponent<TransformComponent>().local;
 
     if (!keepLocalTransform && parentChanged) {
         // Keep the entity at the same world transform after reparenting.
@@ -156,7 +156,7 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
         }
     }
 
-    source->localTransform = newLocalTransform;
+    source->getComponent<TransformComponent>().local = newLocalTransform;
     source->parentId = newParentId;
 
     insertIndex = std::min(insertIndex, newSiblingIds.size());
@@ -174,7 +174,8 @@ bool Scene::moveEntity(EntityId sourceId, std::optional<EntityId> newParentId, s
 }
 
 glm::mat4 Scene::getWorldMatrix(const Entity &entity) const {
-    glm::mat4 localMatrix = entity.localTransform.getLocalMatrix();
+    const Transform &localTransform = entity.getComponent<TransformComponent>().local;
+    glm::mat4 localMatrix = localTransform.getLocalMatrix();
     if (!entity.parentId) {
         return localMatrix;
     }
@@ -202,7 +203,7 @@ EntityId Scene::instantiateModel(const Model &model, const Material &fallbackMat
         const EntityId nodeEntityId = nodeEntity.id;
 
         nodeEntityIds[nodeIndex] = nodeEntityId;
-        nodeEntity.localTransform = modelNode.localTransform;
+        nodeEntity.getComponent<TransformComponent>().local = modelNode.localTransform;
         std::optional<EntityId> parentId = modelNode.parentIndex
                                                ? std::optional<EntityId>(nodeEntityIds[*modelNode.parentIndex])
                                                : std::optional<EntityId>(rootEntityId);
