@@ -20,6 +20,7 @@ class Editor {
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
+    void beginFrame();
     void draw(Scene& scene);
     RenderExtent drawSceneView(GLuint textureId);
 };

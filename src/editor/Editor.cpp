@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../scene/Scene.h"
@@ -119,13 +120,57 @@ namespace {
     }
 }
 
+void Editor::beginFrame() {
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+    const bool needsDefaultLayout = ImGui::DockBuilderGetNode(dockspaceId) == nullptr;
+
+    ImGui::DockSpaceOverViewport(
+        dockspaceId,
+        viewport,
+        ImGuiDockNodeFlags_None
+    );
+
+    if (!needsDefaultLayout) {
+        return;
+    }
+
+    ImGui::DockBuilderRemoveNode(dockspaceId);
+    ImGui::DockBuilderAddNode(
+        dockspaceId,
+        ImGuiDockNodeFlags_DockSpace
+    );
+    ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
+
+    ImGuiID centerId = dockspaceId;
+    const ImGuiID leftId = ImGui::DockBuilderSplitNode(
+        centerId,
+        ImGuiDir_Left,
+        0.20f,
+        nullptr,
+        &centerId
+    );
+    const ImGuiID rightId = ImGui::DockBuilderSplitNode(
+        centerId,
+        ImGuiDir_Right,
+        0.25f,
+        nullptr,
+        &centerId
+    );
+
+    ImGui::DockBuilderDockWindow("Hierarchy", leftId);
+    ImGui::DockBuilderDockWindow("Scene", centerId);
+    ImGui::DockBuilderDockWindow("Inspector", rightId);
+    ImGui::DockBuilderFinish(dockspaceId);
+}
+
 void Editor::draw(Scene &scene) {
     drawHierarchy(scene);
     drawInspector(scene);
 }
 
 void Editor::drawInspector(Scene &scene) {
-    ImGui::Begin("Inspector");
+    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoCollapse);
 
     if (!selectedEntityId) {
         ImGui::TextDisabled("No entity selected");
@@ -293,7 +338,7 @@ void Editor::drawInspector(Scene &scene) {
 }
 
 void Editor::drawHierarchy(Scene &scene) {
-    ImGui::Begin("Hierarchy");
+    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_NoCollapse);
     drawSiblingList(scene, std::nullopt);
     ImGui::End();
 
@@ -352,7 +397,7 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
 }
 
 RenderExtent Editor::drawSceneView(GLuint textureId) {
-    if (!ImGui::Begin("Scene")) {
+    if (!ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::End();
         return {};
     }
