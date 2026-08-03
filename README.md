@@ -54,3 +54,6 @@ stencil
 #### Editable & Playable
 
 <img width="1908" height="1101" alt="image" src="https://github.com/user-attachments/assets/60771993-8e4d-4997-9622-4dbaea4a6972" />
+
+<img width="1328" height="778" alt="image" src="https://github.com/user-attachments/assets/596685e2-6c78-4ef6-93cd-6be666e20b20" />
+
