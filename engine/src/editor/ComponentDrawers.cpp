@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <span>
+#include <string_view>
 #include <vector>
 
 #include <imgui.h>
@@ -10,10 +12,60 @@
 #include "../rendering/Lights.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
+#include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
 #include "../scene/TransformComponent.h"
 
 namespace {
+    template<typename T>
+    bool drawResourceSelector(
+        const char *label,
+        const T *&selectedResource,
+        std::span<const ResourceEntry<T>> resources
+    ) {
+        std::string_view preview = selectedResource
+                                       ? "Unregistered"
+                                       : "None";
+        for (const ResourceEntry<T> &entry: resources) {
+            if (entry.resource == selectedResource) {
+                preview = entry.name;
+                break;
+            }
+        }
+
+        bool changed = false;
+        if (!ImGui::BeginCombo(label, preview.data())) {
+            return false;
+        }
+
+        const bool noneSelected = selectedResource == nullptr;
+        if (ImGui::Selectable("None", noneSelected)) {
+            selectedResource = nullptr;
+            changed = true;
+        }
+        if (noneSelected) {
+            ImGui::SetItemDefaultFocus();
+        }
+
+        if (!resources.empty()) {
+            ImGui::Separator();
+        }
+
+        for (const ResourceEntry<T> &entry: resources) {
+            const bool selected = selectedResource == entry.resource;
+            if (ImGui::Selectable(entry.name.c_str(), selected)) {
+                selectedResource = entry.resource;
+                changed = true;
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+
+        ImGui::EndCombo();
+        return changed;
+    }
+
     bool drawVec3Control(
         const char *label,
         glm::vec3 &value,
@@ -130,7 +182,11 @@ namespace {
         return result;
     }
 
-    void drawMeshRenderers(Scene &scene, Entity &entity) {
+    void drawMeshRenderers(
+        Scene &scene,
+        Entity &entity,
+        ResourceManager &resources
+    ) {
         std::vector<MeshRendererComponent *> components =
                 collectMeshRendererComponents(scene, entity.id);
         if (components.empty()) {
@@ -138,6 +194,21 @@ namespace {
         }
 
         MeshRendererComponent &first = *components.front();
+        if (MeshRendererComponent *direct =
+                entity.tryGetComponent<MeshRendererComponent>()) {
+            drawResourceSelector(
+                "Mesh",
+                direct->mesh,
+                resources.getMeshResources()
+            );
+            drawResourceSelector(
+                "Material",
+                direct->material,
+                resources.getMaterialResources()
+            );
+            ImGui::Separator();
+        }
+
         const bool componentEnabledMixed = std::ranges::any_of(
             components,
             [&](const MeshRendererComponent *component) {
@@ -262,7 +333,10 @@ namespace {
     }
 }
 
-void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry) {
+void registerDefaultComponentDrawers(
+    ComponentDrawerRegistry &registry,
+    ResourceManager &resources
+) {
     registry.registerDrawer<TransformComponent>(
         "Local Transform",
         [](Scene &, Entity &, TransformComponent &component) {
@@ -278,7 +352,9 @@ void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry) {
         [](Scene &scene, Entity &entity) {
             return !collectMeshRendererComponents(scene, entity.id).empty();
         },
-        drawMeshRenderers
+        [&resources](Scene &scene, Entity &entity) {
+            drawMeshRenderers(scene, entity, resources);
+        }
     );
 
     registry.registerDrawer<CameraComponent>(

@@ -17,9 +17,11 @@ struct ComponentTypeDescriptor {
     std::type_index type{typeid(void)};
     std::string name;
     bool addable = true;
+    bool removable = true;
     std::function<bool(const Entity &)> has;
     std::function<Component *(Entity &)> get;
     std::function<void(Entity &)> addDefault;
+    std::function<bool(Entity &)> remove;
     std::function<std::any(const Component &)> serialize;
     std::function<std::unique_ptr<Component>(const std::any &)> instantiate;
 };
@@ -32,7 +34,11 @@ class ComponentTypeRegistry {
 public:
     template<typename T>
         requires std::derived_from<T, Component> && std::default_initializable<T>
-    void registerComponent(std::string name, bool addable = true) {
+    void registerComponent(
+        std::string name,
+        bool addable = true,
+        bool removable = true
+    ) {
         static_assert(
             std::is_copy_constructible_v<T>,
             "Default component serialization requires a copy-constructible component"
@@ -42,6 +48,7 @@ public:
             .type = std::type_index(typeid(T)),
             .name = std::move(name),
             .addable = addable,
+            .removable = removable,
             .has = [](const Entity &entity) {
                 return entity.hasComponent<T>();
             },
@@ -50,6 +57,9 @@ public:
             },
             .addDefault = [](Entity &entity) {
                 entity.addComponent<T>();
+            },
+            .remove = [](Entity &entity) {
+                return entity.removeComponent<T>();
             },
             .serialize = [](const Component &component) -> std::any {
                 return static_cast<const T &>(component);
@@ -66,12 +76,14 @@ public:
         std::string name,
         Serialize &&serialize,
         Instantiate &&instantiate,
-        bool addable = true
+        bool addable = true,
+        bool removable = true
     ) {
         addDescriptor({
             .type = std::type_index(typeid(T)),
             .name = std::move(name),
             .addable = addable,
+            .removable = removable,
             .has = [](const Entity &entity) {
                 return entity.hasComponent<T>();
             },
@@ -80,6 +92,9 @@ public:
             },
             .addDefault = [](Entity &entity) {
                 entity.addComponent<T>();
+            },
+            .remove = [](Entity &entity) {
+                return entity.removeComponent<T>();
             },
             .serialize = [serializer = std::forward<Serialize>(serialize)](
                 const Component &component

@@ -9,6 +9,7 @@
 
 class Scene;
 class ComponentTypeRegistry;
+class ResourceManager;
 struct MouseState;
 struct WindowSize;
 
@@ -24,10 +25,12 @@ class Editor {
     };
 
     const ComponentTypeRegistry &componentTypes;
+    ResourceManager &resources;
     ComponentDrawerRegistry componentDrawers;
     std::optional<EntityId> selectedEntityId;
     std::optional<EntityMoveRequest> pendingMoveReq;
     std::optional<EntityCreationRequest> pendingEntityCreation;
+    std::optional<EntityId> pendingEntityDeletion;
     std::optional<PlayModeRequest> pendingPlayModeRequest;
 
     void drawHierarchy(Scene& scene);
@@ -43,7 +46,10 @@ class Editor {
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
 public:
-    explicit Editor(const ComponentTypeRegistry &componentTypes);
+    Editor(
+        const ComponentTypeRegistry &componentTypes,
+        ResourceManager &resources
+    );
 
     std::optional<EntityId> getSelectedEntityId() const { return selectedEntityId; }
     std::optional<PlayModeRequest> consumePlayModeRequest();

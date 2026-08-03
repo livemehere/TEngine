@@ -1,11 +1,37 @@
 #include "ResourceManager.h"
 
+#include <algorithm>
 #include <array>
+#include <format>
 #include <vector>
 
 #include "../rendering/Renderer.h"
 #include "../rendering/mesh/primitives/PrimitiveMeshes.h"
 #include "../rendering/model/ModelImporter.h"
+
+namespace {
+    template<typename T>
+    void registerResource(
+        std::vector<ResourceEntry<T>> &catalog,
+        std::string name,
+        const T &resource
+    ) {
+        const auto existing = std::ranges::find(
+            catalog,
+            name,
+            &ResourceEntry<T>::name
+        );
+        if (existing != catalog.end()) {
+            existing->resource = &resource;
+            return;
+        }
+
+        catalog.push_back({
+            .name = std::move(name),
+            .resource = &resource
+        });
+    }
+}
 
 std::filesystem::path ResourceManager::resolvePath(std::filesystem::path filepath) const {
     if (filepath.is_absolute()) {
@@ -19,6 +45,7 @@ const Mesh &ResourceManager::getPlaneMesh() {
     if (!planeMesh) {
         auto [vertices, indices] = PrimitiveMeshes::createPlane();
         planeMesh = std::make_unique<Mesh>(vertices, indices);
+        registerResource(meshCatalog, "Built-in/Plane", *planeMesh);
     }
     return *planeMesh;
 }
@@ -27,8 +54,20 @@ const Mesh &ResourceManager::getCubeMesh() {
     if (!cubeMesh) {
         auto [vertices, indices] = PrimitiveMeshes::createCube();
         cubeMesh = std::make_unique<Mesh>(vertices, indices);
+        registerResource(meshCatalog, "Built-in/Cube", *cubeMesh);
     }
     return *cubeMesh;
+}
+
+std::span<const ResourceEntry<Mesh>> ResourceManager::getMeshResources() {
+    getPlaneMesh();
+    getCubeMesh();
+    return meshCatalog;
+}
+
+std::span<const ResourceEntry<Material>>
+ResourceManager::getMaterialResources() const {
+    return materialCatalog;
 }
 
 const Texture2D &ResourceManager::getWhiteTexture() {
@@ -110,6 +149,12 @@ PhongMaterial &ResourceManager::loadPhongMaterial(const std::string &key, const 
 
     auto [it, inserted] = phongMaterials.emplace(key, std::move(material));
 
+    registerResource(
+        materialCatalog,
+        "Phong/" + key,
+        static_cast<const Material &>(*it->second)
+    );
+
     return *it->second;
 }
 
@@ -122,6 +167,12 @@ UnlitMaterial &ResourceManager::loadUnlitMaterial(const std::string &key, const 
     auto material = std::make_unique<UnlitMaterial>(shader, texture);
 
     auto [it, inserted] = unlitMaterials.emplace(key, std::move(material));
+
+    registerResource(
+        materialCatalog,
+        "Unlit/" + key,
+        static_cast<const Material &>(*it->second)
+    );
 
     return *it->second;
 }
@@ -232,6 +283,26 @@ const Model &ResourceManager::loadModel(
         key,
         std::move(model)
     );
+
+    for (size_t partIndex = 0;
+         partIndex < it->second->parts.size();
+         ++partIndex) {
+        const ModelPart &part = it->second->parts[partIndex];
+        if (!part.mesh) {
+            continue;
+        }
+
+        registerResource(
+            meshCatalog,
+            std::format(
+                "{}/Mesh {}{}",
+                path,
+                partIndex,
+                flipUVs ? " [Flipped UV]" : ""
+            ),
+            *part.mesh
+        );
+    }
 
     return *it->second;
 }

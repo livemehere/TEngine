@@ -47,6 +47,7 @@ public:
     void stopRuntime();
 
     Entity& createEntity(const std::string& name);
+    bool destroyEntity(EntityId entityId);
 
     bool setActiveCamera(EntityId entityId);
     [[nodiscard]] std::optional<EntityId> getActiveCameraId() const;

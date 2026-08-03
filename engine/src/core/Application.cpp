@@ -14,7 +14,7 @@ Application::Application(GameModule &game)
       postProcessor(resourceManager),
       sceneFBO({.extent = {1, 1}, .hasDepthStencil = true}),
       finalFBO({.extent = {1, 1}, .hasDepthStencil = false}),
-      editor(componentTypes) {
+      editor(componentTypes, resourceManager) {
     registerBuiltinComponentTypes(componentTypes);
     game.registerComponents(componentTypes);
 }

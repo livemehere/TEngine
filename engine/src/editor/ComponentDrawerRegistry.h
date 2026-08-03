@@ -12,6 +12,7 @@
 
 class Scene;
 class ComponentTypeRegistry;
+class ResourceManager;
 
 class ComponentDrawerRegistry {
 public:
@@ -72,4 +73,7 @@ public:
     void drawAddComponent(Entity &entity, const ComponentTypeRegistry &componentTypes);
 };
 
-void registerDefaultComponentDrawers(ComponentDrawerRegistry &registry);
+void registerDefaultComponentDrawers(
+    ComponentDrawerRegistry &registry,
+    ResourceManager &resources
+);

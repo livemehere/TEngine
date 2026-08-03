@@ -42,17 +42,48 @@ void ComponentDrawerRegistry::drawComponents(
     Entity &entity,
     const ComponentTypeRegistry &componentTypes
 ) const {
+    const ComponentTypeDescriptor *pendingRemoval = nullptr;
     constexpr ImGuiTreeNodeFlags componentFlags =
             ImGuiTreeNodeFlags_DefaultOpen |
             ImGuiTreeNodeFlags_Framed |
             ImGuiTreeNodeFlags_SpanAvailWidth |
-            ImGuiTreeNodeFlags_FramePadding;
+            ImGuiTreeNodeFlags_FramePadding |
+            ImGuiTreeNodeFlags_AllowOverlap;
 
-    const auto drawPanel = [&](const std::string &label, const auto &drawContent) {
+    const auto drawPanel = [&pendingRemoval](
+        const std::string &label,
+        const ComponentTypeDescriptor *descriptor,
+        bool hasDirectComponent,
+        const auto &drawContent
+    ) {
         ImGui::PushID(label.c_str());
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
         const bool open = ImGui::TreeNodeEx(label.c_str(), componentFlags);
         ImGui::PopStyleVar();
+
+        const bool canRemove = descriptor &&
+                               descriptor->removable &&
+                               hasDirectComponent;
+        if (canRemove) {
+            const ImGuiStyle &style = ImGui::GetStyle();
+            const float buttonWidth = ImGui::CalcTextSize("...").x +
+                                      style.FramePadding.x * 2.0f;
+            const float buttonX = ImGui::GetWindowContentRegionMax().x -
+                                  buttonWidth;
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), buttonX));
+            if (ImGui::SmallButton("...")) {
+                ImGui::OpenPopup("ComponentActions");
+            }
+
+            if (ImGui::BeginPopup("ComponentActions")) {
+                if (ImGui::MenuItem("Remove Component")) {
+                    pendingRemoval = descriptor;
+                }
+                ImGui::EndPopup();
+            }
+        }
 
         if (open) {
             ImGui::Spacing();
@@ -67,7 +98,11 @@ void ComponentDrawerRegistry::drawComponents(
             continue;
         }
 
-        drawPanel(entry.label, [&] {
+        const ComponentTypeDescriptor *descriptor = entry.componentType
+                                                        ? componentTypes.find(*entry.componentType)
+                                                        : nullptr;
+        const bool hasDirectComponent = descriptor && descriptor->has(entity);
+        drawPanel(entry.label, descriptor, hasDirectComponent, [&] {
             entry.drawer(scene, entity);
         });
     }
@@ -89,7 +124,7 @@ void ComponentDrawerRegistry::drawComponents(
             continue;
         }
 
-        drawPanel(componentType.name, [&] {
+        drawPanel(componentType.name, &componentType, true, [&] {
             Component *component = componentType.get(entity);
             if (!component) {
                 return;
@@ -98,6 +133,10 @@ void ComponentDrawerRegistry::drawComponents(
             ImGui::Checkbox("Enabled", &component->enabled);
             ImGui::TextDisabled("No custom inspector is registered.");
         });
+    }
+
+    if (pendingRemoval) {
+        pendingRemoval->remove(entity);
     }
 }
 

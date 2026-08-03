@@ -6,6 +6,7 @@
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "../graphics/Shader.h"
 #include "../graphics/CubeMap.h"
@@ -14,6 +15,12 @@
 #include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/mesh/materials/UnlitMaterial.h"
 #include "../rendering/model/Model.h"
+
+template<typename T>
+struct ResourceEntry {
+    std::string name;
+    const T *resource = nullptr;
+};
 
 class ResourceManager {
     std::filesystem::path assetRoot;
@@ -36,6 +43,8 @@ class ResourceManager {
     std::unordered_map<std::string, std::unique_ptr<PhongMaterial> > phongMaterials;
     std::unordered_map<std::string, std::unique_ptr<UnlitMaterial> > unlitMaterials;
 
+    std::vector<ResourceEntry<Mesh>> meshCatalog;
+    std::vector<ResourceEntry<Material>> materialCatalog;
 
     std::filesystem::path resolvePath(std::filesystem::path filepath) const;
 
@@ -46,6 +55,10 @@ public:
     const Mesh &getPlaneMesh();
 
     const Mesh &getCubeMesh();
+
+    std::span<const ResourceEntry<Mesh>> getMeshResources();
+
+    std::span<const ResourceEntry<Material>> getMaterialResources() const;
 
     const Texture2D &getWhiteTexture();
 

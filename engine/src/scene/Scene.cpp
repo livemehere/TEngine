@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <unordered_set>
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -146,6 +147,63 @@ Entity &Scene::createEntity(const std::string &name) {
         name,
         siblingIndex
     );
+}
+
+bool Scene::destroyEntity(EntityId entityId) {
+    if (componentIterationDepth > 0) {
+        return false;
+    }
+
+    const Entity *root = findEntity(entityId);
+    if (!root) {
+        return false;
+    }
+
+    const std::optional<EntityId> parentId = root->parentId;
+    std::unordered_set<EntityId> deletionSet{entityId};
+    std::vector<EntityId> deletionOrder{entityId};
+    std::vector<EntityId> pending{entityId};
+
+    while (!pending.empty()) {
+        const EntityId parent = pending.back();
+        pending.pop_back();
+
+        for (const Entity &candidate: entities) {
+            if (candidate.parentId != parent ||
+                !deletionSet.insert(candidate.id).second) {
+                continue;
+            }
+            deletionOrder.push_back(candidate.id);
+            pending.push_back(candidate.id);
+        }
+    }
+
+    if (activeCameraId && deletionSet.contains(*activeCameraId)) {
+        activeCameraId.reset();
+    }
+
+    for (auto it = deletionOrder.rbegin();
+         it != deletionOrder.rend();
+         ++it) {
+        Entity *entity = findEntity(*it);
+        if (entity) {
+            entity->clearComponents();
+        }
+    }
+
+    std::erase_if(entities, [&](const Entity &entity) {
+        return deletionSet.contains(entity.id);
+    });
+
+    const auto siblings = getChildren(parentId);
+    for (size_t index = 0; index < siblings.size(); ++index) {
+        Entity *sibling = findEntity(siblings[index]->id);
+        if (sibling) {
+            sibling->siblingIndex = index;
+        }
+    }
+
+    return true;
 }
 
 bool Scene::setActiveCamera(EntityId entityId) {

@@ -13,10 +13,14 @@
 #include "../core/Input.h"
 #include "../scene/Scene.h"
 
-Editor::Editor(const ComponentTypeRegistry &componentTypes)
-    : componentTypes(componentTypes) {
+Editor::Editor(
+    const ComponentTypeRegistry &componentTypes,
+    ResourceManager &resources
+)
+    : componentTypes(componentTypes),
+      resources(resources) {
     EditorTheme::applyModernDark();
-    registerDefaultComponentDrawers(componentDrawers);
+    registerDefaultComponentDrawers(componentDrawers, resources);
 }
 
 std::optional<PlayModeRequest> Editor::consumePlayModeRequest() {
@@ -256,8 +260,27 @@ void Editor::drawHierarchy(Scene &scene) {
             }
             ImGui::EndPopup();
         }
+
+        const bool deletePressed =
+                ImGui::IsKeyPressed(ImGuiKey_Backspace) ||
+                ImGui::IsKeyPressed(ImGuiKey_Delete);
+        if (selectedEntityId &&
+            deletePressed &&
+            !ImGui::GetIO().WantTextInput &&
+            !ImGui::IsAnyItemActive()) {
+            pendingEntityDeletion = selectedEntityId;
+        }
     }
     ImGui::End();
+
+    if (pendingEntityDeletion) {
+        scene.destroyEntity(*pendingEntityDeletion);
+        pendingEntityDeletion.reset();
+
+        if (selectedEntityId && !scene.findEntity(*selectedEntityId)) {
+            selectedEntityId.reset();
+        }
+    }
 
     if (pendingMoveReq) {
         scene.moveEntity(pendingMoveReq->sourceId, pendingMoveReq->newParentId, pendingMoveReq->insertIndex);
@@ -430,6 +453,10 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
             pendingEntityCreation = EntityCreationRequest{
                 .parentId = entity.id
             };
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Delete")) {
+            pendingEntityDeletion = entity.id;
         }
         ImGui::EndPopup();
     }
