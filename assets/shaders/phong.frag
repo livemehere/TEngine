@@ -65,7 +65,9 @@ struct Material {
     vec4 baseColor;
     float shininess;
     float specularStrength;
-    float environmentReflectivity;
+    int environmentMappingMode;
+    float environmentStrength;
+    float refractiveIndex;
 };
 
 uniform Material material;
@@ -229,12 +231,20 @@ void main()
         result += calculateSpotLight(lights.spotLights[i], albedo, normal, viewDir, specularMask);
     }
 
-    if(uHasEnvironmentMap != 0 && material.environmentReflectivity > 0.0){
+    if(uHasEnvironmentMap != 0 && material.environmentStrength > 0.0){
         vec3 incident = normalize(vPos - camera.position.xyz);
-        vec3 reflectionDirection = reflect(incident, normal);
-        vec3 environmentColor = texture(uEnvironmentMap, reflectionDirection).rgb;
-        float reflectivity = clamp(material.environmentReflectivity, 0.0, 1.0);
-        result = mix(result, environmentColor, reflectivity);
+        vec3 environmentDirection;
+
+        if(material.environmentMappingMode == 1){
+            float eta = 1.0 / max(material.refractiveIndex, 1.0);
+            environmentDirection = refract(incident, normal, eta);
+        }else{
+            environmentDirection = reflect(incident, normal);
+        }
+
+        vec3 environmentColor = texture(uEnvironmentMap, environmentDirection).rgb;
+        float environmentStrength = clamp(material.environmentStrength, 0.0, 1.0);
+        result = mix(result, environmentColor, environmentStrength);
     }
 
     float alpha = textureColor.a * material.baseColor.a;

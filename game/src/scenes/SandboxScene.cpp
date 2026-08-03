@@ -54,7 +54,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
             resourceManager.loadPhongMaterial("box", phongShader, boxTexture);
     boxMaterial.baseColor = {0.2f, 0.2f, 0.2f, 1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
-    boxMaterial.environmentReflectivity = 0.45f;
+    boxMaterial.environmentStrength = 0.45f;
 
     PhongMaterial &windowMaterial =
             resourceManager.loadPhongMaterial("window", phongShader, whiteTexture);

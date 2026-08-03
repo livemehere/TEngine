@@ -214,24 +214,88 @@ namespace {
             return;
         }
 
-        const float firstReflectivity =
-                materials.front()->environmentReflectivity;
-        const bool reflectivityMixed = std::ranges::any_of(
+        const EnvironmentMappingMode firstMode =
+                materials.front()->environmentMappingMode;
+        const bool modeMixed = std::ranges::any_of(
             materials,
             [&](const PhongMaterial *material) {
-                return material->environmentReflectivity != firstReflectivity;
+                return material->environmentMappingMode != firstMode;
             }
         );
 
         ImGui::SeparatorText("Environment Mapping");
 
-        float reflectivity = firstReflectivity;
-        const char *label = reflectivityMixed
-                                ? "Reflectivity (Mixed)"
-                                : "Reflectivity";
-        if (ImGui::SliderFloat(label, &reflectivity, 0.0f, 1.0f, "%.2f")) {
+        constexpr const char *modeNames[] = {
+            "Reflection",
+            "Refraction"
+        };
+        const int mode = static_cast<int>(firstMode);
+        if (ImGui::BeginCombo(
+            "Mode",
+            modeMixed ? "Mixed" : modeNames[mode]
+        )) {
+            for (int index = 0; index < IM_ARRAYSIZE(modeNames); ++index) {
+                if (ImGui::Selectable(
+                    modeNames[index],
+                    !modeMixed && mode == index
+                )) {
+                    for (PhongMaterial *material : materials) {
+                        material->environmentMappingMode =
+                                static_cast<EnvironmentMappingMode>(index);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        const float firstStrength = materials.front()->environmentStrength;
+        const bool strengthMixed = std::ranges::any_of(
+            materials,
+            [&](const PhongMaterial *material) {
+                return material->environmentStrength != firstStrength;
+            }
+        );
+
+        float strength = firstStrength;
+        const char *strengthLabel = strengthMixed
+                                        ? "Strength (Mixed)"
+                                        : "Strength";
+        if (ImGui::SliderFloat(
+            strengthLabel,
+            &strength,
+            0.0f,
+            1.0f,
+            "%.2f"
+        )) {
             for (PhongMaterial *material : materials) {
-                material->environmentReflectivity = reflectivity;
+                material->environmentStrength = strength;
+            }
+        }
+
+        if (!modeMixed && firstMode == EnvironmentMappingMode::Refraction) {
+            const float firstRefractiveIndex =
+                    materials.front()->refractiveIndex;
+            const bool refractiveIndexMixed = std::ranges::any_of(
+                materials,
+                [&](const PhongMaterial *material) {
+                    return material->refractiveIndex != firstRefractiveIndex;
+                }
+            );
+
+            float refractiveIndex = firstRefractiveIndex;
+            const char *refractiveIndexLabel = refractiveIndexMixed
+                                                   ? "Refractive Index (Mixed)"
+                                                   : "Refractive Index";
+            if (ImGui::SliderFloat(
+                refractiveIndexLabel,
+                &refractiveIndex,
+                1.0f,
+                2.5f,
+                "%.2f"
+            )) {
+                for (PhongMaterial *material : materials) {
+                    material->refractiveIndex = refractiveIndex;
+                }
             }
         }
 

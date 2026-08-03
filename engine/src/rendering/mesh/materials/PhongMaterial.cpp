@@ -15,7 +15,12 @@ void PhongMaterial::bind() const {
     shader.setVec4("material.baseColor",baseColor);
     shader.setFloat("material.shininess",shininess);
     shader.setFloat("material.specularStrength",specularStrength);
-    shader.setFloat("material.environmentReflectivity", environmentReflectivity);
+    shader.setInt(
+        "material.environmentMappingMode",
+        static_cast<int>(environmentMappingMode)
+    );
+    shader.setFloat("material.environmentStrength", environmentStrength);
+    shader.setFloat("material.refractiveIndex", refractiveIndex);
 
     if (specularTexture) {
         specularTexture->bind(1);

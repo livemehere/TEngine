@@ -3,6 +3,10 @@
 #include "Material.h"
 #include "../../../graphics/Texture2D.h"
 
+enum class EnvironmentMappingMode : int {
+    Reflection = 0,
+    Refraction = 1
+};
 
 class PhongMaterial : public Material {
 public:
@@ -11,7 +15,10 @@ public:
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
-    float environmentReflectivity = 0.0f;
+    EnvironmentMappingMode environmentMappingMode =
+            EnvironmentMappingMode::Reflection;
+    float environmentStrength = 0.0f;
+    float refractiveIndex = 1.52f;
 
     PhongMaterial(
         const Shader &shader,
