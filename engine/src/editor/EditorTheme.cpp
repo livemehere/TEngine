@@ -1,8 +1,44 @@
 #include "EditorTheme.h"
 
+#include <array>
+#include <filesystem>
+
 #include <imgui.h>
 
 namespace {
+    void loadEditorFont() {
+        constexpr std::array fontCandidates{
+            "/System/Library/Fonts/SFNS.ttf",
+            "C:/Windows/Fonts/segoeui.ttf"
+        };
+
+        ImGuiIO &io = ImGui::GetIO();
+        for (const char *fontPath: fontCandidates) {
+            std::error_code error;
+            if (!std::filesystem::exists(fontPath, error) || error) {
+                continue;
+            }
+
+            ImFontConfig config;
+            config.OversampleH = 2;
+            config.OversampleV = 1;
+            config.RasterizerMultiply = 1.05f;
+
+            ImFont *font = io.Fonts->AddFontFromFileTTF(
+                fontPath,
+                16.0f,
+                &config,
+                io.Fonts->GetGlyphRangesDefault()
+            );
+            if (font) {
+                io.FontDefault = font;
+                return;
+            }
+        }
+
+        io.FontDefault = io.Fonts->AddFontDefault();
+    }
+
     constexpr ImVec4 color(
         float red,
         float green,
@@ -14,6 +50,7 @@ namespace {
 }
 
 void EditorTheme::applyModernDark() {
+    loadEditorFont();
     ImGui::StyleColorsDark();
 
     ImGuiStyle &style = ImGui::GetStyle();
