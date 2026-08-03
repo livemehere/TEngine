@@ -21,6 +21,8 @@ public:
     bool outlineEnabled = false;
     OutlineMode outlineMode = OutlineMode::NormalExtrusion;
     OutlineVisibility outlineVisibility = OutlineVisibility::VisibleOnly;
+    bool showVertexNormals = false;
+    float vertexNormalLength = 0.2f;
 
     MeshRendererComponent() = default;
 

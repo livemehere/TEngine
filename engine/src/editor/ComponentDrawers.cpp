@@ -305,6 +305,78 @@ namespace {
         );
     }
 
+    void drawGeometryDebugControls(
+        const std::vector<MeshRendererComponent *> &components
+    ) {
+        MeshRendererComponent &first = *components.front();
+        const bool visibilityMixed = std::ranges::any_of(
+            components,
+            [&](const MeshRendererComponent *component) {
+                return component->showVertexNormals !=
+                       first.showVertexNormals;
+            }
+        );
+
+        ImGui::SeparatorText("Geometry Debug");
+
+        if (visibilityMixed) {
+            ImGui::TextUnformatted("Vertex Normals: Mixed");
+            if (ImGui::Button("Show All Normals")) {
+                for (MeshRendererComponent *component : components) {
+                    component->showVertexNormals = true;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Hide All Normals")) {
+                for (MeshRendererComponent *component : components) {
+                    component->showVertexNormals = false;
+                }
+            }
+        } else {
+            bool showVertexNormals = first.showVertexNormals;
+            if (ImGui::Checkbox("Show Vertex Normals", &showVertexNormals)) {
+                for (MeshRendererComponent *component : components) {
+                    component->showVertexNormals = showVertexNormals;
+                }
+            }
+        }
+
+        const bool anyNormalsVisible = std::ranges::any_of(
+            components,
+            &MeshRendererComponent::showVertexNormals
+        );
+        if (anyNormalsVisible) {
+            const float firstLength = first.vertexNormalLength;
+            const bool lengthMixed = std::ranges::any_of(
+                components,
+                [&](const MeshRendererComponent *component) {
+                    return component->vertexNormalLength != firstLength;
+                }
+            );
+
+            float normalLength = firstLength;
+            const char *lengthLabel = lengthMixed
+                                          ? "Normal Length (Mixed)"
+                                          : "Normal Length";
+            if (ImGui::SliderFloat(
+                lengthLabel,
+                &normalLength,
+                0.01f,
+                2.0f,
+                "%.2f"
+            )) {
+                for (MeshRendererComponent *component : components) {
+                    component->vertexNormalLength = normalLength;
+                }
+            }
+        }
+
+        ImGui::TextDisabled(
+            "Geometry shader output for %zu renderer(s).",
+            components.size()
+        );
+    }
+
     void drawMeshRenderers(
         Scene &scene,
         Entity &entity,
@@ -454,6 +526,7 @@ namespace {
             ImGui::EndCombo();
         }
 
+        drawGeometryDebugControls(components);
         drawEnvironmentMappingControls(components, resources);
     }
 }

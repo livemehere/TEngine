@@ -13,6 +13,11 @@ class Shader {
 
 public:
     Shader(const std::string& vsPath, const std::string& fsPath);
+    Shader(
+        const std::string& vsPath,
+        const std::string& gsPath,
+        const std::string& fsPath
+    );
     ~Shader() {
         if (id != 0) {
             glDeleteProgram(id);

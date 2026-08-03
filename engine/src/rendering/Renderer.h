@@ -78,8 +78,10 @@ struct RenderOptions {
 class Renderer {
     const Shader &outlineShader;
     const Shader &skyboxShader;
+    const Shader &normalDebugShader;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
+    glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
 
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
@@ -95,6 +97,7 @@ class Renderer {
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
     void opaqueRenderPass(const RenderQueue& queue);
     void transparentRenderPass(const RenderQueue& queue);
+    void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
     void skyboxRenderPass();

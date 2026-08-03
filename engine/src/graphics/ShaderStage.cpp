@@ -5,6 +5,21 @@
 
 #include "../core/utils.h"
 
+namespace {
+    const char *getShaderStageName(GLenum type) {
+        switch (type) {
+            case GL_VERTEX_SHADER:
+                return "VERTEX";
+            case GL_GEOMETRY_SHADER:
+                return "GEOMETRY";
+            case GL_FRAGMENT_SHADER:
+                return "FRAGMENT";
+            default:
+                return "UNKNOWN";
+        }
+    }
+}
+
 ShaderStage::ShaderStage(GLenum type, const std::string &filepath) {
     const std::string sourcePath = utils::asset_path(filepath);
     const std::string sourceString = utils::read_file(sourcePath);
@@ -18,8 +33,6 @@ ShaderStage::ShaderStage(GLenum type, const std::string &filepath) {
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
 
     if (success == GL_FALSE) {
-        std::string shaderTypeStr = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
-
         GLint logLength = 0;
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &logLength);
         std::string log(logLength,'\0');
@@ -30,6 +43,10 @@ ShaderStage::ShaderStage(GLenum type, const std::string &filepath) {
 
         glDeleteShader(id);
 
-        throw std::runtime_error(std::format("[{} SHADER] {}",shaderTypeStr, log));
+        throw std::runtime_error(std::format(
+            "[{} SHADER] {}",
+            getShaderStageName(type),
+            log
+        ));
     }
 }

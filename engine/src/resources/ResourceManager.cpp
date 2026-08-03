@@ -160,6 +160,21 @@ const Shader &ResourceManager::getSkyboxShader() {
     return *skyboxShader;
 }
 
+const Shader &ResourceManager::getNormalDebugShader() {
+    if (!normalDebugShader) {
+        normalDebugShader = std::make_unique<Shader>(
+            resolvePath("shaders/normalDebug.vert"),
+            resolvePath("shaders/normalDebug.geom"),
+            resolvePath("shaders/normalDebug.frag")
+        );
+        normalDebugShader->bindUniformBlock(
+            "CameraData",
+            UniformBinding::Camera
+        );
+    }
+    return *normalDebugShader;
+}
+
 PhongMaterial &ResourceManager::loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
     if (const auto it = phongMaterials.find(key); it != phongMaterials.end()) {
         return *it->second;

@@ -27,6 +27,7 @@ struct RenderQueue {
     std::vector<RenderItem> opaque;
     std::vector<RenderItem> alphaCutout;
     std::vector<RenderItem> transparent;
+    std::vector<RenderItem> normalDebug;
     std::vector<RenderItem> visibleOutlines;
     std::vector<XRayOutlineGroup> xRayOutlineGroups;
 };

@@ -1,12 +1,39 @@
 #include "Shader.h"
 
 #include <format>
+#include <initializer_list>
 #include <stdexcept>
 #include <glm/gtc/type_ptr.inl>
 
 #include "ShaderStage.h"
 
 namespace {
+    GLuint linkShaderProgram(std::initializer_list<GLuint> shaderStages) {
+        const GLuint program = glCreateProgram();
+        for (const GLuint shaderStage : shaderStages) {
+            glAttachShader(program, shaderStage);
+        }
+
+        glLinkProgram(program);
+
+        GLint success = GL_FALSE;
+        glGetProgramiv(program, GL_LINK_STATUS, &success);
+        if (success != GL_FALSE) {
+            return program;
+        }
+
+        GLint logLength = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+        std::string log(logLength, '\0');
+
+        GLsizei written = 0;
+        glGetProgramInfoLog(program, logLength, &written, log.data());
+        log.resize(written);
+        glDeleteProgram(program);
+
+        throw std::runtime_error(std::format("[SHADER_PROGRAM] {}", log));
+    }
+
     void validate_location(const char* name, GLint loc) {
         if (loc == -1) {
             throw std::runtime_error(
@@ -23,30 +50,26 @@ Shader::Shader(const std::string &vsPath, const std::string &fsPath) {
     const ShaderStage vs(GL_VERTEX_SHADER,vsPath);
     const ShaderStage fs(GL_FRAGMENT_SHADER,fsPath);
 
-    id = glCreateProgram();
-    glAttachShader(id, vs.getId());
-    glAttachShader(id, fs.getId());
-    glLinkProgram(id);
-
-    GLint success = GL_FALSE;
-    glGetProgramiv(id, GL_LINK_STATUS, &success);
-
-    if (success == GL_FALSE) {
-        GLint logLength = 0;
-        glGetProgramiv(id, GL_INFO_LOG_LENGTH, &logLength);
-        std::string log(logLength,'\0');
-
-        GLsizei written = 0;
-        glGetProgramInfoLog(id, logLength, &written, log.data());
-        log.resize(written);
-        glDeleteProgram(id);
-
-        throw std::runtime_error(std::format("[SHADER_PROGRAM] {}", log));
-    }
+    id = linkShaderProgram({vs.getId(), fs.getId()});
 
     glDetachShader(id, vs.getId());
     glDetachShader(id, fs.getId());
+}
 
+Shader::Shader(
+    const std::string &vsPath,
+    const std::string &gsPath,
+    const std::string &fsPath
+) {
+    const ShaderStage vs(GL_VERTEX_SHADER, vsPath);
+    const ShaderStage gs(GL_GEOMETRY_SHADER, gsPath);
+    const ShaderStage fs(GL_FRAGMENT_SHADER, fsPath);
+
+    id = linkShaderProgram({vs.getId(), gs.getId(), fs.getId()});
+
+    glDetachShader(id, vs.getId());
+    glDetachShader(id, gs.getId());
+    glDetachShader(id, fs.getId());
 }
 
 void Shader::setInt(const char *name, const int value) const {

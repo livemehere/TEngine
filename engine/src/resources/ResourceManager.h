@@ -34,6 +34,7 @@ class ResourceManager {
     std::unique_ptr<Shader> outlineShader;
     std::unique_ptr<Shader> postProcessShader;
     std::unique_ptr<Shader> skyboxShader;
+    std::unique_ptr<Shader> normalDebugShader;
 
     /* externally loaded resources */
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
@@ -73,6 +74,8 @@ public:
     const Shader &getPostProcessShader();
 
     const Shader &getSkyboxShader();
+
+    const Shader &getNormalDebugShader();
 
     PhongMaterial &loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 

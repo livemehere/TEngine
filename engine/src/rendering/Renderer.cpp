@@ -97,7 +97,8 @@ namespace {
 
 Renderer::Renderer(ResourceManager &resourceManager)
     : outlineShader(resourceManager.getOutlineShader()),
-      skyboxShader(resourceManager.getSkyboxShader()) {
+      skyboxShader(resourceManager.getSkyboxShader()),
+      normalDebugShader(resourceManager.getNormalDebugShader()) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -393,6 +394,10 @@ RenderQueue Renderer::buildRenderQueue(
                 .outlineVisibility = getOutlineVisibility(entity, component)
             };
 
+            if (component.showVertexNormals) {
+                queue.normalDebug.push_back(item);
+            }
+
             switch (component.material->renderQueue) {
                 case RenderQueueType::Opaque:
                     queue.opaque.push_back(std::move(item));
@@ -541,6 +546,35 @@ void Renderer::transparentRenderPass(const RenderQueue &queue) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void Renderer::normalDebugRenderPass(const RenderQueue &queue) {
+    if (queue.normalDebug.empty()) {
+        return;
+    }
+
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    normalDebugShader.use();
+    normalDebugShader.setVec4("uColor", normalDebugColor);
+
+    for (const RenderItem &item : queue.normalDebug) {
+        normalDebugShader.setMat4("uModel", item.worldMatrix);
+        normalDebugShader.setFloat(
+            "uNormalLength",
+            item.meshRenderer->vertexNormalLength
+        );
+        item.meshRenderer->mesh->draw();
+    }
+
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+}
+
 void Renderer::outlineRenderPass(const RenderQueue &queue) {
     if (!queue.visibleOutlines.empty()) {
         // Visible-only outline pass: use the completed scene depth buffer.
@@ -631,6 +665,7 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
         skyboxRenderPass();
     }
     transparentRenderPass(queue);
+    normalDebugRenderPass(queue);
     if (currentSettings.rasterization == RasterizationMode::Fill) {
         outlineRenderPass(queue);
     }
