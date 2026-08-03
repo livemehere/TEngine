@@ -8,6 +8,7 @@
 #include "RenderExtent.h"
 #include "RenderQueue.h"
 #include "RenderSettings.h"
+#include "RenderStats.h"
 #include "mesh/MeshRendererComponent.h"
 
 class ResourceManager;
@@ -86,7 +87,10 @@ class Renderer {
     GLuint cameraUBO = 0;
     GLuint lightsUBO = 0;
     GLuint debugUBO = 0;
+    GLuint instanceVBO = 0;
+    std::size_t instanceBufferCapacity = 0;
     RenderSettings currentSettings;
+    RenderStats currentStats;
     const CubeMap* currentEnvironmentMap = nullptr;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
@@ -96,6 +100,7 @@ class Renderer {
     /** passes */
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
     void opaqueRenderPass(const RenderQueue& queue);
+    void instancedOpaqueRenderPass(const RenderQueue& queue);
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
@@ -115,6 +120,9 @@ public:
         if (debugUBO != 0) {
             glDeleteBuffers(1, &debugUBO);
         }
+        if (instanceVBO != 0) {
+            glDeleteBuffers(1, &instanceVBO);
+        }
     }
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -126,4 +134,5 @@ public:
     );
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
+    [[nodiscard]] const RenderStats& getStats() const { return currentStats; }
 };

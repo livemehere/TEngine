@@ -119,6 +119,9 @@ Renderer::Renderer(ResourceManager &resourceManager)
     glBufferData(GL_UNIFORM_BUFFER, sizeof(GPUDebugData), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, UniformBinding::Debug, debugUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    /* per-instance model matrices */
+    glGenBuffers(1, &instanceVBO);
 }
 
 void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) {
@@ -245,6 +248,7 @@ void Renderer::beginFrame(
     const RenderSettings& settings
 ) {
     currentSettings = settings;
+    currentStats = {};
     updateCameraBuffer(scene, size);
     updateLightsBuffer(scene);
     updateDebugBuffer();
@@ -298,6 +302,8 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
     material.shader.setMat4("uModel", worldMatrix);
 
     mesh.draw();
+    ++currentStats.drawCalls;
+    currentStats.triangleCount += mesh.getTriangleCount();
 }
 
 void Renderer::drawMeshOutline(
@@ -316,6 +322,8 @@ void Renderer::drawMeshOutline(
     outlineShader.setVec4("uOutlineColor", outlineColor);
     outlineShader.setInt("uOutlineMode", static_cast<int>(outlineMode));
     mesh.draw();
+    ++currentStats.drawCalls;
+    currentStats.triangleCount += mesh.getTriangleCount();
 }
 
 void Renderer::skyboxRenderPass() {
@@ -333,6 +341,8 @@ void Renderer::skyboxRenderPass() {
     skyboxShader.use();
     currentEnvironmentMap->bind(0);
     currentEnvironmentMap->draw();
+    ++currentStats.drawCalls;
+    currentStats.triangleCount += 12;
 
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
@@ -412,6 +422,26 @@ RenderQueue Renderer::buildRenderQueue(
         }
     );
 
+    scene.each<TransformComponent, InstancedMeshRendererComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const InstancedMeshRendererComponent &component) {
+            if (!component.enabled ||
+                !component.mesh ||
+                !component.material ||
+                component.localMatrices.empty() ||
+                component.material->renderQueue != RenderQueueType::Opaque) {
+                return;
+            }
+
+            queue.instancedOpaque.push_back({
+                .entity = &entity,
+                .meshRenderer = &component,
+                .worldMatrix = scene.getWorldMatrix(entity)
+            });
+        }
+    );
+
     const auto sortByRenderState = [](const RenderItem &left, const RenderItem &right) {
         const Material *leftMaterial = left.meshRenderer->material;
         const Material *rightMaterial = right.meshRenderer->material;
@@ -433,6 +463,28 @@ RenderQueue Renderer::buildRenderQueue(
 
     std::sort(queue.opaque.begin(), queue.opaque.end(), sortByRenderState);
     std::sort(queue.alphaCutout.begin(), queue.alphaCutout.end(), sortByRenderState);
+    std::sort(
+        queue.instancedOpaque.begin(),
+        queue.instancedOpaque.end(),
+        [](const InstancedRenderItem &left, const InstancedRenderItem &right) {
+            const Material *leftMaterial = left.meshRenderer->material;
+            const Material *rightMaterial = right.meshRenderer->material;
+
+            if (&leftMaterial->shader != &rightMaterial->shader) {
+                return std::less<const Shader *>{}(
+                    &leftMaterial->shader,
+                    &rightMaterial->shader
+                );
+            }
+            if (leftMaterial != rightMaterial) {
+                return std::less<const Material *>{}(leftMaterial, rightMaterial);
+            }
+            return std::less<const Mesh *>{}(
+                left.meshRenderer->mesh,
+                right.meshRenderer->mesh
+            );
+        }
+    );
     std::stable_sort(
         queue.transparent.begin(),
         queue.transparent.end(),
@@ -546,6 +598,66 @@ void Renderer::transparentRenderPass(const RenderQueue &queue) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
+    if (queue.instancedOpaque.empty()) {
+        return;
+    }
+
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glPolygonMode(
+        GL_FRONT_AND_BACK,
+        currentSettings.rasterization == RasterizationMode::Wireframe
+            ? GL_LINE
+            : GL_FILL
+    );
+
+    for (const InstancedRenderItem &item : queue.instancedOpaque) {
+        const InstancedMeshRendererComponent &component = *item.meshRenderer;
+        const std::size_t instanceCount = component.localMatrices.size();
+        const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        if (byteSize > instanceBufferCapacity) {
+            glBufferData(
+                GL_ARRAY_BUFFER,
+                static_cast<GLsizeiptr>(byteSize),
+                nullptr,
+                GL_DYNAMIC_DRAW
+            );
+            instanceBufferCapacity = byteSize;
+        }
+        glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            static_cast<GLsizeiptr>(byteSize),
+            component.localMatrices.data()
+        );
+
+        applyCullMode(component.material->rasterState.cullMode);
+        component.material->bind();
+        component.material->bindEnvironment(currentEnvironmentMap);
+        component.material->shader.setMat4("uModel", item.worldMatrix);
+        component.mesh->drawInstanced(
+            instanceVBO,
+            static_cast<GLsizei>(instanceCount)
+        );
+
+        ++currentStats.drawCalls;
+        ++currentStats.instancedDrawCalls;
+        currentStats.instanceCount += instanceCount;
+        currentStats.triangleCount +=
+                static_cast<std::uint64_t>(component.mesh->getTriangleCount()) *
+                instanceCount;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
 void Renderer::normalDebugRenderPass(const RenderQueue &queue) {
     if (queue.normalDebug.empty()) {
         return;
@@ -569,6 +681,9 @@ void Renderer::normalDebugRenderPass(const RenderQueue &queue) {
             item.meshRenderer->vertexNormalLength
         );
         item.meshRenderer->mesh->draw();
+        ++currentStats.drawCalls;
+        currentStats.triangleCount +=
+                item.meshRenderer->mesh->getTriangleCount();
     }
 
     glDepthMask(GL_TRUE);
@@ -661,6 +776,7 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     // Complete the opaque depth buffer first. The skybox then fills only the
     // untouched background, followed by sorted transparent geometry.
     opaqueRenderPass(queue);
+    instancedOpaqueRenderPass(queue);
     if (currentSettings.debugView == DebugViewMode::Shaded) {
         skyboxRenderPass();
     }

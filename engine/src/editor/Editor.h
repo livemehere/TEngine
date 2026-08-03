@@ -5,6 +5,7 @@
 #include "ComponentDrawerRegistry.h"
 #include "../rendering/RenderExtent.h"
 #include "../rendering/RenderSettings.h"
+#include "../rendering/RenderStats.h"
 #include "../scene/Entity.h"
 
 class Scene;
@@ -40,7 +41,8 @@ class Editor {
         Scene& scene,
         const WindowSize& windowSize,
         const MouseState& mouseState,
-        RenderSettings& renderSettings
+        RenderSettings& renderSettings,
+        const RenderStats& renderStats
     );
     void drawEntityNode(Scene& scene, const Entity& entity);
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
@@ -58,7 +60,8 @@ public:
         Scene& scene,
         const WindowSize& windowSize,
         const MouseState& mouseState,
-        RenderSettings& renderSettings
+        RenderSettings& renderSettings,
+        const RenderStats& renderStats
     );
     RenderExtent drawSceneView(GLuint textureId, bool isPlaying);
 };

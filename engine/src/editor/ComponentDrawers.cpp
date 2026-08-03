@@ -11,6 +11,7 @@
 
 #include "../camera/CameraComponent.h"
 #include "../rendering/Lights.h"
+#include "../rendering/mesh/InstancedMeshRendererComponent.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/skybox/SkyboxComponent.h"
@@ -552,6 +553,38 @@ void registerDefaultComponentDrawers(
         },
         [&resources](Scene &scene, Entity &entity) {
             drawMeshRenderers(scene, entity, resources);
+        }
+    );
+
+    registry.registerDrawer<InstancedMeshRendererComponent>(
+        "Instanced Mesh Renderer",
+        [&resources](
+            Scene &,
+            Entity &,
+            InstancedMeshRendererComponent &component
+        ) {
+            ImGui::Checkbox("Enabled", &component.enabled);
+            drawResourceSelector(
+                "Mesh",
+                component.mesh,
+                resources.getMeshResources()
+            );
+            drawResourceSelector(
+                "Material",
+                component.material,
+                resources.getMaterialResources()
+            );
+            ImGui::Text(
+                "Instance Count: %zu",
+                component.localMatrices.size()
+            );
+            if (component.material &&
+                component.material->renderQueue != RenderQueueType::Opaque) {
+                ImGui::TextColored(
+                    ImVec4(1.0f, 0.55f, 0.25f, 1.0f),
+                    "Only opaque materials are currently rendered."
+                );
+            }
         }
     );
 

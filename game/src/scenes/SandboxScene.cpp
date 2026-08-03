@@ -2,10 +2,13 @@
 
 #include <array>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <camera/CameraComponent.h>
 #include <graphics/CubeMap.h>
 #include <rendering/Lights.h>
 #include <rendering/mesh/MeshRendererComponent.h>
+#include <rendering/mesh/InstancedMeshRendererComponent.h>
 #include <rendering/mesh/materials/PhongMaterial.h>
 #include <rendering/mesh/materials/UnlitMaterial.h>
 #include <rendering/skybox/SkyboxComponent.h>
@@ -106,6 +109,38 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     box2.getComponent<TransformComponent>().local.position.x = 3.0f;
     box2.siblingIndex = 0;
     scene.moveEntity(box2.id, boxId, 1);
+
+    Entity &instancedCubes = scene.createEntity("Instanced Cubes");
+    InstancedMeshRendererComponent &instancedRenderer =
+            instancedCubes.addComponent<InstancedMeshRendererComponent>(
+                &resourceManager.getCubeMesh(),
+                &boxMaterial
+            );
+
+    constexpr int gridSize = 20;
+    constexpr float spacing = 0.35f;
+    constexpr float cubeSize = 0.12f;
+    const float gridHalfExtent = (gridSize - 1) * spacing * 0.5f;
+    instancedRenderer.localMatrices.reserve(gridSize * gridSize);
+
+    for (int z = 0; z < gridSize; ++z) {
+        for (int x = 0; x < gridSize; ++x) {
+            glm::mat4 localMatrix{1.0f};
+            localMatrix = glm::translate(
+                localMatrix,
+                glm::vec3(
+                    x * spacing - gridHalfExtent,
+                    cubeSize,
+                    z * spacing - gridHalfExtent
+                )
+            );
+            localMatrix = glm::scale(
+                localMatrix,
+                glm::vec3(cubeSize)
+            );
+            instancedRenderer.localMatrices.push_back(localMatrix);
+        }
+    }
 
     const EntityId bagId =
             scene.instantiateModel(bagModel, whiteMaterial, "bag");

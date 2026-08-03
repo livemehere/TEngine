@@ -85,11 +85,12 @@ void Editor::draw(
     Scene &scene,
     const WindowSize& windowSize,
     const MouseState& mouseState,
-    RenderSettings& renderSettings
+    RenderSettings& renderSettings,
+    const RenderStats& renderStats
 ) {
     drawHierarchy(scene);
     drawInspector(scene);
-    drawDebug(scene, windowSize, mouseState, renderSettings);
+    drawDebug(scene, windowSize, mouseState, renderSettings, renderStats);
 }
 
 void Editor::drawInspector(Scene &scene) {
@@ -142,11 +143,37 @@ void Editor::drawDebug(
     Scene &scene,
     const WindowSize& windowSize,
     const MouseState& mouseState,
-    RenderSettings& renderSettings
+    RenderSettings& renderSettings,
+    const RenderStats& renderStats
 ) {
     if (ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::SeparatorText("Performance");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text(
+            "Scene Draw Calls: %llu",
+            static_cast<unsigned long long>(renderStats.drawCalls)
+        );
+        ImGui::Text(
+            "Instanced Draw Calls: %llu",
+            static_cast<unsigned long long>(renderStats.instancedDrawCalls)
+        );
+        ImGui::Text(
+            "Instances: %llu",
+            static_cast<unsigned long long>(renderStats.instanceCount)
+        );
+        ImGui::Text(
+            "Submitted Triangles: %llu",
+            static_cast<unsigned long long>(renderStats.triangleCount)
+        );
+        const std::uint64_t estimatedSavedCalls =
+                renderStats.instanceCount > renderStats.instancedDrawCalls
+                    ? renderStats.instanceCount - renderStats.instancedDrawCalls
+                    : 0;
+        ImGui::Text(
+            "Estimated Calls Saved: %llu",
+            static_cast<unsigned long long>(estimatedSavedCalls)
+        );
+        ImGui::TextDisabled("Scene renderer only; post-process and ImGui excluded.");
 
         ImGui::SeparatorText("Rendering");
         constexpr const char *debugViewNames[] = {

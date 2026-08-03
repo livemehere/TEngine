@@ -16,5 +16,10 @@ public:
     Mesh& operator=(const Mesh&) = delete;
 
     void draw() const;
+    void drawInstanced(GLuint instanceBuffer, GLsizei instanceCount) const;
+
+    [[nodiscard]] GLsizei getTriangleCount() const {
+        return indexCount / 3;
+    }
 
 };

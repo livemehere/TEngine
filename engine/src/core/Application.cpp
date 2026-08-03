@@ -87,7 +87,13 @@ void Application::run() {
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});
         glClear(GL_COLOR_BUFFER_BIT);
 
-        editor.draw(activeScene, size, mouseState, renderSettings);
+        editor.draw(
+            activeScene,
+            size,
+            mouseState,
+            renderSettings,
+            renderer.getStats()
+        );
         window.update();
     }
 

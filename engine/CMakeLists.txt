@@ -46,6 +46,7 @@ add_library(TEngine STATIC
     src/rendering/RenderExtent.h
     src/rendering/RenderQueue.h
     src/rendering/RenderSettings.h
+    src/rendering/RenderStats.h
     src/rendering/Renderer.cpp
     src/rendering/Renderer.h
     src/rendering/Transform.h
@@ -54,6 +55,7 @@ add_library(TEngine STATIC
     src/rendering/mesh/Mesh.h
     src/rendering/mesh/MeshData.h
     src/rendering/mesh/MeshRendererComponent.h
+    src/rendering/mesh/InstancedMeshRendererComponent.h
     src/rendering/mesh/Vertex.h
     src/rendering/mesh/materials/PhongMaterial.cpp
     src/rendering/mesh/materials/PhongMaterial.h
