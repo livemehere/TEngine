@@ -65,9 +65,12 @@ struct Material {
     vec4 baseColor;
     float shininess;
     float specularStrength;
+    float environmentReflectivity;
 };
 
 uniform Material material;
+uniform samplerCube uEnvironmentMap;
+uniform int uHasEnvironmentMap;
 
 out vec4 FragColor;
 
@@ -224,6 +227,14 @@ void main()
 
     for(int i=0; i< spotLightCount; i++){
         result += calculateSpotLight(lights.spotLights[i], albedo, normal, viewDir, specularMask);
+    }
+
+    if(uHasEnvironmentMap != 0 && material.environmentReflectivity > 0.0){
+        vec3 incident = normalize(vPos - camera.position.xyz);
+        vec3 reflectionDirection = reflect(incident, normal);
+        vec3 environmentColor = texture(uEnvironmentMap, reflectionDirection).rgb;
+        float reflectivity = clamp(material.environmentReflectivity, 0.0, 1.0);
+        result = mix(result, environmentColor, reflectivity);
     }
 
     float alpha = textureColor.a * material.baseColor.a;

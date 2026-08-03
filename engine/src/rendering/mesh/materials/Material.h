@@ -1,6 +1,8 @@
 #pragma once
 #include "../../../graphics/Shader.h"
 
+class CubeMap;
+
 enum class CullMode {
     None,
     Back,
@@ -28,4 +30,5 @@ public:
     virtual ~Material() = default;
 
     virtual void bind () const = 0;
+    virtual void bindEnvironment(const CubeMap* environmentMap) const {}
 };

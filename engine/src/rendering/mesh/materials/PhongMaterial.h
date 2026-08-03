@@ -11,6 +11,7 @@ public:
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
+    float environmentReflectivity = 0.0f;
 
     PhongMaterial(
         const Shader &shader,
@@ -27,4 +28,5 @@ public:
     ~PhongMaterial() override = default;
 
     void bind() const override;
+    void bindEnvironment(const CubeMap* environmentMap) const override;
 };

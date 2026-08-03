@@ -12,6 +12,7 @@
 
 class ResourceManager;
 class Shader;
+class CubeMap;
 
 constexpr std::size_t MAX_POINT_LIGHTS = 16;
 constexpr std::size_t MAX_DIRECTIONAL_LIGHTS = 4;
@@ -84,6 +85,7 @@ class Renderer {
     GLuint lightsUBO = 0;
     GLuint debugUBO = 0;
     RenderSettings currentSettings;
+    const CubeMap* currentEnvironmentMap = nullptr;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
@@ -95,7 +97,7 @@ class Renderer {
     void transparentRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
-    void skyboxRenderPass(const Scene& scene);
+    void skyboxRenderPass();
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);
 
 public:

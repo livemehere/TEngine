@@ -291,6 +291,7 @@ void Renderer::meshRenderPass(const glm::mat4 &worldMatrix, const Mesh &mesh, co
     /* material specific */
     applyCullMode(material.rasterState.cullMode);
     material.bind();
+    material.bindEnvironment(currentEnvironmentMap);
 
     /* mesh common */
     material.shader.setMat4("uModel", worldMatrix);
@@ -316,15 +317,8 @@ void Renderer::drawMeshOutline(
     mesh.draw();
 }
 
-void Renderer::skyboxRenderPass(const Scene &scene) {
-    const CubeMap* cubeMap = nullptr;
-    scene.each<SkyboxComponent>([&](const Entity &, const SkyboxComponent &skybox) {
-        if (!cubeMap && skybox.enabled && skybox.cubeMap) {
-            cubeMap = skybox.cubeMap;
-        }
-    });
-
-    if (!cubeMap) {
+void Renderer::skyboxRenderPass() {
+    if (!currentEnvironmentMap) {
         return;
     }
 
@@ -336,8 +330,8 @@ void Renderer::skyboxRenderPass(const Scene &scene) {
     glDepthMask(GL_FALSE);
 
     skyboxShader.use();
-    cubeMap->bind(0);
-    cubeMap->draw();
+    currentEnvironmentMap->bind(0);
+    currentEnvironmentMap->draw();
 
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
@@ -621,13 +615,20 @@ void Renderer::outlineRenderPass(const RenderQueue &queue) {
 }
 
 void Renderer::render(const Scene &scene, const RenderOptions &options) {
+    currentEnvironmentMap = nullptr;
+    scene.each<SkyboxComponent>([&](const SkyboxComponent &skybox) {
+        if (!currentEnvironmentMap && skybox.enabled && skybox.cubeMap) {
+            currentEnvironmentMap = skybox.cubeMap;
+        }
+    });
+
     const RenderQueue queue = buildRenderQueue(scene, options);
 
     // Complete the opaque depth buffer first. The skybox then fills only the
     // untouched background, followed by sorted transparent geometry.
     opaqueRenderPass(queue);
     if (currentSettings.debugView == DebugViewMode::Shaded) {
-        skyboxRenderPass(scene);
+        skyboxRenderPass();
     }
     transparentRenderPass(queue);
     if (currentSettings.rasterization == RasterizationMode::Fill) {

@@ -54,6 +54,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
             resourceManager.loadPhongMaterial("box", phongShader, boxTexture);
     boxMaterial.baseColor = {0.2f, 0.2f, 0.2f, 1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
+    boxMaterial.environmentReflectivity = 0.45f;
 
     PhongMaterial &windowMaterial =
             resourceManager.loadPhongMaterial("window", phongShader, whiteTexture);
@@ -91,7 +92,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     MeshRendererComponent &boxRenderer =
             box.addComponent<MeshRendererComponent>(
                 &resourceManager.getCubeMesh(),
-                &whiteMaterial
+                &boxMaterial
             );
     boxRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
@@ -99,7 +100,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     MeshRendererComponent &box2Renderer =
             box2.addComponent<MeshRendererComponent>(
                 &resourceManager.getCubeMesh(),
-                &whiteMaterial
+                &boxMaterial
             );
     box2Renderer.outlineMode = OutlineMode::ScaleFromPivot;
     box2.getComponent<TransformComponent>().local.position.x = 3.0f;

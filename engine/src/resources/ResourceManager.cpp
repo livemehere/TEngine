@@ -70,6 +70,26 @@ ResourceManager::getMaterialResources() const {
     return materialCatalog;
 }
 
+Material *ResourceManager::findMutableMaterial(const Material *material) {
+    if (!material) {
+        return nullptr;
+    }
+
+    for (auto &[key, candidate] : phongMaterials) {
+        if (candidate.get() == material) {
+            return candidate.get();
+        }
+    }
+
+    for (auto &[key, candidate] : unlitMaterials) {
+        if (candidate.get() == material) {
+            return candidate.get();
+        }
+    }
+
+    return nullptr;
+}
+
 const Texture2D &ResourceManager::getWhiteTexture() {
     if (!whiteTexture) {
         constexpr std::array<std::uint8_t, 4> pixels{255, 255, 255, 255};

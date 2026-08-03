@@ -60,6 +60,8 @@ public:
 
     std::span<const ResourceEntry<Material>> getMaterialResources() const;
 
+    Material *findMutableMaterial(const Material *material);
+
     const Texture2D &getWhiteTexture();
 
     const Shader &getPhongShader();

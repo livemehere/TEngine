@@ -4,6 +4,7 @@
 #include <cfloat>
 #include <span>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include <imgui.h>
@@ -11,6 +12,7 @@
 #include "../camera/CameraComponent.h"
 #include "../rendering/Lights.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
+#include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 #include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
@@ -182,6 +184,63 @@ namespace {
         return result;
     }
 
+    std::vector<PhongMaterial *> collectPhongMaterials(
+        const std::vector<MeshRendererComponent *> &components,
+        ResourceManager &resources
+    ) {
+        std::vector<PhongMaterial *> result;
+        std::unordered_set<PhongMaterial *> uniqueMaterials;
+
+        for (const MeshRendererComponent *component : components) {
+            Material *material = resources.findMutableMaterial(
+                component->material
+            );
+            auto *phongMaterial = dynamic_cast<PhongMaterial *>(material);
+            if (phongMaterial && uniqueMaterials.insert(phongMaterial).second) {
+                result.push_back(phongMaterial);
+            }
+        }
+
+        return result;
+    }
+
+    void drawEnvironmentMappingControls(
+        const std::vector<MeshRendererComponent *> &components,
+        ResourceManager &resources
+    ) {
+        const std::vector<PhongMaterial *> materials =
+                collectPhongMaterials(components, resources);
+        if (materials.empty()) {
+            return;
+        }
+
+        const float firstReflectivity =
+                materials.front()->environmentReflectivity;
+        const bool reflectivityMixed = std::ranges::any_of(
+            materials,
+            [&](const PhongMaterial *material) {
+                return material->environmentReflectivity != firstReflectivity;
+            }
+        );
+
+        ImGui::SeparatorText("Environment Mapping");
+
+        float reflectivity = firstReflectivity;
+        const char *label = reflectivityMixed
+                                ? "Reflectivity (Mixed)"
+                                : "Reflectivity";
+        if (ImGui::SliderFloat(label, &reflectivity, 0.0f, 1.0f, "%.2f")) {
+            for (PhongMaterial *material : materials) {
+                material->environmentReflectivity = reflectivity;
+            }
+        }
+
+        ImGui::TextDisabled(
+            "%zu shared Phong material(s) in this subtree.",
+            materials.size()
+        );
+    }
+
     void drawMeshRenderers(
         Scene &scene,
         Entity &entity,
@@ -330,6 +389,8 @@ namespace {
             }
             ImGui::EndCombo();
         }
+
+        drawEnvironmentMappingControls(components, resources);
     }
 }
 
