@@ -17,12 +17,13 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     Entity &cameraEntity = scene.createEntity("Editor Camera");
     Transform &cameraTransform =
             cameraEntity.getComponent<TransformComponent>().local;
-    cameraTransform.position = {3.0f, 3.0f, 3.0f};
-    cameraTransform.lookAt(glm::vec3(0.0f));
+    cameraTransform.position = {9.0f, 6.0f, 11.0f};
+    cameraTransform.lookAt({0.0f, 1.2f, 0.0f});
     cameraEntity.addComponent<CameraComponent>();
     scene.setActiveCamera(cameraEntity.id);
 
     const Mesh &planeMesh = resourceManager.getPlaneMesh();
+    const Mesh &cubeMesh = resourceManager.getCubeMesh();
 
     const Texture2D &whiteTexture = resourceManager.getWhiteTexture();
     const Texture2D &boxTexture =
@@ -32,8 +33,6 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 "textures/box_specular_map.png",
                 TextureColorSpace::Linear
             );
-    const Texture2D &grassTexture =
-            resourceManager.loadTexture("textures/grass.png");
     const std::array<std::string, 6> skyboxFaces{
         "textures/skybox/right.jpg",
         "textures/skybox/left.jpg",
@@ -51,174 +50,237 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     Entity &skybox = scene.createEntity("Skybox");
     skybox.addComponent<SkyboxComponent>(&skyboxCubeMap);
 
-    PhongMaterial &whiteMaterial =
-            resourceManager.loadPhongMaterial("white", phongShader, whiteTexture);
+    PhongMaterial &floorMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/floor",
+        phongShader,
+        whiteTexture
+    );
+    floorMaterial.baseColor = {0.42f, 0.46f, 0.52f, 1.0f};
+    floorMaterial.specularTexture = &whiteTexture;
+    floorMaterial.specularStrength = 0.12f;
+    floorMaterial.shininess = 16.0f;
+    floorMaterial.useBlinnPhong = true;
 
-    PhongMaterial &boxMaterial =
-            resourceManager.loadPhongMaterial("box", phongShader, boxTexture);
-    boxMaterial.baseColor = {0.2f, 0.2f, 0.2f, 1.0f};
+    PhongMaterial &boxMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/textured-box",
+        phongShader,
+        boxTexture
+    );
+    boxMaterial.baseColor = {0.75f, 0.75f, 0.75f, 1.0f};
     boxMaterial.specularTexture = &boxSpecularMapTexture;
-    boxMaterial.environmentStrength = 0.45f;
+    boxMaterial.specularStrength = 0.8f;
+    boxMaterial.shininess = 64.0f;
+    boxMaterial.useBlinnPhong = true;
+    boxMaterial.environmentStrength = 0.08f;
 
-    PhongMaterial &windowMaterial =
-            resourceManager.loadPhongMaterial("window", phongShader, whiteTexture);
-    windowMaterial.baseColor = {1.0f, 0.0f, 0.0f, 0.3f};
-    windowMaterial.rasterState.cullMode = CullMode::None;
-    windowMaterial.renderQueue = RenderQueueType::Transparent;
+    PhongMaterial &warmMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/warm",
+        phongShader,
+        whiteTexture
+    );
+    warmMaterial.baseColor = {0.72f, 0.28f, 0.12f, 1.0f};
+    warmMaterial.specularTexture = &whiteTexture;
+    warmMaterial.specularStrength = 0.65f;
+    warmMaterial.shininess = 48.0f;
+    warmMaterial.useBlinnPhong = true;
 
-    UnlitMaterial &grassMaterial =
-            resourceManager.loadUnlitMaterial("grass", unlitShader, grassTexture);
-    grassMaterial.rasterState.cullMode = CullMode::None;
-    grassMaterial.renderQueue = RenderQueueType::Transparent;
+    PhongMaterial &coolMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/cool",
+        phongShader,
+        whiteTexture
+    );
+    coolMaterial.baseColor = {0.12f, 0.32f, 0.68f, 1.0f};
+    coolMaterial.specularTexture = &whiteTexture;
+    coolMaterial.specularStrength = 0.8f;
+    coolMaterial.shininess = 72.0f;
+    coolMaterial.useBlinnPhong = true;
 
-    const Model &bagModel =
-            resourceManager.loadModel("models/backpack/backpack.obj", true);
-    const Model &fourArmsModel =
-            resourceManager.loadModel("models/ben10-four-arms.glb", false);
-    const Model &fireManModel =
-            resourceManager.loadModel("models/fire-elementals.glb", false);
+    UnlitMaterial &pointLightMarkerMaterial =
+            resourceManager.loadUnlitMaterial(
+                "sandbox/point-light-marker",
+                unlitShader,
+                whiteTexture
+            );
+    pointLightMarkerMaterial.baseColor = {0.2f, 0.55f, 1.0f, 1.0f};
 
-    Entity &ground = scene.createEntity("ground");
+    UnlitMaterial &spotLightMarkerMaterial =
+            resourceManager.loadUnlitMaterial(
+                "sandbox/spot-light-marker",
+                unlitShader,
+                whiteTexture
+            );
+    spotLightMarkerMaterial.baseColor = {1.0f, 0.2f, 0.08f, 1.0f};
+
+    const auto createCube = [&scene, &cubeMesh](
+        const char *name,
+        const Transform &transform,
+        const Material &material
+    ) -> Entity & {
+        Entity &entity = scene.createEntity(name);
+        entity.getComponent<TransformComponent>().local = transform;
+        MeshRendererComponent &renderer =
+                entity.addComponent<MeshRendererComponent>(
+                    &cubeMesh,
+                    &material
+                );
+        renderer.outlineMode = OutlineMode::ScaleFromPivot;
+        return entity;
+    };
+
+    Entity &ground = scene.createEntity("Ground - Shadow Receiver");
     Transform &groundTransform =
             ground.getComponent<TransformComponent>().local;
-    groundTransform.position = {0.0f, 0.0f, 0.0f};
+    groundTransform.position = {0.0f, -0.05f, 0.0f};
     groundTransform.rotation = {-90.0f, 0.0f, 0.0f};
-    groundTransform.scale = {5.0f, 5.0f, 5.0f};
+    groundTransform.scale = {16.0f, 16.0f, 1.0f};
     MeshRendererComponent &groundRenderer =
             ground.addComponent<MeshRendererComponent>(
                 &planeMesh,
-                &whiteMaterial
+                &floorMaterial
             );
     groundRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
-    Entity &box = scene.createEntity("box");
-    const EntityId boxId = box.id;
-    MeshRendererComponent &boxRenderer =
-            box.addComponent<MeshRendererComponent>(
-                &resourceManager.getCubeMesh(),
-                &boxMaterial
+    Entity &backWall = scene.createEntity("Back Wall - Shadow Receiver");
+    backWall.getComponent<TransformComponent>().local = {
+        .position = {0.0f, 3.0f, -6.0f},
+        .rotation = {0.0f, 0.0f, 0.0f},
+        .scale = {16.0f, 6.0f, 1.0f}
+    };
+    MeshRendererComponent &backWallRenderer =
+            backWall.addComponent<MeshRendererComponent>(
+                &planeMesh,
+                &floorMaterial
             );
-    boxRenderer.outlineMode = OutlineMode::ScaleFromPivot;
+    backWallRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
-    Entity &box2 = scene.createEntity("box2");
-    MeshRendererComponent &box2Renderer =
-            box2.addComponent<MeshRendererComponent>(
-                &resourceManager.getCubeMesh(),
-                &boxMaterial
-            );
-    box2Renderer.outlineMode = OutlineMode::ScaleFromPivot;
-    box2.getComponent<TransformComponent>().local.position.x = 3.0f;
-    box2.siblingIndex = 0;
-    scene.moveEntity(box2.id, boxId, 1);
+    (void)createCube(
+        "Warm Tall Block",
+        {
+            .position = {-2.5f, 1.0f, -1.0f},
+            .rotation = {0.0f, 18.0f, 0.0f},
+            .scale = {1.25f, 2.0f, 1.25f}
+        },
+        warmMaterial
+    );
 
-    Entity &instancedCubes = scene.createEntity("Instanced Cubes");
+    (void)createCube(
+        "Textured Block",
+        {
+            .position = {1.8f, 0.75f, -0.8f},
+            .rotation = {0.0f, -25.0f, 0.0f},
+            .scale = {1.5f, 1.5f, 1.5f}
+        },
+        boxMaterial
+    );
+
+    (void)createCube(
+        "Floating Cool Block",
+        {
+            .position = {0.2f, 2.8f, 1.5f},
+            .rotation = {18.0f, 30.0f, 8.0f},
+            .scale = {1.0f, 1.0f, 1.0f}
+        },
+        coolMaterial
+    );
+
+    (void)createCube(
+        "Low Cool Block",
+        {
+            .position = {3.7f, 0.4f, 2.0f},
+            .rotation = {0.0f, 35.0f, 0.0f},
+            .scale = {1.4f, 0.8f, 1.4f}
+        },
+        coolMaterial
+    );
+
+    Entity &instancedCubes = scene.createEntity("Instanced Shadow Row");
     InstancedMeshRendererComponent &instancedRenderer =
             instancedCubes.addComponent<InstancedMeshRendererComponent>(
-                &resourceManager.getCubeMesh(),
+                &cubeMesh,
                 &boxMaterial
             );
 
-    constexpr int gridSize = 20;
-    constexpr float spacing = 0.35f;
-    constexpr float cubeSize = 0.12f;
-    const float gridHalfExtent = (gridSize - 1) * spacing * 0.5f;
-    for (int z = 0; z < gridSize; ++z) {
-        for (int x = 0; x < gridSize; ++x) {
-            Transform instanceTransform;
-            instanceTransform.position = {
-                    x * spacing - gridHalfExtent,
-                    cubeSize,
-                    z * spacing - gridHalfExtent
-            };
-            instanceTransform.scale = glm::vec3(cubeSize);
-            (void)instancedRenderer.addInstance(instanceTransform);
-        }
+    for (int index = 0; index < 9; ++index) {
+        Transform instanceTransform;
+        instanceTransform.position = {
+            -4.0f + static_cast<float>(index),
+            0.25f + static_cast<float>(index % 3) * 0.15f,
+            3.8f
+        };
+        instanceTransform.rotation.y = static_cast<float>(index) * 12.0f;
+        instanceTransform.scale = glm::vec3(0.45f);
+        (void)instancedRenderer.addInstance(instanceTransform);
     }
 
+    const Model &bagModel =
+            resourceManager.loadModel("models/backpack/backpack.obj", true);
     const EntityId bagId =
-            scene.instantiateModel(bagModel, whiteMaterial, "bag");
-    Entity *bagEntity = scene.findEntity(bagId);
-    bagEntity->getComponent<TransformComponent>().local = {
-        .position = {0.0f, 1.0f, 0.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {0.5f, 0.5f, 0.5f}
-    };
-
-    const EntityId fourArmsId =
-            scene.instantiateModel(fourArmsModel, whiteMaterial, "fourArms");
-    Entity *fourArmsEntity = scene.findEntity(fourArmsId);
-    fourArmsEntity->getComponent<TransformComponent>().local = {
-        .position = {-2.0f, 1.0f, 0.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {1.0f, 1.0f, 1.0f}
-    };
-
-    const EntityId fireManId =
-            scene.instantiateModel(fireManModel, whiteMaterial, "fireman");
-    Entity *fireManEntity = scene.findEntity(fireManId);
-    fireManEntity->getComponent<TransformComponent>().local = {
-        .position = {1.0f, 1.0f, 1.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {1.0f, 1.0f, 1.0f}
-    };
-
-    Entity &grass = scene.createEntity("grass");
-    Transform &grassTransform =
-            grass.getComponent<TransformComponent>().local;
-    grassTransform.position = {0.0f, 0.5f, 2.0f};
-    grassTransform.rotation = {0.0f, 0.0f, 0.0f};
-    grassTransform.scale = {1.0f, 1.0f, 1.0f};
-    MeshRendererComponent &grassRenderer =
-            grass.addComponent<MeshRendererComponent>(
-                &planeMesh,
-                &grassMaterial
-            );
-    grassRenderer.outlineMode = OutlineMode::ScaleFromPivot;
-    grass.siblingIndex = 3;
-
-    Entity &window = scene.createEntity("window");
-    Transform &windowTransform =
-            window.getComponent<TransformComponent>().local;
-    windowTransform.position = {0.0f, 0.0f, 5.0f};
-    windowTransform.rotation = {0.0f, 0.0f, 0.0f};
-    windowTransform.scale = {10.0f, 10.0f, 10.0f};
-    MeshRendererComponent &windowRenderer =
-            window.addComponent<MeshRendererComponent>(
-                &planeMesh,
-                &windowMaterial
-            );
-    windowRenderer.outlineMode = OutlineMode::ScaleFromPivot;
+            scene.instantiateModel(bagModel, floorMaterial, "Backpack");
+    if (Entity *bagEntity = scene.findEntity(bagId)) {
+        bagEntity->getComponent<TransformComponent>().local = {
+            .position = {-0.5f, 0.0f, -3.0f},
+            .rotation = {0.0f, 25.0f, 0.0f},
+            .scale = {0.55f, 0.55f, 0.55f}
+        };
+    }
 
     Entity &ambientLightEntity = scene.createEntity("Ambient Light");
     AmbientLightComponent &ambientLight =
             ambientLightEntity.addComponent<AmbientLightComponent>();
-    ambientLight.intensity = 0.1f;
+    ambientLight.color = {0.38f, 0.43f, 0.55f};
+    ambientLight.intensity = 0.08f;
 
-    Entity &pointLightEntity = scene.createEntity("Point Light");
-    pointLightEntity.getComponent<TransformComponent>().local.position =
-            {0.0f, 1.5f, 1.5f};
-    PointLightComponent &pointLight =
-            pointLightEntity.addComponent<PointLightComponent>();
-    pointLight.range = 5.0f;
-    pointLight.color = {1.0f, 1.0f, 1.0f};
-    pointLight.intensity = 1.0f;
-
-    Entity &directionalLightEntity = scene.createEntity("Directional Light");
+    Entity &directionalLightEntity = scene.createEntity("Warm Sun Light");
     directionalLightEntity.getComponent<TransformComponent>().local.rotation =
-            {-90.0f, 0.0f, 0.0f};
+            {-48.0f, -32.0f, 0.0f};
     DirectionalLightComponent &directionalLight =
             directionalLightEntity.addComponent<DirectionalLightComponent>();
-    directionalLight.color = {1.0f, 1.0f, 1.0f};
-    directionalLight.intensity = 0.1f;
+    directionalLight.color = {1.0f, 0.82f, 0.62f};
+    directionalLight.intensity = 0.75f;
+    directionalLight.castShadows = true;
 
-    Entity &spotLightEntity = scene.createEntity("Spot Light");
+    const glm::vec3 pointLightPosition{2.4f, 3.2f, 1.8f};
+    Entity &pointLightEntity = scene.createEntity("Blue Point Light");
+    pointLightEntity.getComponent<TransformComponent>().local.position =
+            pointLightPosition;
+    PointLightComponent &pointLight =
+            pointLightEntity.addComponent<PointLightComponent>();
+    pointLight.range = 9.0f;
+    pointLight.color = {0.18f, 0.48f, 1.0f};
+    pointLight.intensity = 5.0f;
+    pointLight.castShadows = true;
+
+    (void)createCube(
+        "Blue Point Light Marker",
+        {
+            .position = pointLightPosition,
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {0.18f, 0.18f, 0.18f}
+        },
+        pointLightMarkerMaterial
+    );
+
+    const glm::vec3 spotLightPosition{-3.8f, 5.0f, 3.0f};
+    Entity &spotLightEntity = scene.createEntity("Red Spot Light");
     Transform &spotLightTransform =
             spotLightEntity.getComponent<TransformComponent>().local;
-    spotLightTransform.position = {0.0f, 4.0f, 0.0f};
-    spotLightTransform.rotation = {-90.0f, 0.0f, 0.0f};
+    spotLightTransform.position = spotLightPosition;
+    spotLightTransform.lookAt({-2.0f, 0.0f, -0.5f});
     SpotLightComponent &spotLight =
             spotLightEntity.addComponent<SpotLightComponent>();
-    spotLight.range = 5.0f;
-    spotLight.color = {0.8f, 0.4f, 0.4f};
-    spotLight.intensity = 10.0f;
+    spotLight.range = 12.0f;
+    spotLight.color = {1.0f, 0.16f, 0.06f};
+    spotLight.intensity = 4.0f;
+    spotLight.innerAngle = 18.0f;
+    spotLight.outerAngle = 30.0f;
+
+    (void)createCube(
+        "Red Spot Light Marker",
+        {
+            .position = spotLightPosition,
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {0.16f, 0.16f, 0.16f}
+        },
+        spotLightMarkerMaterial
+    );
 }
