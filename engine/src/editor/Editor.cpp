@@ -478,7 +478,8 @@ RenderExtent Editor::drawSceneView(
         return {};
     }
 
-    const auto drawGizmoButton = [&](const char *label, GizmoOperation operation) {
+    const auto drawGizmoButton = [&](const char *label, const char *tooltip,
+                                     GizmoOperation operation) {
         const bool selected = gizmoOperation == operation;
         if (selected) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
@@ -486,16 +487,36 @@ RenderExtent Editor::drawSceneView(
         if (ImGui::Button(label, ImVec2(28.0f, 0.0f))) {
             gizmoOperation = operation;
         }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
         if (selected) {
             ImGui::PopStyleColor();
         }
     };
 
-    drawGizmoButton("T", GizmoOperation::Translate);
+    drawGizmoButton("Q", "Translate (Q)", GizmoOperation::Translate);
     ImGui::SameLine();
-    drawGizmoButton("R", GizmoOperation::Rotate);
+    drawGizmoButton("W", "Rotate (W)", GizmoOperation::Rotate);
     ImGui::SameLine();
-    drawGizmoButton("S", GizmoOperation::Scale);
+    drawGizmoButton("E", "Scale (E)", GizmoOperation::Scale);
+
+    const ImGuiIO &io = ImGui::GetIO();
+    const bool acceptsGizmoShortcut =
+            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+            !io.WantTextInput &&
+            !io.KeyCtrl &&
+            !io.KeyAlt &&
+            !io.KeySuper;
+    if (acceptsGizmoShortcut) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Q, false)) {
+            gizmoOperation = GizmoOperation::Translate;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_W, false)) {
+            gizmoOperation = GizmoOperation::Rotate;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_E, false)) {
+            gizmoOperation = GizmoOperation::Scale;
+        }
+    }
 
     constexpr float playButtonWidth = 72.0f;
     const float toolbarWidth =
@@ -530,7 +551,7 @@ RenderExtent Editor::drawSceneView(
 
     if (extent.width > 0 && extent.height > 0) {
         ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-        drawSelectedInstanceGizmo(
+        drawSelectionGizmo(
             scene,
             ImGui::GetItemRectMin(),
             ImGui::GetItemRectSize(),
@@ -542,40 +563,46 @@ RenderExtent Editor::drawSceneView(
     return extent;
 }
 
-void Editor::drawSelectedInstanceGizmo(
+void Editor::drawSelectionGizmo(
     Scene &scene,
     ImVec2 imageMin,
     ImVec2 imageSize,
     const RenderExtent &extent
 ) {
-    if (!selectedInstance || !selectedEntityId ||
-        selectedInstance->entityId != *selectedEntityId) {
+    if (!selectedEntityId) {
         return;
     }
 
-    Entity *entity = scene.findEntity(selectedInstance->entityId);
+    Entity *entity = scene.findEntity(*selectedEntityId);
     Entity *cameraEntity = scene.getActiveCameraEntity();
     if (!entity || !cameraEntity) {
-        selectedInstance.reset();
+        if (!entity) {
+            selectedEntityId.reset();
+            selectedInstance.reset();
+        }
         return;
     }
 
     InstanceData *instance = nullptr;
-    if (selectedInstance->rendererType == InstanceRendererType::Mesh) {
+    if (selectedInstance && selectedInstance->entityId != entity->id) {
+        selectedInstance.reset();
+    }
+
+    if (selectedInstance &&
+        selectedInstance->rendererType == InstanceRendererType::Mesh) {
         if (auto *component =
                 entity->tryGetComponent<InstancedMeshRendererComponent>()) {
             instance = component->findInstance(selectedInstance->instanceId);
         }
-    } else {
+    } else if (selectedInstance) {
         if (auto *component =
                 entity->tryGetComponent<InstancedModelRendererComponent>()) {
             instance = component->findInstance(selectedInstance->instanceId);
         }
     }
 
-    if (!instance) {
+    if (selectedInstance && !instance) {
         selectedInstance.reset();
-        return;
     }
 
     const glm::mat4 cameraWorldMatrix = scene.getWorldMatrix(*cameraEntity);
@@ -592,8 +619,10 @@ void Editor::drawSelectedInstanceGizmo(
             cameraEntity->getComponent<CameraComponent>();
     const glm::mat4 projectionMatrix = camera.getProjectionMatrix(extent);
     const glm::mat4 entityWorldMatrix = scene.getWorldMatrix(*entity);
-    glm::mat4 instanceWorldMatrix =
-            entityWorldMatrix * instance->transform.getLocalMatrix();
+    glm::mat4 targetWorldMatrix = instance
+                                      ? entityWorldMatrix *
+                                        instance->transform.getLocalMatrix()
+                                      : entityWorldMatrix;
 
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(imageMin.x, imageMin.y, imageSize.x, imageSize.y);
@@ -613,16 +642,32 @@ void Editor::drawSelectedInstanceGizmo(
         glm::value_ptr(projectionMatrix),
         operation,
         ImGuizmo::LOCAL,
-        glm::value_ptr(instanceWorldMatrix)
+        glm::value_ptr(targetWorldMatrix)
     );
 
     if (!ImGuizmo::IsUsing()) {
         return;
     }
 
+    if (instance) {
+        const glm::mat4 localMatrix =
+                glm::inverse(entityWorldMatrix) * targetWorldMatrix;
+        (void)Transform::decompose(localMatrix, instance->transform);
+        return;
+    }
+
+    glm::mat4 parentWorldMatrix{1.0f};
+    if (entity->parentId) {
+        if (const Entity *parent = scene.findEntity(*entity->parentId)) {
+            parentWorldMatrix = scene.getWorldMatrix(*parent);
+        }
+    }
+
     const glm::mat4 localMatrix =
-            glm::inverse(entityWorldMatrix) * instanceWorldMatrix;
-    (void)Transform::decompose(localMatrix, instance->transform);
+            glm::inverse(parentWorldMatrix) * targetWorldMatrix;
+    Transform &localTransform =
+            entity->getComponent<TransformComponent>().local;
+    (void)Transform::decompose(localMatrix, localTransform);
 }
 
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
@@ -645,9 +690,7 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
 
     if (ImGui::IsItemClicked()) {
         selectedEntityId = entity.id;
-        if (selectedInstance && selectedInstance->entityId != entity.id) {
-            selectedInstance.reset();
-        }
+        selectedInstance.reset();
     }
 
     if (ImGui::BeginDragDropSource()) {

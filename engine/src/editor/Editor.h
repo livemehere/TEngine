@@ -70,7 +70,7 @@ class Editor {
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
     void drawEntityCreationMenu(std::optional<EntityId> parentId);
-    void drawSelectedInstanceGizmo(
+    void drawSelectionGizmo(
         Scene &scene,
         ImVec2 imageMin,
         ImVec2 imageSize,
