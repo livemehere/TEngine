@@ -12,6 +12,7 @@
 #include "RenderQueue.h"
 #include "RenderSettings.h"
 #include "RenderStats.h"
+#include "GBuffer.h"
 #include "PointShadowMap.h"
 #include "ShadowMap.h"
 #include "mesh/MeshRendererComponent.h"
@@ -86,10 +87,13 @@ class Renderer {
     const Shader &outlineShader;
     const Shader &skyboxShader;
     const Shader &normalDebugShader;
+    const Shader &deferredGeometryShader;
+    const Shader &deferredLightingShader;
     const Shader &shadowDepthShader;
     const Shader &pointShadowDepthShader;
     ShadowMap shadowMap;
     PointShadowMap pointShadowMap;
+    GBuffer gBuffer;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -98,6 +102,9 @@ class Renderer {
     GLuint lightsUBO = 0;
     GLuint debugUBO = 0;
     GLuint instanceVBO = 0;
+    GLuint fullscreenVAO = 0;
+    GLuint currentTargetFramebuffer = 0;
+    RenderExtent currentRenderExtent{1, 1};
     std::size_t instanceBufferCapacity = 0;
     RenderSettings currentSettings;
     RenderStats currentStats;
@@ -116,14 +123,19 @@ class Renderer {
     void updateLightsBuffer(const Scene& scene);
     void updateDebugBuffer();
     void updateDirectionalShadow(const Scene& scene);
-    void bindDirectionalShadow();
+    void bindDirectionalShadow(const Shader& shader);
     void updatePointShadow();
-    void bindPointShadow();
+    void bindPointShadow(const Shader& shader);
 
     /** passes */
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
-    void opaqueRenderPass(const RenderQueue& queue);
-    void instancedOpaqueRenderPass(const RenderQueue& queue);
+    void opaqueRenderPass(const RenderQueue& queue, bool skipDeferredItems);
+    void instancedOpaqueRenderPass(
+        const RenderQueue& queue,
+        bool skipDeferredItems
+    );
+    void deferredGeometryPass(const RenderQueue& queue);
+    void deferredLightingPass();
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
@@ -152,6 +164,9 @@ public:
         }
         if (instanceVBO != 0) {
             glDeleteBuffers(1, &instanceVBO);
+        }
+        if (fullscreenVAO != 0) {
+            glDeleteVertexArrays(1, &fullscreenVAO);
         }
     }
     Renderer(const Renderer&) = delete;

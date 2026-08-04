@@ -184,6 +184,20 @@ void Editor::drawDebug(
             "Shadow Triangles: %llu",
             static_cast<unsigned long long>(renderStats.shadowTriangleCount)
         );
+        if (renderSettings.renderingPath == RenderingPath::Deferred) {
+            ImGui::Text(
+                "Deferred Geometry Calls: %llu",
+                static_cast<unsigned long long>(
+                    renderStats.deferredGeometryDrawCalls
+                )
+            );
+            ImGui::Text(
+                "Deferred Lighting Calls: %llu",
+                static_cast<unsigned long long>(
+                    renderStats.deferredLightingDrawCalls
+                )
+            );
+        }
         const std::uint64_t estimatedSavedCalls =
                 renderStats.instanceCount > renderStats.instancedDrawCalls
                     ? renderStats.instanceCount - renderStats.instancedDrawCalls
@@ -195,17 +209,43 @@ void Editor::drawDebug(
         ImGui::TextDisabled("Scene renderer only; post-process and ImGui excluded.");
 
         ImGui::SeparatorText("Rendering");
+        constexpr const char *renderingPathNames[] = {
+            "Forward",
+            "Deferred"
+        };
+        int renderingPath = static_cast<int>(renderSettings.renderingPath);
+        if (ImGui::Combo(
+            "Rendering Path",
+            &renderingPath,
+            renderingPathNames,
+            IM_ARRAYSIZE(renderingPathNames)
+        )) {
+            renderSettings.renderingPath =
+                    static_cast<RenderingPath>(renderingPath);
+            if (renderSettings.renderingPath == RenderingPath::Forward &&
+                renderSettings.debugView >= DebugViewMode::GBufferPosition) {
+                renderSettings.debugView = DebugViewMode::Shaded;
+            }
+        }
+
         constexpr const char *debugViewNames[] = {
             "Shaded",
             "Depth",
-            "World Normal"
+            "World Normal",
+            "G-buffer Position",
+            "G-buffer Albedo",
+            "G-buffer Specular"
         };
         int debugView = static_cast<int>(renderSettings.debugView);
+        const int debugViewCount =
+                renderSettings.renderingPath == RenderingPath::Deferred
+                    ? IM_ARRAYSIZE(debugViewNames)
+                    : 3;
         if (ImGui::Combo(
             "View Mode",
             &debugView,
             debugViewNames,
-            IM_ARRAYSIZE(debugViewNames)
+            debugViewCount
         )) {
             renderSettings.debugView =
                     static_cast<DebugViewMode>(debugView);
@@ -231,6 +271,9 @@ void Editor::drawDebug(
 
         GLint maximumSamples = 1;
         glGetIntegerv(GL_MAX_SAMPLES, &maximumSamples);
+        const bool deferredRendering =
+                renderSettings.renderingPath == RenderingPath::Deferred;
+        ImGui::BeginDisabled(deferredRendering);
         if (ImGui::BeginCombo("MSAA", msaaLabels[currentMsaaIndex])) {
             for (int index = 0; index < IM_ARRAYSIZE(msaaSampleCounts); ++index) {
                 const bool supported = msaaSampleCounts[index] <= maximumSamples;
@@ -245,7 +288,13 @@ void Editor::drawDebug(
             }
             ImGui::EndCombo();
         }
+        ImGui::EndDisabled();
         ImGui::TextDisabled("Maximum supported samples: %d", maximumSamples);
+        if (deferredRendering) {
+            ImGui::TextDisabled(
+                "Deferred rendering currently uses single-sample G-buffers."
+            );
+        }
 
         ImGui::SeparatorText("Color Pipeline");
         ImGui::Checkbox("HDR", &renderSettings.hdrEnabled);

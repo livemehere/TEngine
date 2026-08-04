@@ -3,12 +3,20 @@
 enum class DebugViewMode : int {
     Shaded = 0,
     Depth,
-    WorldNormal
+    WorldNormal,
+    GBufferPosition,
+    GBufferAlbedo,
+    GBufferSpecular
 };
 
 enum class RasterizationMode : int {
     Fill = 0,
     Wireframe
+};
+
+enum class RenderingPath : int {
+    Forward = 0,
+    Deferred
 };
 
 enum class ToneMappingMode : int {
@@ -18,6 +26,7 @@ enum class ToneMappingMode : int {
 
 struct RenderSettings {
     DebugViewMode debugView = DebugViewMode::Shaded;
+    RenderingPath renderingPath = RenderingPath::Deferred;
     RasterizationMode rasterization = RasterizationMode::Fill;
     float debugDepthNear = 0.0f;
     float debugDepthFar = 30.0f;

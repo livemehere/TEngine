@@ -16,6 +16,7 @@
 #include "Lights.h"
 #include "skybox/SkyboxComponent.h"
 #include "model/InstancedModelRendererComponent.h"
+#include "mesh/materials/PhongMaterial.h"
 
 namespace {
     void applyCullMode(CullMode mode) {
@@ -81,6 +82,17 @@ namespace {
         }
         return forward / std::sqrt(lengthSquared);
     }
+
+    const PhongMaterial* getDeferredMaterial(const Material* material) {
+        const auto* phongMaterial =
+                dynamic_cast<const PhongMaterial*>(material);
+        if (!phongMaterial ||
+            phongMaterial->renderQueue != RenderQueueType::Opaque ||
+            phongMaterial->environmentStrength > 0.0f) {
+            return nullptr;
+        }
+        return phongMaterial;
+    }
 }
 
 /*layout (std140) uniform ExampleBlock
@@ -104,10 +116,13 @@ Renderer::Renderer(ResourceManager &resourceManager)
       outlineShader(resourceManager.getOutlineShader()),
       skyboxShader(resourceManager.getSkyboxShader()),
       normalDebugShader(resourceManager.getNormalDebugShader()),
+      deferredGeometryShader(resourceManager.getDeferredGeometryShader()),
+      deferredLightingShader(resourceManager.getDeferredLightingShader()),
       shadowDepthShader(resourceManager.getShadowDepthShader()),
       pointShadowDepthShader(resourceManager.getPointShadowDepthShader()),
       shadowMap(1),
-      pointShadowMap(1) {
+      pointShadowMap(1),
+      gBuffer({1, 1}) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -131,6 +146,16 @@ Renderer::Renderer(ResourceManager &resourceManager)
 
     /* per-instance model matrices */
     glGenBuffers(1, &instanceVBO);
+
+    glGenVertexArrays(1, &fullscreenVAO);
+
+    GLint previousProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+    deferredLightingShader.use();
+    deferredLightingShader.setInt("gPosition", 0);
+    deferredLightingShader.setInt("gNormal", 1);
+    deferredLightingShader.setInt("gAlbedoSpec", 2);
+    glUseProgram(previousProgram);
 }
 
 void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) {
@@ -294,24 +319,21 @@ void Renderer::updateDirectionalShadow(const Scene &scene) {
     currentLightSpaceMatrix = lightProjection * lightView;
 }
 
-void Renderer::bindDirectionalShadow() {
+void Renderer::bindDirectionalShadow(const Shader& shader) {
     constexpr GLuint ShadowTextureSlot = 3;
 
-    phongShader.use();
-    phongShader.setInt(
+    shader.use();
+    shader.setInt(
         "uShadowsEnabled",
         currentShadowAvailable ? 1 : 0
     );
-    phongShader.setInt("uShadowLightIndex", currentShadowLightIndex);
-    phongShader.setMat4("uLightSpaceMatrix", currentLightSpaceMatrix);
-    phongShader.setFloat("uShadowBiasMin", currentSettings.shadowBiasMin);
-    phongShader.setFloat("uShadowBiasSlope", currentSettings.shadowBiasSlope);
-    phongShader.setInt("uShadowPcfRadius", currentSettings.shadowPcfRadius);
-
-    if (currentShadowAvailable) {
-        shadowMap.bindTexture(ShadowTextureSlot);
-        phongShader.setInt("uShadowMap", ShadowTextureSlot);
-    }
+    shader.setInt("uShadowLightIndex", currentShadowLightIndex);
+    shader.setMat4("uLightSpaceMatrix", currentLightSpaceMatrix);
+    shader.setFloat("uShadowBiasMin", currentSettings.shadowBiasMin);
+    shader.setFloat("uShadowBiasSlope", currentSettings.shadowBiasSlope);
+    shader.setInt("uShadowPcfRadius", currentSettings.shadowPcfRadius);
+    shader.setInt("uShadowMap", ShadowTextureSlot);
+    shadowMap.bindTexture(ShadowTextureSlot);
 }
 
 void Renderer::updatePointShadow() {
@@ -366,46 +388,40 @@ void Renderer::updatePointShadow() {
     };
 }
 
-void Renderer::bindPointShadow() {
+void Renderer::bindPointShadow(const Shader& shader) {
     constexpr GLuint PointShadowTextureSlot = 4;
 
-    phongShader.use();
-    phongShader.setInt(
+    shader.use();
+    shader.setInt(
         "uPointShadowsEnabled",
         currentPointShadowAvailable ? 1 : 0
     );
-    phongShader.setInt(
+    shader.setInt(
         "uPointShadowLightIndex",
         currentPointShadowLightIndex
     );
-    phongShader.setVec3(
+    shader.setVec3(
         "uPointShadowLightPosition",
         currentPointShadowLightPosition
     );
-    phongShader.setFloat(
+    shader.setFloat(
         "uPointShadowFarPlane",
         currentPointShadowFarPlane
     );
-    phongShader.setFloat(
+    shader.setFloat(
         "uPointShadowBias",
         currentSettings.pointShadowBias
     );
-    phongShader.setFloat(
+    shader.setFloat(
         "uPointShadowSoftness",
         currentSettings.pointShadowSoftness
     );
-    phongShader.setInt(
+    shader.setInt(
         "uPointShadowSampleCount",
         currentSettings.pointShadowSampleCount
     );
-
-    if (currentPointShadowAvailable) {
-        pointShadowMap.bindTexture(PointShadowTextureSlot);
-        phongShader.setInt(
-            "uPointShadowMap",
-            PointShadowTextureSlot
-        );
-    }
+    shader.setInt("uPointShadowMap", PointShadowTextureSlot);
+    pointShadowMap.bindTexture(PointShadowTextureSlot);
 }
 
 void Renderer::updateDebugBuffer() {
@@ -429,6 +445,16 @@ void Renderer::beginFrame(
 ) {
     currentSettings = settings;
     currentStats = {};
+    currentRenderExtent = size;
+    GLint targetFramebuffer = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFramebuffer);
+    currentTargetFramebuffer = static_cast<GLuint>(targetFramebuffer);
+    if (currentSettings.renderingPath == RenderingPath::Deferred) {
+        gBuffer.resize(size);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
+    glViewport(0, 0, size.width, size.height);
     updateCameraBuffer(scene, size);
     updateLightsBuffer(scene);
     updateDebugBuffer();
@@ -440,7 +466,8 @@ void Renderer::beginFrame(
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glEnable(GL_PROGRAM_POINT_SIZE);
-    if (currentSettings.msaaSamples > 1) {
+    if (currentSettings.renderingPath == RenderingPath::Forward &&
+        currentSettings.msaaSamples > 1) {
         glEnable(GL_MULTISAMPLE);
     } else {
         glDisable(GL_MULTISAMPLE);
@@ -780,7 +807,10 @@ RenderQueue Renderer::buildRenderQueue(
     return queue;
 }
 
-void Renderer::opaqueRenderPass(const RenderQueue &queue) {
+void Renderer::opaqueRenderPass(
+    const RenderQueue &queue,
+    const bool skipDeferredItems
+) {
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -793,6 +823,10 @@ void Renderer::opaqueRenderPass(const RenderQueue &queue) {
     );
 
     const auto drawItem = [&](const RenderItem &item) {
+        if (skipDeferredItems &&
+            getDeferredMaterial(item.meshRenderer->material)) {
+            return;
+        }
         meshRenderPass(
             item.worldMatrix,
             *item.meshRenderer->mesh,
@@ -842,7 +876,10 @@ void Renderer::transparentRenderPass(const RenderQueue &queue) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
+void Renderer::instancedOpaqueRenderPass(
+    const RenderQueue &queue,
+    const bool skipDeferredItems
+) {
     if (queue.instancedOpaque.empty()) {
         return;
     }
@@ -860,6 +897,9 @@ void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
     );
 
     for (const InstancedRenderItem &item : queue.instancedOpaque) {
+        if (skipDeferredItems && getDeferredMaterial(item.material)) {
+            continue;
+        }
         const std::size_t instanceCount = item.localMatrices.size();
         const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
 
@@ -899,6 +939,136 @@ void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void Renderer::deferredGeometryPass(const RenderQueue& queue) {
+    gBuffer.bindForGeometry();
+    gBuffer.clear();
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glPolygonMode(
+        GL_FRONT_AND_BACK,
+        currentSettings.rasterization == RasterizationMode::Wireframe
+            ? GL_LINE
+            : GL_FILL
+    );
+
+    for (const RenderItem& item : queue.opaque) {
+        const PhongMaterial* material =
+                getDeferredMaterial(item.meshRenderer->material);
+        if (!material) {
+            continue;
+        }
+
+        const bool writeOutlineStencil =
+                item.outlineVisibility == OutlineVisibility::VisibleOnly;
+        if (writeOutlineStencil) {
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0xFF);
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        } else {
+            glDisable(GL_STENCIL_TEST);
+        }
+
+        applyCullMode(material->rasterState.cullMode);
+        material->bindGeometry(deferredGeometryShader);
+        deferredGeometryShader.setMat4("uModel", item.worldMatrix);
+        item.meshRenderer->mesh->draw();
+
+        ++currentStats.drawCalls;
+        ++currentStats.deferredGeometryDrawCalls;
+        currentStats.triangleCount +=
+                item.meshRenderer->mesh->getTriangleCount();
+    }
+
+    glDisable(GL_STENCIL_TEST);
+    for (const InstancedRenderItem& item : queue.instancedOpaque) {
+        const PhongMaterial* material = getDeferredMaterial(item.material);
+        if (!material) {
+            continue;
+        }
+
+        const std::size_t instanceCount = item.localMatrices.size();
+        const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        if (byteSize > instanceBufferCapacity) {
+            glBufferData(
+                GL_ARRAY_BUFFER,
+                static_cast<GLsizeiptr>(byteSize),
+                nullptr,
+                GL_DYNAMIC_DRAW
+            );
+            instanceBufferCapacity = byteSize;
+        }
+        glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            static_cast<GLsizeiptr>(byteSize),
+            item.localMatrices.data()
+        );
+
+        applyCullMode(material->rasterState.cullMode);
+        material->bindGeometry(deferredGeometryShader);
+        deferredGeometryShader.setMat4("uModel", item.worldMatrix);
+        item.mesh->drawInstanced(
+            instanceVBO,
+            static_cast<GLsizei>(instanceCount)
+        );
+
+        ++currentStats.drawCalls;
+        ++currentStats.deferredGeometryDrawCalls;
+        ++currentStats.instancedDrawCalls;
+        currentStats.instanceCount += instanceCount;
+        currentStats.triangleCount +=
+                static_cast<std::uint64_t>(item.mesh->getTriangleCount()) *
+                instanceCount;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void Renderer::deferredLightingPass() {
+    glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
+    glViewport(
+        0,
+        0,
+        currentRenderExtent.width,
+        currentRenderExtent.height
+    );
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    deferredLightingShader.use();
+    bindDirectionalShadow(deferredLightingShader);
+    bindPointShadow(deferredLightingShader);
+    gBuffer.bindTextures(0, 1, 2);
+    glBindVertexArray(fullscreenVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    ++currentStats.drawCalls;
+    ++currentStats.deferredLightingDrawCalls;
+
+    glDepthMask(GL_TRUE);
+    gBuffer.blitDepthStencilTo(
+        currentTargetFramebuffer,
+        currentRenderExtent
+    );
+    glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
+    glViewport(
+        0,
+        0,
+        currentRenderExtent.width,
+        currentRenderExtent.height
+    );
 }
 
 void Renderer::normalDebugRenderPass(const RenderQueue &queue) {
@@ -1178,13 +1348,30 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     updatePointShadow();
     shadowDepthRenderPass(queue);
     pointShadowDepthRenderPass(queue);
-    bindDirectionalShadow();
-    bindPointShadow();
 
-    // Complete the opaque depth buffer first. The skybox then fills only the
-    // untouched background, followed by sorted transparent geometry.
-    opaqueRenderPass(queue);
-    instancedOpaqueRenderPass(queue);
+    const bool useDeferred =
+            currentSettings.renderingPath == RenderingPath::Deferred;
+    if (useDeferred) {
+        deferredGeometryPass(queue);
+        deferredLightingPass();
+
+        const bool isGBufferDebugView =
+                currentSettings.debugView >=
+                DebugViewMode::GBufferPosition;
+        if (isGBufferDebugView) {
+            return;
+        }
+    }
+
+    bindDirectionalShadow(phongShader);
+    bindPointShadow(phongShader);
+
+    // Deferred-compatible opaque Phong items are already present in the
+    // target. The remaining special/transparent items use forward rendering
+    // against the depth and stencil copied from the G-buffer.
+    opaqueRenderPass(queue, useDeferred);
+    instancedOpaqueRenderPass(queue, useDeferred);
+
     if (currentSettings.debugView == DebugViewMode::Shaded) {
         skyboxRenderPass();
     }

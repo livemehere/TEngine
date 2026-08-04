@@ -91,7 +91,10 @@ void PostProcessor::render(
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, source.getTextureId());
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, bloom != nullptr ? bloom->getTextureId() : 0);
+    glBindTexture(
+        GL_TEXTURE_2D,
+        bloom != nullptr ? bloom->getTextureId() : source.getTextureId()
+    );
 
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);

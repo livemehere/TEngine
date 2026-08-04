@@ -184,6 +184,42 @@ const Shader &ResourceManager::getGaussianBlurShader() {
     return *gaussianBlurShader;
 }
 
+const Shader &ResourceManager::getDeferredGeometryShader() {
+    if (!deferredGeometryShader) {
+        deferredGeometryShader = std::make_unique<Shader>(
+            resolvePath("shaders/basic.vert"),
+            resolvePath("shaders/deferredGeometry.frag")
+        );
+        deferredGeometryShader->bindUniformBlock(
+            "CameraData",
+            UniformBinding::Camera
+        );
+    }
+    return *deferredGeometryShader;
+}
+
+const Shader &ResourceManager::getDeferredLightingShader() {
+    if (!deferredLightingShader) {
+        deferredLightingShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/deferredLighting.frag")
+        );
+        deferredLightingShader->bindUniformBlock(
+            "CameraData",
+            UniformBinding::Camera
+        );
+        deferredLightingShader->bindUniformBlock(
+            "LightsData",
+            UniformBinding::Lights
+        );
+        deferredLightingShader->bindUniformBlock(
+            "DebugData",
+            UniformBinding::Debug
+        );
+    }
+    return *deferredLightingShader;
+}
+
 const Shader &ResourceManager::getSkyboxShader() {
     if (!skyboxShader) {
         skyboxShader = std::make_unique<Shader>(

@@ -54,5 +54,6 @@ public:
     ~PhongMaterial() override = default;
 
     void bind() const override;
+    void bindGeometry(const Shader& targetShader) const;
     void bindEnvironment(const CubeMap* environmentMap) const override;
 };

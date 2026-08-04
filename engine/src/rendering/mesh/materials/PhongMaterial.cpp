@@ -64,6 +64,57 @@ void PhongMaterial::bind() const {
     }
 }
 
+void PhongMaterial::bindGeometry(const Shader& targetShader) const {
+    targetShader.use();
+
+    albedoTexture.bind(0);
+    targetShader.setInt("material.albedo", 0);
+    targetShader.setVec4("material.baseColor", baseColor);
+    targetShader.setFloat("material.shininess", shininess);
+    targetShader.setFloat("material.specularStrength", specularStrength);
+    targetShader.setInt(
+        "material.useBlinnPhong",
+        useBlinnPhong ? 1 : 0
+    );
+
+    if (specularTexture) {
+        specularTexture->bind(1);
+        targetShader.setInt("material.specular", 1);
+        targetShader.setInt("material.hasSpecularMap", 1);
+    } else {
+        targetShader.setInt("material.hasSpecularMap", 0);
+    }
+
+    const bool hasNormalMap = normalTexture && useNormalMapping;
+    targetShader.setInt("material.hasNormalMap", hasNormalMap ? 1 : 0);
+    targetShader.setFloat("material.normalStrength", normalStrength);
+    targetShader.setInt("material.flipNormalY", flipNormalY ? 1 : 0);
+    if (hasNormalMap) {
+        normalTexture->bind(NormalTextureSlot);
+        targetShader.setInt("material.normalMap", NormalTextureSlot);
+    }
+
+    const bool hasDepthMap =
+            depthTexture &&
+            parallaxMappingMode != ParallaxMappingMode::Disabled;
+    targetShader.setInt("material.hasDepthMap", hasDepthMap ? 1 : 0);
+    targetShader.setInt(
+        "material.parallaxMode",
+        static_cast<int>(parallaxMappingMode)
+    );
+    targetShader.setFloat("material.parallaxScale", parallaxScale);
+    targetShader.setInt("material.parallaxMinLayers", parallaxMinLayers);
+    targetShader.setInt("material.parallaxMaxLayers", parallaxMaxLayers);
+    targetShader.setInt(
+        "material.discardParallaxEdges",
+        discardParallaxEdges ? 1 : 0
+    );
+    if (hasDepthMap) {
+        depthTexture->bind(DepthTextureSlot);
+        targetShader.setInt("material.depthMap", DepthTextureSlot);
+    }
+}
+
 void PhongMaterial::bindEnvironment(const CubeMap *environmentMap) const {
     shader.setInt("uHasEnvironmentMap", environmentMap ? 1 : 0);
     if (!environmentMap) {

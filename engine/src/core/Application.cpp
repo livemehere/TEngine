@@ -89,7 +89,11 @@ void Application::run() {
         }
 
         if (canRenderScene) {
-            sceneFBO.setSamples(renderSettings.msaaSamples);
+            const int sceneSamples =
+                    renderSettings.renderingPath == RenderingPath::Deferred
+                        ? 1
+                        : renderSettings.msaaSamples;
+            sceneFBO.setSamples(sceneSamples);
             sceneFBO.resize(viewport);
             resolvedSceneFBO.resize(viewport);
             finalFBO.resize(viewport);

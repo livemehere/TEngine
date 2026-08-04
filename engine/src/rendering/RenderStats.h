@@ -9,4 +9,6 @@ struct RenderStats {
     std::uint64_t triangleCount = 0;
     std::uint64_t shadowDrawCalls = 0;
     std::uint64_t shadowTriangleCount = 0;
+    std::uint64_t deferredGeometryDrawCalls = 0;
+    std::uint64_t deferredLightingDrawCalls = 0;
 };
