@@ -16,4 +16,5 @@ struct RenderSettings {
     RasterizationMode rasterization = RasterizationMode::Fill;
     float debugDepthNear = 0.0f;
     float debugDepthFar = 30.0f;
+    int msaaSamples = 1;
 };

@@ -13,6 +13,7 @@ Application::Application(GameModule &game)
       renderer(resourceManager),
       postProcessor(resourceManager),
       sceneFBO({.extent = {1, 1}, .hasDepthStencil = true}),
+      resolvedSceneFBO({.extent = {1, 1}, .hasDepthStencil = false}),
       finalFBO({.extent = {1, 1}, .hasDepthStencil = false}),
       editor(componentTypes, resourceManager) {
     registerBuiltinComponentTypes(componentTypes);
@@ -75,7 +76,9 @@ void Application::run() {
         }
 
         if (canRenderScene) {
+            sceneFBO.setSamples(renderSettings.msaaSamples);
             sceneFBO.resize(viewport);
+            resolvedSceneFBO.resize(viewport);
             finalFBO.resize(viewport);
 
             sceneFBO.bind();
@@ -85,7 +88,13 @@ void Application::run() {
             });
             renderer.endFrame();
 
-            postProcessor.render(sceneFBO, finalFBO);
+            const FrameBuffer *postProcessSource = &sceneFBO;
+            if (sceneFBO.isMultisampled()) {
+                sceneFBO.resolveTo(resolvedSceneFBO);
+                postProcessSource = &resolvedSceneFBO;
+            }
+
+            postProcessor.render(*postProcessSource, finalFBO);
         }
 
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});

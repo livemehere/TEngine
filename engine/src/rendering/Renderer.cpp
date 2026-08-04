@@ -261,6 +261,11 @@ void Renderer::beginFrame(
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    if (currentSettings.msaaSamples > 1) {
+        glEnable(GL_MULTISAMPLE);
+    } else {
+        glDisable(GL_MULTISAMPLE);
+    }
     glFrontFace(GL_CCW);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // render as wireframe

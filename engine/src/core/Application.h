@@ -25,6 +25,7 @@ class Application {
     Renderer renderer;
     PostProcessor postProcessor;
     FrameBuffer sceneFBO;
+    FrameBuffer resolvedSceneFBO;
     FrameBuffer finalFBO;
 
     ComponentTypeRegistry componentTypes;

@@ -211,6 +211,34 @@ void Editor::drawDebug(
                                                : RasterizationMode::Fill;
         }
 
+        constexpr int msaaSampleCounts[] = {1, 2, 4, 8};
+        constexpr const char *msaaLabels[] = {"Off", "2x", "4x", "8x"};
+        int currentMsaaIndex = 0;
+        for (int index = 0; index < IM_ARRAYSIZE(msaaSampleCounts); ++index) {
+            if (renderSettings.msaaSamples == msaaSampleCounts[index]) {
+                currentMsaaIndex = index;
+                break;
+            }
+        }
+
+        GLint maximumSamples = 1;
+        glGetIntegerv(GL_MAX_SAMPLES, &maximumSamples);
+        if (ImGui::BeginCombo("MSAA", msaaLabels[currentMsaaIndex])) {
+            for (int index = 0; index < IM_ARRAYSIZE(msaaSampleCounts); ++index) {
+                const bool supported = msaaSampleCounts[index] <= maximumSamples;
+                ImGui::BeginDisabled(!supported);
+                if (ImGui::Selectable(
+                    msaaLabels[index],
+                    currentMsaaIndex == index
+                )) {
+                    renderSettings.msaaSamples = msaaSampleCounts[index];
+                }
+                ImGui::EndDisabled();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::TextDisabled("Maximum supported samples: %d", maximumSamples);
+
         if (renderSettings.debugView == DebugViewMode::Depth) {
             ImGui::DragFloatRange2(
                 "Depth Range",
