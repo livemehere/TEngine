@@ -61,4 +61,9 @@ stencil
 
 <img width="1408" height="821" alt="image" src="https://github.com/user-attachments/assets/9b7335ab-1ff2-4bb5-9739-4dc0b6eb9f07" />
 
+> After here project goes to ai agent. i try to understand only concepts of those and see what happen and needed.
+
+#### Shadows
+
+<img width="1908" height="1073" alt="image" src="https://github.com/user-attachments/assets/58a30f73-a6a2-4757-88d5-0057529512ca" />
 
