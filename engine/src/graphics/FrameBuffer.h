@@ -4,10 +4,16 @@
 
 #include "../rendering/RenderExtent.h"
 
+enum class FrameBufferColorFormat {
+    RGBA8,
+    RGBA16F
+};
+
 struct FrameBufferSpecification {
     RenderExtent extent;
     bool hasDepthStencil = true;
     int samples = 1;
+    FrameBufferColorFormat colorFormat = FrameBufferColorFormat::RGBA8;
 };
 
 class FrameBuffer {
@@ -18,6 +24,7 @@ class FrameBuffer {
     int height = 0;
     bool hasDepthStencil = true;
     int samples = 1;
+    FrameBufferColorFormat colorFormat = FrameBufferColorFormat::RGBA8;
 
     void allocateAttachments();
     void recreateColorTexture();
@@ -36,6 +43,7 @@ public:
     GLuint getTextureId() const { return textureId; }
     RenderExtent getExtent() const { return {width, height}; }
     int getSamples() const { return samples; }
+    FrameBufferColorFormat getColorFormat() const { return colorFormat; }
     bool isMultisampled() const { return samples > 1; }
 
     void bind() const;

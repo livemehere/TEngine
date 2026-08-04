@@ -247,6 +247,43 @@ void Editor::drawDebug(
         }
         ImGui::TextDisabled("Maximum supported samples: %d", maximumSamples);
 
+        ImGui::SeparatorText("Color Pipeline");
+        ImGui::Checkbox("HDR", &renderSettings.hdrEnabled);
+        if (renderSettings.hdrEnabled) {
+            constexpr const char *toneMappingNames[] = {
+                "Reinhard",
+                "Exposure"
+            };
+            int toneMapping = static_cast<int>(renderSettings.toneMapping);
+            if (ImGui::Combo(
+                "Tone Mapping",
+                &toneMapping,
+                toneMappingNames,
+                IM_ARRAYSIZE(toneMappingNames)
+            )) {
+                renderSettings.toneMapping =
+                        static_cast<ToneMappingMode>(toneMapping);
+            }
+
+            if (renderSettings.toneMapping == ToneMappingMode::Exposure) {
+                ImGui::SetNextItemWidth(120.0f);
+                ImGui::DragFloat(
+                    "Exposure",
+                    &renderSettings.exposure,
+                    0.01f,
+                    0.0f,
+                    10.0f,
+                    "%.2f"
+                );
+            }
+        }
+        ImGui::TextDisabled(
+            "Scene: RGBA16F, final editor image: RGBA8."
+        );
+        ImGui::TextDisabled(
+            "Tone mapping is bypassed for debug views."
+        );
+
         ImGui::Checkbox(
             "Gamma Correction",
             &renderSettings.gammaCorrection

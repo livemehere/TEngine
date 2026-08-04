@@ -11,12 +11,20 @@ enum class RasterizationMode : int {
     Wireframe
 };
 
+enum class ToneMappingMode : int {
+    Reinhard = 0,
+    Exposure
+};
+
 struct RenderSettings {
     DebugViewMode debugView = DebugViewMode::Shaded;
     RasterizationMode rasterization = RasterizationMode::Fill;
     float debugDepthNear = 0.0f;
     float debugDepthFar = 30.0f;
     int msaaSamples = 1;
+    bool hdrEnabled = true;
+    ToneMappingMode toneMapping = ToneMappingMode::Exposure;
+    float exposure = 1.0f;
     bool gammaCorrection = true;
     float gamma = 2.2f;
     bool shadowsEnabled = true;

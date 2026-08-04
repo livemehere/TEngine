@@ -70,6 +70,15 @@ void PostProcessor::render(
     glClear(GL_COLOR_BUFFER_BIT);
 
     shader.use();
+    const bool applyHdr =
+            settings.hdrEnabled &&
+            settings.debugView == DebugViewMode::Shaded;
+    shader.setInt("uHdrEnabled", applyHdr ? 1 : 0);
+    shader.setInt(
+        "uToneMappingMode",
+        static_cast<int>(settings.toneMapping)
+    );
+    shader.setFloat("uExposure", settings.exposure);
     shader.setInt("uGammaCorrectionEnabled", settings.gammaCorrection ? 1 : 0);
     shader.setFloat("uGamma", settings.gamma);
     glActiveTexture(GL_TEXTURE0);

@@ -12,9 +12,21 @@ Application::Application(GameModule &game)
       resourceManager(ASSET_ROOT),
       renderer(resourceManager),
       postProcessor(resourceManager),
-      sceneFBO({.extent = {1, 1}, .hasDepthStencil = true}),
-      resolvedSceneFBO({.extent = {1, 1}, .hasDepthStencil = false}),
-      finalFBO({.extent = {1, 1}, .hasDepthStencil = false}),
+      sceneFBO({
+          .extent = {1, 1},
+          .hasDepthStencil = true,
+          .colorFormat = FrameBufferColorFormat::RGBA16F
+      }),
+      resolvedSceneFBO({
+          .extent = {1, 1},
+          .hasDepthStencil = false,
+          .colorFormat = FrameBufferColorFormat::RGBA16F
+      }),
+      finalFBO({
+          .extent = {1, 1},
+          .hasDepthStencil = false,
+          .colorFormat = FrameBufferColorFormat::RGBA8
+      }),
       editor(componentTypes, resourceManager) {
     registerBuiltinComponentTypes(componentTypes);
     game.registerComponents(componentTypes);

@@ -303,18 +303,18 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     directionalLight.castShadows = true;
 
     const glm::vec3 pointLightPosition{1.0f, 3.8f, 4.2f};
-    Entity &pointLightEntity = scene.createEntity("Parallax Demo Point Light");
+    Entity &pointLightEntity = scene.createEntity("HDR Key Light");
     pointLightEntity.getComponent<TransformComponent>().local.position =
             pointLightPosition;
     PointLightComponent &pointLight =
             pointLightEntity.addComponent<PointLightComponent>();
     pointLight.range = 9.0f;
     pointLight.color = {1.0f, 0.94f, 0.82f};
-    pointLight.intensity = 5.5f;
+    pointLight.intensity = 18.0f;
     pointLight.castShadows = true;
 
     (void)createCube(
-        "Parallax Demo Point Light Marker",
+        "HDR Key Light Marker",
         {
             .position = pointLightPosition,
             .rotation = {0.0f, 0.0f, 0.0f},

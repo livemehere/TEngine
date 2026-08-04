@@ -3,11 +3,30 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace {
+    GLenum getInternalFormat(const FrameBufferColorFormat format) {
+        switch (format) {
+            case FrameBufferColorFormat::RGBA8:
+                return GL_RGBA8;
+            case FrameBufferColorFormat::RGBA16F:
+                return GL_RGBA16F;
+        }
+        return GL_RGBA8;
+    }
+
+    GLenum getDataType(const FrameBufferColorFormat format) {
+        return format == FrameBufferColorFormat::RGBA16F
+                   ? GL_FLOAT
+                   : GL_UNSIGNED_BYTE;
+    }
+}
+
 FrameBuffer::FrameBuffer(const FrameBufferSpecification specification)
     : width(specification.extent.width),
       height(specification.extent.height),
       hasDepthStencil(specification.hasDepthStencil),
-      samples(std::max(1, specification.samples)) {
+      samples(std::max(1, specification.samples)),
+      colorFormat(specification.colorFormat) {
     if (width <= 0 || height <= 0) {
         throw std::invalid_argument("Framebuffer extent must be positive");
     }
@@ -55,12 +74,13 @@ void FrameBuffer::allocateAttachments() {
     const GLenum textureTarget = isMultisampled()
                                      ? GL_TEXTURE_2D_MULTISAMPLE
                                      : GL_TEXTURE_2D;
+    const GLenum internalFormat = getInternalFormat(colorFormat);
     glBindTexture(textureTarget, textureId);
     if (isMultisampled()) {
         glTexImage2DMultisample(
             GL_TEXTURE_2D_MULTISAMPLE,
             samples,
-            GL_RGBA8,
+            internalFormat,
             width,
             height,
             GL_TRUE
@@ -69,12 +89,12 @@ void FrameBuffer::allocateAttachments() {
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
-            GL_RGBA8,
+            internalFormat,
             width,
             height,
             0,
             GL_RGBA,
-            GL_UNSIGNED_BYTE,
+            getDataType(colorFormat),
             nullptr
         );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -150,6 +170,9 @@ void FrameBuffer::resolveTo(FrameBuffer &destination) const {
     }
     if (width != destination.width || height != destination.height) {
         throw std::invalid_argument("Resolve framebuffers must have matching extents");
+    }
+    if (colorFormat != destination.colorFormat) {
+        throw std::invalid_argument("Resolve framebuffers must have matching color formats");
     }
 
     GLint previousReadFramebuffer = 0;
