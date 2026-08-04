@@ -8,11 +8,19 @@ enum class EnvironmentMappingMode : int {
     Refraction = 1
 };
 
+enum class ParallaxMappingMode : int {
+    Disabled = 0,
+    Basic = 1,
+    Steep = 2,
+    Occlusion = 3
+};
+
 class PhongMaterial : public Material {
 public:
     const Texture2D& albedoTexture;
     const Texture2D* specularTexture = nullptr;
     const Texture2D* normalTexture = nullptr;
+    const Texture2D* depthTexture = nullptr;
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
@@ -20,6 +28,12 @@ public:
     bool useNormalMapping = true;
     bool flipNormalY = false;
     float normalStrength = 1.0f;
+    ParallaxMappingMode parallaxMappingMode =
+            ParallaxMappingMode::Disabled;
+    float parallaxScale = 0.05f;
+    int parallaxMinLayers = 8;
+    int parallaxMaxLayers = 32;
+    bool discardParallaxEdges = false;
     EnvironmentMappingMode environmentMappingMode =
             EnvironmentMappingMode::Reflection;
     float environmentStrength = 0.0f;

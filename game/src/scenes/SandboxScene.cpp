@@ -34,10 +34,15 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 TextureColorSpace::Linear
             );
     const Texture2D &brickTexture =
-            resourceManager.loadTexture("textures/brick/brickwall.png");
+            resourceManager.loadTexture("textures/brick/bricks2.jpg");
     const Texture2D &brickNormalTexture =
             resourceManager.loadTexture(
-                "textures/brick/brickwall_normal.png",
+                "textures/brick/bricks2_normal.jpg",
+                TextureColorSpace::Linear
+            );
+    const Texture2D &brickDepthTexture =
+            resourceManager.loadTexture(
+                "textures/brick/bricks2_disp.jpg",
                 TextureColorSpace::Linear
             );
     const std::array<std::string, 6> skyboxFaces{
@@ -108,6 +113,29 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     // Texture2D flips image rows during loading, so this tutorial map needs
     // its tangent-space green channel restored.
     normalMappedBrickMaterial.flipNormalY = true;
+
+    PhongMaterial &parallaxBrickMaterial =
+            resourceManager.loadPhongMaterial(
+                "sandbox/brick-parallax-occlusion",
+                phongShader,
+                brickTexture
+            );
+    parallaxBrickMaterial.baseColor = glm::vec4(1.0f);
+    parallaxBrickMaterial.specularTexture = &whiteTexture;
+    parallaxBrickMaterial.normalTexture = &brickNormalTexture;
+    parallaxBrickMaterial.depthTexture = &brickDepthTexture;
+    parallaxBrickMaterial.specularStrength = 0.2f;
+    parallaxBrickMaterial.shininess = 24.0f;
+    parallaxBrickMaterial.useBlinnPhong = true;
+    parallaxBrickMaterial.useNormalMapping = true;
+    parallaxBrickMaterial.normalStrength = 1.0f;
+    parallaxBrickMaterial.flipNormalY = true;
+    parallaxBrickMaterial.parallaxMappingMode =
+            ParallaxMappingMode::Occlusion;
+    parallaxBrickMaterial.parallaxScale = 0.08f;
+    parallaxBrickMaterial.parallaxMinLayers = 8;
+    parallaxBrickMaterial.parallaxMaxLayers = 32;
+    parallaxBrickMaterial.discardParallaxEdges = false;
 
     PhongMaterial &coolMaterial = resourceManager.loadPhongMaterial(
         "sandbox/cool",
@@ -181,9 +209,9 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     (void)createCube(
         "Brick Cube - Flat Normals",
         {
-            .position = {-1.6f, 1.15f, 0.0f},
+            .position = {-2.7f, 0.95f, 0.0f},
             .rotation = {0.0f, -15.0f, 0.0f},
-            .scale = {2.1f, 2.1f, 2.1f}
+            .scale = {1.8f, 1.8f, 1.8f}
         },
         flatBrickMaterial
     );
@@ -191,11 +219,21 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     (void)createCube(
         "Brick Cube - Normal Mapped",
         {
-            .position = {1.6f, 1.15f, 0.0f},
+            .position = {0.0f, 0.95f, 0.0f},
             .rotation = {0.0f, -15.0f, 0.0f},
-            .scale = {2.1f, 2.1f, 2.1f}
+            .scale = {1.8f, 1.8f, 1.8f}
         },
         normalMappedBrickMaterial
+    );
+
+    (void)createCube(
+        "Brick Cube - Parallax Occlusion",
+        {
+            .position = {2.7f, 0.95f, 0.0f},
+            .rotation = {0.0f, -15.0f, 0.0f},
+            .scale = {1.8f, 1.8f, 1.8f}
+        },
+        parallaxBrickMaterial
     );
 
     (void)createCube(
@@ -264,8 +302,8 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     directionalLight.intensity = 0.75f;
     directionalLight.castShadows = true;
 
-    const glm::vec3 pointLightPosition{0.0f, 3.8f, 4.2f};
-    Entity &pointLightEntity = scene.createEntity("Normal Map Point Light");
+    const glm::vec3 pointLightPosition{1.0f, 3.8f, 4.2f};
+    Entity &pointLightEntity = scene.createEntity("Parallax Demo Point Light");
     pointLightEntity.getComponent<TransformComponent>().local.position =
             pointLightPosition;
     PointLightComponent &pointLight =
@@ -276,7 +314,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     pointLight.castShadows = true;
 
     (void)createCube(
-        "Normal Map Point Light Marker",
+        "Parallax Demo Point Light Marker",
         {
             .position = pointLightPosition,
             .rotation = {0.0f, 0.0f, 0.0f},

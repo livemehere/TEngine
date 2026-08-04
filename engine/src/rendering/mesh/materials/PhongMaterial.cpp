@@ -6,6 +6,7 @@ namespace {
     constexpr GLuint EnvironmentTextureSlot = 2;
     // Renderer reserves 3 and 4 for directional and point shadow maps.
     constexpr GLuint NormalTextureSlot = 5;
+    constexpr GLuint DepthTextureSlot = 6;
 }
 
 void PhongMaterial::bind() const {
@@ -40,6 +41,26 @@ void PhongMaterial::bind() const {
     if (hasNormalMap) {
         normalTexture->bind(NormalTextureSlot);
         shader.setInt("material.normalMap", NormalTextureSlot);
+    }
+
+    const bool hasDepthMap =
+            depthTexture &&
+            parallaxMappingMode != ParallaxMappingMode::Disabled;
+    shader.setInt("material.hasDepthMap", hasDepthMap ? 1 : 0);
+    shader.setInt(
+        "material.parallaxMode",
+        static_cast<int>(parallaxMappingMode)
+    );
+    shader.setFloat("material.parallaxScale", parallaxScale);
+    shader.setInt("material.parallaxMinLayers", parallaxMinLayers);
+    shader.setInt("material.parallaxMaxLayers", parallaxMaxLayers);
+    shader.setInt(
+        "material.discardParallaxEdges",
+        discardParallaxEdges ? 1 : 0
+    );
+    if (hasDepthMap) {
+        depthTexture->bind(DepthTextureSlot);
+        shader.setInt("material.depthMap", DepthTextureSlot);
     }
 }
 

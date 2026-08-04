@@ -350,6 +350,8 @@ void ModelImporter::processMaterials(
                     nullptr;
             importedMaterial.normalTexture =
                     nullptr;
+            importedMaterial.depthTexture =
+                    nullptr;
 
             try {
                 importedMaterial.specularTexture =
@@ -365,7 +367,6 @@ void ModelImporter::processMaterials(
                     e.what()
                 ));
             }
-
 
             try {
                 importedMaterial.normalTexture =
@@ -387,6 +388,21 @@ void ModelImporter::processMaterials(
             } catch (const std::exception &e) {
                 LOG(std::format(
                     "Normal texture load failed: {}",
+                    e.what()
+                ));
+            }
+
+            try {
+                importedMaterial.depthTexture =
+                        loadMaterialTexture(
+                            sourceMaterial,
+                            aiTextureType_DISPLACEMENT,
+                            scene,
+                            modelPath
+                        );
+            } catch (const std::exception &e) {
+                LOG(std::format(
+                    "Displacement texture load failed: {}",
                     e.what()
                 ));
             }

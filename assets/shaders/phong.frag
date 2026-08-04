@@ -63,14 +63,21 @@ struct Material {
     sampler2D albedo;
     sampler2D specular;
     sampler2D normalMap;
+    sampler2D depthMap;
     int hasSpecularMap;
     int hasNormalMap;
+    int hasDepthMap;
     vec4 baseColor;
     float shininess;
     float specularStrength;
     int useBlinnPhong;
     int flipNormalY;
     float normalStrength;
+    int parallaxMode;
+    float parallaxScale;
+    int parallaxMinLayers;
+    int parallaxMaxLayers;
+    int discardParallaxEdges;
     int environmentMappingMode;
     float environmentStrength;
     float refractiveIndex;
@@ -226,13 +233,76 @@ vec4 applyDebugView(vec4 shadedColor, vec3 surfaceNormal)
     return shadedColor;
 }
 
-vec3 getSurfaceNormal()
+vec2 getParallaxTexCoords(vec2 texCoords, vec3 tangentViewDir)
+{
+    if(material.hasDepthMap == 0 || material.parallaxMode == 0){
+        return texCoords;
+    }
+
+    float viewDepth = max(tangentViewDir.z, 0.05);
+    if(material.parallaxMode == 1){
+        float depth = texture(material.depthMap, texCoords).r;
+        vec2 offset = tangentViewDir.xy / viewDepth;
+        return texCoords - offset * (depth * material.parallaxScale);
+    }
+
+    float minLayers = float(clamp(material.parallaxMinLayers, 1, 64));
+    float maxLayers = float(clamp(material.parallaxMaxLayers, 1, 64));
+    maxLayers = max(maxLayers, minLayers);
+    float layerCount = mix(
+        maxLayers,
+        minLayers,
+        clamp(abs(tangentViewDir.z), 0.0, 1.0)
+    );
+    float layerDepth = 1.0 / layerCount;
+    vec2 totalOffset = tangentViewDir.xy * material.parallaxScale;
+    vec2 deltaTexCoords = totalOffset / layerCount;
+
+    vec2 currentTexCoords = texCoords;
+    float currentLayerDepth = 0.0;
+    float currentMapDepth = texture(
+        material.depthMap,
+        currentTexCoords
+    ).r;
+
+    for(int layer = 0; layer < 64; ++layer){
+        if(currentLayerDepth >= currentMapDepth ||
+           float(layer) >= layerCount){
+            break;
+        }
+        currentTexCoords -= deltaTexCoords;
+        currentMapDepth = texture(
+            material.depthMap,
+            currentTexCoords
+        ).r;
+        currentLayerDepth += layerDepth;
+    }
+
+    if(material.parallaxMode == 2){
+        return currentTexCoords;
+    }
+
+    vec2 previousTexCoords = currentTexCoords + deltaTexCoords;
+    float afterDepth = currentMapDepth - currentLayerDepth;
+    float beforeDepth = texture(
+        material.depthMap,
+        previousTexCoords
+    ).r - currentLayerDepth + layerDepth;
+    float denominator = afterDepth - beforeDepth;
+    float weight = abs(denominator) > 0.000001
+        ? clamp(afterDepth / denominator, 0.0, 1.0)
+        : 0.0;
+    return previousTexCoords * weight +
+           currentTexCoords * (1.0 - weight);
+}
+
+vec3 getSurfaceNormal(vec2 texCoords)
 {
     if(material.hasNormalMap == 0){
         return normalize(vNormal);
     }
 
-    vec3 tangentNormal = texture(material.normalMap, vTexCoord).rgb;
+    vec3 tangentNormal = texture(material.normalMap, texCoords).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
     tangentNormal.xy *= max(material.normalStrength, 0.0);
     if(material.flipNormalY != 0){
@@ -363,22 +433,31 @@ vec3 calculateSpotLight(SpotLight light, vec3 albedo, vec3 normal, vec3 viewDir,
 
 void main()
 {
-    vec4 textureColor = texture(material.albedo, vTexCoord);
+    vec3 viewDir = normalize(camera.position.xyz - vPos);
+    vec3 tangentViewDir = normalize(transpose(vTBN) * viewDir);
+    vec2 texCoords = getParallaxTexCoords(vTexCoord, tangentViewDir);
+    if(material.hasDepthMap != 0 &&
+       material.discardParallaxEdges != 0 &&
+       (texCoords.x < 0.0 || texCoords.x > 1.0 ||
+        texCoords.y < 0.0 || texCoords.y > 1.0)){
+        discard;
+    }
+
+    vec4 textureColor = texture(material.albedo, texCoords);
     vec3 albedo = textureColor.rgb * material.baseColor.rgb;
 
     /** ambient light */
     vec3 result = calculateAmbient(albedo);
 
     /** point lights */
-    vec3 normal = getSurfaceNormal();
-    vec3 viewDir = normalize(camera.position.xyz - vPos);
+    vec3 normal = getSurfaceNormal(texCoords);
     int pointLightCount = min(lights.lightCounts.y,MAX_POINT_LIGHTS);
     int directionalLightCount = min(lights.lightCounts.x,MAX_DIRECTIONAL_LIGHTS);
     int spotLightCount = min(lights.lightCounts.z,MAX_SPOT_LIGHTS);
 
     float specularMask = 0.0;
     if(material.hasSpecularMap != 0){
-        specularMask = texture(material.specular,vTexCoord).r;
+        specularMask = texture(material.specular,texCoords).r;
     }
 
     for(int i=0; i<directionalLightCount; i++){

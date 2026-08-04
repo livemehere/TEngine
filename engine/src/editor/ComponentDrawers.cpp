@@ -430,6 +430,146 @@ namespace {
             );
         }
 
+        std::vector<PhongMaterial *> parallaxMaterials;
+        std::ranges::copy_if(
+            materials,
+            std::back_inserter(parallaxMaterials),
+            [](const PhongMaterial *material) {
+                return material->depthTexture != nullptr;
+            }
+        );
+
+        if (!parallaxMaterials.empty()) {
+            ImGui::SeparatorText("Parallax Mapping");
+
+            constexpr const char *parallaxModeNames[] = {
+                "Disabled",
+                "Basic",
+                "Steep",
+                "Occlusion (POM)"
+            };
+            const ParallaxMappingMode firstParallaxMode =
+                    parallaxMaterials.front()->parallaxMappingMode;
+            const bool parallaxModeMixed = std::ranges::any_of(
+                parallaxMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->parallaxMappingMode != firstParallaxMode;
+                }
+            );
+            const int parallaxMode = static_cast<int>(firstParallaxMode);
+            if (ImGui::BeginCombo(
+                "Mode##Parallax",
+                parallaxModeMixed
+                    ? "Mixed"
+                    : parallaxModeNames[parallaxMode]
+            )) {
+                for (int index = 0;
+                     index < IM_ARRAYSIZE(parallaxModeNames);
+                     ++index) {
+                    if (ImGui::Selectable(
+                        parallaxModeNames[index],
+                        !parallaxModeMixed && parallaxMode == index
+                    )) {
+                        for (PhongMaterial *material : parallaxMaterials) {
+                            material->parallaxMappingMode =
+                                    static_cast<ParallaxMappingMode>(index);
+                        }
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            float parallaxScale =
+                    parallaxMaterials.front()->parallaxScale;
+            const bool parallaxScaleMixed = std::ranges::any_of(
+                parallaxMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->parallaxScale != parallaxScale;
+                }
+            );
+            if (ImGui::SliderFloat(
+                parallaxScaleMixed
+                    ? "Depth Scale (Mixed)"
+                    : "Depth Scale##Parallax",
+                &parallaxScale,
+                0.0f,
+                0.2f,
+                "%.3f"
+            )) {
+                for (PhongMaterial *material : parallaxMaterials) {
+                    material->parallaxScale = parallaxScale;
+                }
+            }
+
+            const bool usesLayeredParallax = std::ranges::any_of(
+                parallaxMaterials,
+                [](const PhongMaterial *material) {
+                    return material->parallaxMappingMode ==
+                               ParallaxMappingMode::Steep ||
+                           material->parallaxMappingMode ==
+                               ParallaxMappingMode::Occlusion;
+                }
+            );
+            if (usesLayeredParallax) {
+                int minLayers =
+                        parallaxMaterials.front()->parallaxMinLayers;
+                if (ImGui::SliderInt(
+                    "Min Layers",
+                    &minLayers,
+                    1,
+                    32
+                )) {
+                    for (PhongMaterial *material : parallaxMaterials) {
+                        material->parallaxMinLayers = minLayers;
+                        material->parallaxMaxLayers = std::max(
+                            material->parallaxMaxLayers,
+                            minLayers
+                        );
+                    }
+                }
+
+                int maxLayers =
+                        parallaxMaterials.front()->parallaxMaxLayers;
+                if (ImGui::SliderInt(
+                    "Max Layers",
+                    &maxLayers,
+                    minLayers,
+                    64
+                )) {
+                    for (PhongMaterial *material : parallaxMaterials) {
+                        material->parallaxMaxLayers = std::max(
+                            maxLayers,
+                            material->parallaxMinLayers
+                        );
+                    }
+                }
+            }
+
+            bool discardEdges =
+                    parallaxMaterials.front()->discardParallaxEdges;
+            const bool discardEdgesMixed = std::ranges::any_of(
+                parallaxMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->discardParallaxEdges != discardEdges;
+                }
+            );
+            if (discardEdgesMixed) {
+                ImGui::TextUnformatted("Discard Outside UV: Mixed");
+            }
+            if (ImGui::Checkbox("Discard Outside UV", &discardEdges)) {
+                for (PhongMaterial *material : parallaxMaterials) {
+                    material->discardParallaxEdges = discardEdges;
+                }
+            }
+
+            ImGui::TextDisabled(
+                "POM interpolates between the final two depth layers."
+            );
+            ImGui::TextDisabled(
+                "Keep edge discard disabled on closed meshes such as cubes."
+            );
+        }
+
         const EnvironmentMappingMode firstMode =
                 materials.front()->environmentMappingMode;
         const bool modeMixed = std::ranges::any_of(
