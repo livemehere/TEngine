@@ -1,6 +1,8 @@
 add_library(Game STATIC
     src/Game.cpp
     src/Game.h
+    src/components/MotionComponents.cpp
+    src/components/MotionComponents.h
     src/components/TestComponent.cpp
     src/components/TestComponent.h
     src/scenes/SandboxScene.cpp

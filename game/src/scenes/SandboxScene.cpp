@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include "components/MotionComponents.h"
+
 #include <camera/CameraComponent.h>
 #include <graphics/CubeMap.h>
 #include <rendering/Lights.h>
@@ -305,7 +307,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         },
         mintMaterial
     );
-    (void)createCube(
+    Entity &suspendedBlock = createCube(
         "Arch - Suspended Block",
         {
             .position = {5.1f, 1.45f, -4.8f},
@@ -314,6 +316,13 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         },
         coolMaterial
     );
+    SpinComponent &suspendedSpin =
+            suspendedBlock.addComponent<SpinComponent>();
+    suspendedSpin.degreesPerSecond = {18.0f, 55.0f, 12.0f};
+    BobComponent &suspendedBob =
+            suspendedBlock.addComponent<BobComponent>();
+    suspendedBob.amplitude = 0.65f;
+    suspendedBob.frequency = 0.42f;
 
     (void)createCube(
         "Backpack Display Plinth",
@@ -335,6 +344,9 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
             .rotation = {0.0f, -28.0f, 0.0f},
             .scale = {0.9f, 0.9f, 0.9f}
         };
+        SpinComponent &displaySpin =
+                bagEntity->addComponent<SpinComponent>();
+        displaySpin.degreesPerSecond = {0.0f, 16.0f, 0.0f};
     }
 
     (void)createCube(
@@ -355,7 +367,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         },
         mintMaterial
     );
-    (void)createCube(
+    Entity &environmentSample = createCube(
         "Environment Mapping Sample",
         {
             .position = {8.5f, 2.1f, 0.3f},
@@ -364,6 +376,24 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         },
         boxMaterial
     );
+    SpinComponent &environmentSpin =
+            environmentSample.addComponent<SpinComponent>();
+    environmentSpin.degreesPerSecond = {12.0f, 32.0f, 6.0f};
+
+    Entity &orbitingCube = createCube(
+        "Orbiting Gallery Cube",
+        {
+            .position = {1.6f, 2.8f, -4.8f},
+            .rotation = {18.0f, 0.0f, 18.0f},
+            .scale = {0.75f, 0.75f, 0.75f}
+        },
+        coolMaterial
+    );
+    OrbitComponent &orbit = orbitingCube.addComponent<OrbitComponent>();
+    orbit.center = {5.1f, 2.8f, -4.8f};
+    orbit.degreesPerSecond = 24.0f;
+    SpinComponent &orbitingSpin = orbitingCube.addComponent<SpinComponent>();
+    orbitingSpin.degreesPerSecond = {35.0f, 60.0f, 20.0f};
 
     Entity &instancedCubes = scene.createEntity("Instanced Occlusion Row");
     InstancedMeshRendererComponent &instancedRenderer =
