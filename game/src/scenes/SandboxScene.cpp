@@ -17,8 +17,8 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     Entity &cameraEntity = scene.createEntity("Editor Camera");
     Transform &cameraTransform =
             cameraEntity.getComponent<TransformComponent>().local;
-    cameraTransform.position = {9.0f, 6.0f, 11.0f};
-    cameraTransform.lookAt({0.0f, 1.2f, 0.0f});
+    cameraTransform.position = {17.0f, 9.0f, 19.0f};
+    cameraTransform.lookAt({0.0f, 1.2f, -2.5f});
     cameraEntity.addComponent<CameraComponent>();
     scene.setActiveCamera(cameraEntity.id);
 
@@ -148,6 +148,28 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     coolMaterial.shininess = 72.0f;
     coolMaterial.useBlinnPhong = true;
 
+    PhongMaterial &warmMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/warm-clay",
+        phongShader,
+        whiteTexture
+    );
+    warmMaterial.baseColor = {0.68f, 0.22f, 0.12f, 1.0f};
+    warmMaterial.specularTexture = &whiteTexture;
+    warmMaterial.specularStrength = 0.18f;
+    warmMaterial.shininess = 20.0f;
+    warmMaterial.useBlinnPhong = true;
+
+    PhongMaterial &mintMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/mint",
+        phongShader,
+        whiteTexture
+    );
+    mintMaterial.baseColor = {0.18f, 0.58f, 0.42f, 1.0f};
+    mintMaterial.specularTexture = &whiteTexture;
+    mintMaterial.specularStrength = 0.25f;
+    mintMaterial.shininess = 32.0f;
+    mintMaterial.useBlinnPhong = true;
+
     UnlitMaterial &pointLightMarkerMaterial =
             resourceManager.loadUnlitMaterial(
                 "sandbox/point-light-marker",
@@ -180,137 +202,211 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         return entity;
     };
 
-    Entity &ground = scene.createEntity("Ground - Shadow Receiver");
-    Transform &groundTransform =
-            ground.getComponent<TransformComponent>().local;
-    groundTransform.position = {0.0f, -0.05f, 0.0f};
-    groundTransform.rotation = {-90.0f, 0.0f, 0.0f};
-    groundTransform.scale = {16.0f, 16.0f, 1.0f};
-    MeshRendererComponent &groundRenderer =
-            ground.addComponent<MeshRendererComponent>(
-                &planeMesh,
-                &floorMaterial
-            );
-    groundRenderer.outlineMode = OutlineMode::ScaleFromPivot;
-
-    Entity &backWall = scene.createEntity("Back Wall - Shadow Receiver");
-    backWall.getComponent<TransformComponent>().local = {
-        .position = {0.0f, 3.0f, -6.0f},
-        .rotation = {0.0f, 0.0f, 0.0f},
-        .scale = {16.0f, 6.0f, 1.0f}
+    const auto createPlane = [&scene, &planeMesh](
+        const char *name,
+        const Transform &transform,
+        const Material &material
+    ) -> Entity & {
+        Entity &entity = scene.createEntity(name);
+        entity.getComponent<TransformComponent>().local = transform;
+        MeshRendererComponent &renderer =
+                entity.addComponent<MeshRendererComponent>(
+                    &planeMesh,
+                    &material
+                );
+        renderer.outlineMode = OutlineMode::ScaleFromPivot;
+        return entity;
     };
-    MeshRendererComponent &backWallRenderer =
-            backWall.addComponent<MeshRendererComponent>(
-                &planeMesh,
-                &floorMaterial
-            );
-    backWallRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
-    (void)createCube(
-        "Brick Cube - Flat Normals",
+    (void)createPlane(
+        "Ground - SSAO Receiver",
         {
-            .position = {-2.7f, 0.95f, 0.0f},
-            .rotation = {0.0f, -15.0f, 0.0f},
-            .scale = {1.8f, 1.8f, 1.8f}
+            .position = {0.0f, -0.05f, -1.0f},
+            .rotation = {-90.0f, 0.0f, 0.0f},
+            .scale = {30.0f, 24.0f, 1.0f}
+        },
+        floorMaterial
+    );
+    (void)createPlane(
+        "Back Wall - SSAO Corner",
+        {
+            .position = {0.0f, 4.0f, -11.0f},
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {30.0f, 8.0f, 1.0f}
+        },
+        floorMaterial
+    );
+    (void)createPlane(
+        "Left Wall - SSAO Corner",
+        {
+            .position = {-14.0f, 4.0f, -1.0f},
+            .rotation = {0.0f, 90.0f, 0.0f},
+            .scale = {20.0f, 8.0f, 1.0f}
+        },
+        floorMaterial
+    );
+
+    // Three adjacent material samples make the contact darkening along the
+    // floor easy to compare without changing geometry.
+    (void)createCube(
+        "Brick Sample - Flat",
+        {
+            .position = {-3.0f, 0.9f, 2.2f},
+            .rotation = {0.0f, -12.0f, 0.0f},
+            .scale = {1.7f, 1.7f, 1.7f}
         },
         flatBrickMaterial
     );
-
     (void)createCube(
-        "Brick Cube - Normal Mapped",
+        "Brick Sample - Normal Mapped",
         {
-            .position = {0.0f, 0.95f, 0.0f},
-            .rotation = {0.0f, -15.0f, 0.0f},
-            .scale = {1.8f, 1.8f, 1.8f}
+            .position = {-0.5f, 0.9f, 2.0f},
+            .rotation = {0.0f, -12.0f, 0.0f},
+            .scale = {1.7f, 1.7f, 1.7f}
         },
         normalMappedBrickMaterial
     );
-
     (void)createCube(
-        "Brick Cube - Parallax Occlusion",
+        "Brick Sample - Parallax Occlusion",
         {
-            .position = {2.7f, 0.95f, 0.0f},
-            .rotation = {0.0f, -15.0f, 0.0f},
-            .scale = {1.8f, 1.8f, 1.8f}
+            .position = {2.0f, 0.9f, 1.8f},
+            .rotation = {0.0f, -12.0f, 0.0f},
+            .scale = {1.7f, 1.7f, 1.7f}
         },
         parallaxBrickMaterial
     );
 
+    // The narrow gaps under and between these pieces are deliberately sized
+    // to reveal the SSAO radius and bias controls.
     (void)createCube(
-        "Floating Cool Block",
+        "Arch - Left Pillar",
         {
-            .position = {0.2f, 3.1f, -3.8f},
-            .rotation = {18.0f, 30.0f, 8.0f},
-            .scale = {1.0f, 1.0f, 1.0f}
+            .position = {3.8f, 1.5f, -4.8f},
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {0.9f, 3.0f, 0.9f}
+        },
+        warmMaterial
+    );
+    (void)createCube(
+        "Arch - Right Pillar",
+        {
+            .position = {6.4f, 1.5f, -4.8f},
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {0.9f, 3.0f, 0.9f}
+        },
+        warmMaterial
+    );
+    (void)createCube(
+        "Arch - Top Beam",
+        {
+            .position = {5.1f, 3.35f, -4.8f},
+            .rotation = {0.0f, 0.0f, 0.0f},
+            .scale = {3.5f, 0.7f, 0.9f}
+        },
+        mintMaterial
+    );
+    (void)createCube(
+        "Arch - Suspended Block",
+        {
+            .position = {5.1f, 1.45f, -4.8f},
+            .rotation = {12.0f, 28.0f, 5.0f},
+            .scale = {0.9f, 0.9f, 0.9f}
         },
         coolMaterial
     );
 
     (void)createCube(
-        "Low Cool Block",
+        "Backpack Display Plinth",
         {
-            .position = {4.2f, 0.4f, -3.0f},
-            .rotation = {0.0f, 35.0f, 0.0f},
-            .scale = {1.4f, 0.8f, 1.4f}
+            .position = {-6.4f, 0.3f, -4.8f},
+            .rotation = {0.0f, 8.0f, 0.0f},
+            .scale = {3.0f, 0.6f, 3.0f}
         },
-        coolMaterial
+        mintMaterial
     );
-
-    Entity &instancedCubes = scene.createEntity("Instanced Shadow Row");
-    InstancedMeshRendererComponent &instancedRenderer =
-            instancedCubes.addComponent<InstancedMeshRendererComponent>(
-                &cubeMesh,
-                &boxMaterial
-            );
-
-    for (int index = 0; index < 9; ++index) {
-        Transform instanceTransform;
-        instanceTransform.position = {
-            -4.0f + static_cast<float>(index),
-            0.25f + static_cast<float>(index % 3) * 0.15f,
-            -4.7f
-        };
-        instanceTransform.rotation.y = static_cast<float>(index) * 12.0f;
-        instanceTransform.scale = glm::vec3(0.45f);
-        (void)instancedRenderer.addInstance(instanceTransform);
-    }
 
     const Model &bagModel =
             resourceManager.loadModel("models/backpack/backpack.obj", true);
     const EntityId bagId =
-            scene.instantiateModel(bagModel, floorMaterial, "Backpack");
+            scene.instantiateModel(bagModel, floorMaterial, "Upright Backpack");
     if (Entity *bagEntity = scene.findEntity(bagId)) {
         bagEntity->getComponent<TransformComponent>().local = {
-            .position = {-4.2f, 0.0f, -3.0f},
-            .rotation = {0.0f, 25.0f, 0.0f},
-            .scale = {0.55f, 0.55f, 0.55f}
+            .position = {-6.4f, 0.62f, -4.8f},
+            .rotation = {0.0f, -28.0f, 0.0f},
+            .scale = {0.9f, 0.9f, 0.9f}
         };
     }
 
-    Entity &ambientLightEntity = scene.createEntity("Ambient Light");
+    (void)createCube(
+        "Wide Step - Lower",
+        {
+            .position = {8.8f, 0.25f, 1.6f},
+            .rotation = {0.0f, -8.0f, 0.0f},
+            .scale = {3.8f, 0.5f, 3.2f}
+        },
+        coolMaterial
+    );
+    (void)createCube(
+        "Wide Step - Upper",
+        {
+            .position = {8.7f, 0.85f, 0.9f},
+            .rotation = {0.0f, -8.0f, 0.0f},
+            .scale = {2.7f, 0.7f, 2.2f}
+        },
+        mintMaterial
+    );
+    (void)createCube(
+        "Environment Mapping Sample",
+        {
+            .position = {8.5f, 2.1f, 0.3f},
+            .rotation = {15.0f, 30.0f, 8.0f},
+            .scale = {1.3f, 1.3f, 1.3f}
+        },
+        boxMaterial
+    );
+
+    Entity &instancedCubes = scene.createEntity("Instanced Occlusion Row");
+    InstancedMeshRendererComponent &instancedRenderer =
+            instancedCubes.addComponent<InstancedMeshRendererComponent>(
+                &cubeMesh,
+                &warmMaterial
+            );
+    for (int index = 0; index < 11; ++index) {
+        Transform instanceTransform;
+        instanceTransform.position = {
+            -8.5f + static_cast<float>(index) * 1.6f,
+            0.35f + static_cast<float>(index % 3) * 0.12f,
+            -8.6f
+        };
+        instanceTransform.rotation.y = static_cast<float>(index) * 9.0f;
+        instanceTransform.scale = {0.65f, 0.7f, 0.65f};
+        (void)instancedRenderer.addInstance(instanceTransform);
+    }
+
+    Entity &ambientLightEntity = scene.createEntity("Ambient Fill");
     AmbientLightComponent &ambientLight =
             ambientLightEntity.addComponent<AmbientLightComponent>();
-    ambientLight.color = {0.38f, 0.43f, 0.55f};
-    ambientLight.intensity = 0.08f;
+    ambientLight.color = {0.42f, 0.46f, 0.58f};
+    ambientLight.intensity = 0.18f;
 
     Entity &directionalLightEntity = scene.createEntity("Warm Sun Light");
     directionalLightEntity.getComponent<TransformComponent>().local.rotation =
-            {-48.0f, -32.0f, 0.0f};
+            {-52.0f, -28.0f, 0.0f};
     DirectionalLightComponent &directionalLight =
             directionalLightEntity.addComponent<DirectionalLightComponent>();
-    directionalLight.color = {1.0f, 0.82f, 0.62f};
-    directionalLight.intensity = 0.75f;
+    directionalLight.color = {1.0f, 0.84f, 0.68f};
+    directionalLight.intensity = 0.48f;
     directionalLight.castShadows = true;
 
-    const glm::vec3 pointLightPosition{1.0f, 3.8f, 4.2f};
+    const glm::vec3 pointLightPosition{1.5f, 6.5f, 6.5f};
     Entity &pointLightEntity = scene.createEntity("HDR Key Light");
     pointLightEntity.getComponent<TransformComponent>().local.position =
             pointLightPosition;
     PointLightComponent &pointLight =
             pointLightEntity.addComponent<PointLightComponent>();
-    pointLight.range = 9.0f;
+    pointLight.range = 18.0f;
     pointLight.color = {1.0f, 0.94f, 0.82f};
-    pointLight.intensity = 18.0f;
+    pointLight.intensity = 11.0f;
     pointLight.castShadows = true;
 
     (void)createCube(
@@ -318,31 +414,31 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         {
             .position = pointLightPosition,
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.18f, 0.18f, 0.18f}
+            .scale = {0.22f, 0.22f, 0.22f}
         },
         pointLightMarkerMaterial
     );
 
-    const glm::vec3 spotLightPosition{-4.5f, 4.5f, -1.5f};
-    Entity &spotLightEntity = scene.createEntity("Red Spot Light");
+    const glm::vec3 spotLightPosition{-9.0f, 6.5f, 1.5f};
+    Entity &spotLightEntity = scene.createEntity("Red Gallery Spot");
     Transform &spotLightTransform =
             spotLightEntity.getComponent<TransformComponent>().local;
     spotLightTransform.position = spotLightPosition;
-    spotLightTransform.lookAt({-4.0f, 0.0f, -4.5f});
+    spotLightTransform.lookAt({-6.0f, 1.0f, -5.0f});
     SpotLightComponent &spotLight =
             spotLightEntity.addComponent<SpotLightComponent>();
-    spotLight.range = 12.0f;
-    spotLight.color = {1.0f, 0.16f, 0.06f};
-    spotLight.intensity = 4.0f;
-    spotLight.innerAngle = 18.0f;
-    spotLight.outerAngle = 30.0f;
+    spotLight.range = 16.0f;
+    spotLight.color = {1.0f, 0.18f, 0.08f};
+    spotLight.intensity = 3.0f;
+    spotLight.innerAngle = 16.0f;
+    spotLight.outerAngle = 28.0f;
 
     (void)createCube(
-        "Red Spot Light Marker",
+        "Red Gallery Spot Marker",
         {
             .position = spotLightPosition,
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.16f, 0.16f, 0.16f}
+            .scale = {0.18f, 0.18f, 0.18f}
         },
         spotLightMarkerMaterial
     );

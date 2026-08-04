@@ -22,6 +22,10 @@ public:
     GBuffer(const GBuffer&) = delete;
     GBuffer& operator=(const GBuffer&) = delete;
 
+    [[nodiscard]] GLuint getPositionTextureId() const {
+        return positionTexture;
+    }
+
     void resize(RenderExtent extent);
     void bindForGeometry() const;
     void clear() const;

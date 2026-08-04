@@ -220,6 +220,30 @@ const Shader &ResourceManager::getDeferredLightingShader() {
     return *deferredLightingShader;
 }
 
+const Shader &ResourceManager::getSSAOShader() {
+    if (!ssaoShader) {
+        ssaoShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/ssao.frag")
+        );
+        ssaoShader->bindUniformBlock(
+            "CameraData",
+            UniformBinding::Camera
+        );
+    }
+    return *ssaoShader;
+}
+
+const Shader &ResourceManager::getSSAOBlurShader() {
+    if (!ssaoBlurShader) {
+        ssaoBlurShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/ssaoBlur.frag")
+        );
+    }
+    return *ssaoBlurShader;
+}
+
 const Shader &ResourceManager::getSkyboxShader() {
     if (!skyboxShader) {
         skyboxShader = std::make_unique<Shader>(

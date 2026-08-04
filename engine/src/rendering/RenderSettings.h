@@ -6,7 +6,8 @@ enum class DebugViewMode : int {
     WorldNormal,
     GBufferPosition,
     GBufferAlbedo,
-    GBufferSpecular
+    GBufferSpecular,
+    SSAO
 };
 
 enum class RasterizationMode : int {
@@ -38,6 +39,11 @@ struct RenderSettings {
     float bloomThreshold = 1.0f;
     float bloomStrength = 0.15f;
     int bloomBlurPasses = 10;
+    bool ssaoEnabled = true;
+    int ssaoSampleCount = 32;
+    float ssaoRadius = 0.5f;
+    float ssaoBias = 0.025f;
+    float ssaoPower = 1.5f;
     bool gammaCorrection = true;
     float gamma = 2.2f;
     bool shadowsEnabled = true;

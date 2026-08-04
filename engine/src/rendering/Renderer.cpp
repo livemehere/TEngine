@@ -122,7 +122,8 @@ Renderer::Renderer(ResourceManager &resourceManager)
       pointShadowDepthShader(resourceManager.getPointShadowDepthShader()),
       shadowMap(1),
       pointShadowMap(1),
-      gBuffer({1, 1}) {
+      gBuffer({1, 1}),
+      ssaoProcessor(resourceManager) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -155,6 +156,7 @@ Renderer::Renderer(ResourceManager &resourceManager)
     deferredLightingShader.setInt("gPosition", 0);
     deferredLightingShader.setInt("gNormal", 1);
     deferredLightingShader.setInt("gAlbedoSpec", 2);
+    deferredLightingShader.setInt("uSSAO", 5);
     glUseProgram(previousProgram);
 }
 
@@ -1032,7 +1034,7 @@ void Renderer::deferredGeometryPass(const RenderQueue& queue) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Renderer::deferredLightingPass() {
+void Renderer::deferredLightingPass(const FrameBuffer* ssaoTexture) {
     glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
     glViewport(
         0,
@@ -1052,6 +1054,17 @@ void Renderer::deferredLightingPass() {
     bindDirectionalShadow(deferredLightingShader);
     bindPointShadow(deferredLightingShader);
     gBuffer.bindTextures(0, 1, 2);
+    deferredLightingShader.setInt(
+        "uSSAOEnabled",
+        ssaoTexture != nullptr ? 1 : 0
+    );
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(
+        GL_TEXTURE_2D,
+        ssaoTexture != nullptr
+            ? ssaoTexture->getTextureId()
+            : gBuffer.getPositionTextureId()
+    );
     glBindVertexArray(fullscreenVAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     ++currentStats.drawCalls;
@@ -1353,7 +1366,16 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             currentSettings.renderingPath == RenderingPath::Deferred;
     if (useDeferred) {
         deferredGeometryPass(queue);
-        deferredLightingPass();
+        const FrameBuffer* ssaoTexture = ssaoProcessor.process(
+            gBuffer,
+            currentSettings,
+            currentRenderExtent
+        );
+        if (ssaoTexture) {
+            currentStats.drawCalls += 2;
+            currentStats.ssaoDrawCalls += 2;
+        }
+        deferredLightingPass(ssaoTexture);
 
         const bool isGBufferDebugView =
                 currentSettings.debugView >=

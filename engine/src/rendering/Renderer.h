@@ -13,6 +13,7 @@
 #include "RenderSettings.h"
 #include "RenderStats.h"
 #include "GBuffer.h"
+#include "SSAOProcessor.h"
 #include "PointShadowMap.h"
 #include "ShadowMap.h"
 #include "mesh/MeshRendererComponent.h"
@@ -94,6 +95,7 @@ class Renderer {
     ShadowMap shadowMap;
     PointShadowMap pointShadowMap;
     GBuffer gBuffer;
+    SSAOProcessor ssaoProcessor;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -135,7 +137,7 @@ class Renderer {
         bool skipDeferredItems
     );
     void deferredGeometryPass(const RenderQueue& queue);
-    void deferredLightingPass();
+    void deferredLightingPass(const FrameBuffer* ssaoTexture);
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);

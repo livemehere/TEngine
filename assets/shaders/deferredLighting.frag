@@ -48,6 +48,8 @@ out vec4 FragColor;
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
+uniform sampler2D uSSAO;
+uniform int uSSAOEnabled;
 uniform sampler2D uShadowMap;
 uniform mat4 uLightSpaceMatrix;
 uniform int uShadowsEnabled;
@@ -358,9 +360,18 @@ void main()
         return;
     }
 
+    float ambientOcclusion = uSSAOEnabled != 0
+        ? texture(uSSAO, vTexCoord).r
+        : 1.0;
+    if (debugData.viewMode == 6) {
+        FragColor = vec4(vec3(ambientOcclusion), 1.0);
+        return;
+    }
+
     vec3 result = albedo *
                   lights.ambientLightColorIntensity.rgb *
-                  lights.ambientLightColorIntensity.w;
+                  lights.ambientLightColorIntensity.w *
+                  ambientOcclusion;
     vec3 viewDir = normalize(camera.position.xyz - fragmentPosition);
     int directionalCount = min(
         lights.lightCounts.x,

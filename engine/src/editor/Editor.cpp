@@ -197,6 +197,10 @@ void Editor::drawDebug(
                     renderStats.deferredLightingDrawCalls
                 )
             );
+            ImGui::Text(
+                "SSAO Calls: %llu",
+                static_cast<unsigned long long>(renderStats.ssaoDrawCalls)
+            );
         }
         const std::uint64_t estimatedSavedCalls =
                 renderStats.instanceCount > renderStats.instancedDrawCalls
@@ -234,7 +238,8 @@ void Editor::drawDebug(
             "World Normal",
             "G-buffer Position",
             "G-buffer Albedo",
-            "G-buffer Specular"
+            "G-buffer Specular",
+            "SSAO"
         };
         int debugView = static_cast<int>(renderSettings.debugView);
         const int debugViewCount =
@@ -295,6 +300,50 @@ void Editor::drawDebug(
                 "Deferred rendering currently uses single-sample G-buffers."
             );
         }
+
+        ImGui::SeparatorText("Screen-Space Ambient Occlusion");
+        ImGui::BeginDisabled(!deferredRendering);
+        ImGui::Checkbox("Enabled##SSAO", &renderSettings.ssaoEnabled);
+        if (renderSettings.ssaoEnabled) {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderInt(
+                "Samples##SSAO",
+                &renderSettings.ssaoSampleCount,
+                8,
+                64
+            );
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Radius##SSAO",
+                &renderSettings.ssaoRadius,
+                0.01f,
+                0.05f,
+                5.0f,
+                "%.2f"
+            );
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Bias##SSAO",
+                &renderSettings.ssaoBias,
+                0.001f,
+                0.0f,
+                0.25f,
+                "%.3f"
+            );
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Power##SSAO",
+                &renderSettings.ssaoPower,
+                0.05f,
+                0.1f,
+                8.0f,
+                "%.2f"
+            );
+        }
+        ImGui::EndDisabled();
+        ImGui::TextDisabled(
+            "SSAO affects the deferred ambient-light term only."
+        );
 
         ImGui::SeparatorText("Color Pipeline");
         ImGui::Checkbox("HDR", &renderSettings.hdrEnabled);

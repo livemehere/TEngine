@@ -59,6 +59,8 @@ add_library(TEngine STATIC
     src/rendering/RenderStats.h
     src/rendering/Renderer.cpp
     src/rendering/Renderer.h
+    src/rendering/SSAOProcessor.cpp
+    src/rendering/SSAOProcessor.h
     src/rendering/ShadowMap.cpp
     src/rendering/ShadowMap.h
     src/rendering/Transform.h

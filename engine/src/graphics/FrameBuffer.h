@@ -6,7 +6,8 @@
 
 enum class FrameBufferColorFormat {
     RGBA8,
-    RGBA16F
+    RGBA16F,
+    R16F
 };
 
 struct FrameBufferSpecification {

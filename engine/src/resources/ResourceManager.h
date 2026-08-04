@@ -37,6 +37,8 @@ class ResourceManager {
     std::unique_ptr<Shader> gaussianBlurShader;
     std::unique_ptr<Shader> deferredGeometryShader;
     std::unique_ptr<Shader> deferredLightingShader;
+    std::unique_ptr<Shader> ssaoShader;
+    std::unique_ptr<Shader> ssaoBlurShader;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Shader> normalDebugShader;
     std::unique_ptr<Shader> shadowDepthShader;
@@ -89,6 +91,10 @@ public:
     const Shader &getDeferredGeometryShader();
 
     const Shader &getDeferredLightingShader();
+
+    const Shader &getSSAOShader();
+
+    const Shader &getSSAOBlurShader();
 
     const Shader &getSkyboxShader();
 

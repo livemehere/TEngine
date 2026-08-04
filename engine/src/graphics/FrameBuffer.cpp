@@ -10,14 +10,28 @@ namespace {
                 return GL_RGBA8;
             case FrameBufferColorFormat::RGBA16F:
                 return GL_RGBA16F;
+            case FrameBufferColorFormat::R16F:
+                return GL_R16F;
         }
         return GL_RGBA8;
     }
 
     GLenum getDataType(const FrameBufferColorFormat format) {
-        return format == FrameBufferColorFormat::RGBA16F
-                   ? GL_FLOAT
-                   : GL_UNSIGNED_BYTE;
+        return format == FrameBufferColorFormat::RGBA8
+                   ? GL_UNSIGNED_BYTE
+                   : GL_FLOAT;
+    }
+
+    GLenum getExternalFormat(const FrameBufferColorFormat format) {
+        return format == FrameBufferColorFormat::R16F
+                   ? GL_RED
+                   : GL_RGBA;
+    }
+
+    GLenum getFilter(const FrameBufferColorFormat format) {
+        return format == FrameBufferColorFormat::R16F
+                   ? GL_NEAREST
+                   : GL_LINEAR;
     }
 }
 
@@ -93,12 +107,13 @@ void FrameBuffer::allocateAttachments() {
             width,
             height,
             0,
-            GL_RGBA,
+            getExternalFormat(colorFormat),
             getDataType(colorFormat),
             nullptr
         );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        const GLenum filter = getFilter(colorFormat);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
