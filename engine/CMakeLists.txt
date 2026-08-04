@@ -42,6 +42,7 @@ add_library(TEngine STATIC
     src/graphics/ShaderStage.h
     src/graphics/Texture2D.cpp
     src/graphics/Texture2D.h
+    src/graphics/TextureColorSpace.h
 
     src/rendering/Lights.h
     src/rendering/PostProcessor.cpp
@@ -52,6 +53,8 @@ add_library(TEngine STATIC
     src/rendering/RenderStats.h
     src/rendering/Renderer.cpp
     src/rendering/Renderer.h
+    src/rendering/ShadowMap.cpp
+    src/rendering/ShadowMap.h
     src/rendering/Transform.h
 
     src/rendering/mesh/Mesh.cpp

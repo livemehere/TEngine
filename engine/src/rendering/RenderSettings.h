@@ -19,4 +19,10 @@ struct RenderSettings {
     int msaaSamples = 1;
     bool gammaCorrection = true;
     float gamma = 2.2f;
+    bool shadowsEnabled = true;
+    int shadowMapResolution = 2048;
+    float shadowDistance = 25.0f;
+    float shadowBiasMin = 0.0005f;
+    float shadowBiasSlope = 0.005f;
+    int shadowPcfRadius = 1;
 };

@@ -74,6 +74,13 @@ struct Material {
 uniform Material material;
 uniform samplerCube uEnvironmentMap;
 uniform int uHasEnvironmentMap;
+uniform sampler2D uShadowMap;
+uniform mat4 uLightSpaceMatrix;
+uniform int uShadowsEnabled;
+uniform int uShadowLightIndex;
+uniform float uShadowBiasMin;
+uniform float uShadowBiasSlope;
+uniform int uShadowPcfRadius;
 
 out vec4 FragColor;
 
@@ -94,6 +101,47 @@ float calculateSpecularFactor(vec3 normal, vec3 lightDir, vec3 viewDir)
     }
 
     return pow(specularAngle, material.shininess);
+}
+
+float calculateDirectionalShadow(
+    int lightIndex,
+    vec3 normal,
+    vec3 lightDir
+)
+{
+    if(uShadowsEnabled == 0 || lightIndex != uShadowLightIndex){
+        return 0.0;
+    }
+
+    vec4 lightSpacePosition = uLightSpaceMatrix * vec4(vPos, 1.0);
+    vec3 projected = lightSpacePosition.xyz / lightSpacePosition.w;
+    projected = projected * 0.5 + 0.5;
+
+    if(projected.z <= 0.0 || projected.z >= 1.0){
+        return 0.0;
+    }
+
+    float bias = max(
+        uShadowBiasSlope * (1.0 - max(dot(normal, lightDir), 0.0)),
+        uShadowBiasMin
+    );
+    vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap, 0));
+    int radius = clamp(uShadowPcfRadius, 0, 3);
+    float shadow = 0.0;
+    float sampleCount = 0.0;
+
+    for(int x = -radius; x <= radius; ++x){
+        for(int y = -radius; y <= radius; ++y){
+            float closestDepth = texture(
+                uShadowMap,
+                projected.xy + vec2(x, y) * texelSize
+            ).r;
+            shadow += projected.z - bias > closestDepth ? 1.0 : 0.0;
+            sampleCount += 1.0;
+        }
+    }
+
+    return shadow / max(sampleCount, 1.0);
 }
 
 vec4 applyDebugView(vec4 shadedColor)
@@ -120,7 +168,14 @@ vec3 calculateAmbient(vec3 albedo)
     return albedo * color * intensity;
 }
 
-vec3 calculateDirectionalLight(DirectionalLight light, vec3 albedo, vec3 normal, vec3 viewDir, float specularMask)
+vec3 calculateDirectionalLight(
+    int lightIndex,
+    DirectionalLight light,
+    vec3 albedo,
+    vec3 normal,
+    vec3 viewDir,
+    float specularMask
+)
 {
     /** diffuse */
     vec3 lightDir = normalize(-light.direction.xyz);
@@ -135,7 +190,12 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 albedo, vec3 normal,
         specular = color * intensity * specularFactor * material.specularStrength * specularMask;
     }
 
-    return diffuse + specular;
+    float shadow = calculateDirectionalShadow(
+        lightIndex,
+        normal,
+        lightDir
+    );
+    return (diffuse + specular) * (1.0 - shadow);
 }
 
 vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDir, float specularMask)
@@ -234,7 +294,14 @@ void main()
     }
 
     for(int i=0; i<directionalLightCount; i++){
-        result += calculateDirectionalLight(lights.directionalLights[i], albedo, normal, viewDir, specularMask);
+        result += calculateDirectionalLight(
+            i,
+            lights.directionalLights[i],
+            albedo,
+            normal,
+            viewDir,
+            specularMask
+        );
     }
 
     for(int i=0; i<pointLightCount; i++){

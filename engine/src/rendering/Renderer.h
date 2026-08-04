@@ -3,12 +3,15 @@
 #include <optional>
 
 #include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 #include "../scene/Scene.h"
 #include "RenderExtent.h"
 #include "RenderQueue.h"
 #include "RenderSettings.h"
 #include "RenderStats.h"
+#include "ShadowMap.h"
 #include "mesh/MeshRendererComponent.h"
 
 class ResourceManager;
@@ -77,9 +80,12 @@ struct RenderOptions {
 };
 
 class Renderer {
+    const Shader &phongShader;
     const Shader &outlineShader;
     const Shader &skyboxShader;
     const Shader &normalDebugShader;
+    const Shader &shadowDepthShader;
+    ShadowMap shadowMap;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -92,10 +98,16 @@ class Renderer {
     RenderSettings currentSettings;
     RenderStats currentStats;
     const CubeMap* currentEnvironmentMap = nullptr;
+    glm::mat4 currentLightSpaceMatrix{1.0f};
+    glm::vec3 currentShadowLightDirection{0.0f, -1.0f, 0.0f};
+    int currentShadowLightIndex = -1;
+    bool currentShadowAvailable = false;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
     void updateDebugBuffer();
+    void updateDirectionalShadow(const Scene& scene);
+    void bindDirectionalShadow();
 
     /** passes */
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
@@ -104,6 +116,7 @@ class Renderer {
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
+    void shadowDepthRenderPass(const RenderQueue& queue);
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
     void skyboxRenderPass();
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);

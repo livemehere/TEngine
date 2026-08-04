@@ -836,6 +836,7 @@ void registerDefaultComponentDrawers(
         "Directional Light",
         [](Scene &, Entity &, DirectionalLightComponent &light) {
             ImGui::Checkbox("Enabled", &light.enabled);
+            ImGui::Checkbox("Cast Shadows", &light.castShadows);
             ImGui::ColorEdit3("Color", &light.color.x);
             ImGui::DragFloat("Intensity", &light.intensity, 0.01f, 0.0f, 100.0f);
         }

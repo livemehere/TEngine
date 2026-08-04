@@ -196,6 +196,16 @@ const Shader &ResourceManager::getNormalDebugShader() {
     return *normalDebugShader;
 }
 
+const Shader &ResourceManager::getShadowDepthShader() {
+    if (!shadowDepthShader) {
+        shadowDepthShader = std::make_unique<Shader>(
+            resolvePath("shaders/shadowDepth.vert"),
+            resolvePath("shaders/shadowDepth.frag")
+        );
+    }
+    return *shadowDepthShader;
+}
+
 PhongMaterial &ResourceManager::loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture) {
     if (const auto it = phongMaterials.find(key); it != phongMaterials.end()) {
         return *it->second;

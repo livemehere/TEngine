@@ -6,6 +6,8 @@
 #include <vector>
 
 #include <glm/geometric.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/mat3x3.hpp>
 
 #include "../resources/ResourceManager.h"
@@ -97,9 +99,12 @@ namespace {
 }; */
 
 Renderer::Renderer(ResourceManager &resourceManager)
-    : outlineShader(resourceManager.getOutlineShader()),
+    : phongShader(resourceManager.getPhongShader()),
+      outlineShader(resourceManager.getOutlineShader()),
       skyboxShader(resourceManager.getSkyboxShader()),
-      normalDebugShader(resourceManager.getNormalDebugShader()) {
+      normalDebugShader(resourceManager.getNormalDebugShader()),
+      shadowDepthShader(resourceManager.getShadowDepthShader()),
+      shadowMap(1) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -162,6 +167,7 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
     size_t directionalLightCount = 0;
     size_t pointLightCount = 0;
     size_t spotLightCount = 0;
+    currentShadowLightIndex = -1;
 
     scene.each<AmbientLightComponent>(
         [&](const AmbientLightComponent &light) {
@@ -178,9 +184,16 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
             if (!light.enabled || directionalLightCount >= MAX_DIRECTIONAL_LIGHTS) {
                 return;
             }
-            GPUDirectionalLLight &destination = data.directionalLights[directionalLightCount++];
+            const int lightIndex = static_cast<int>(directionalLightCount);
+            GPUDirectionalLLight &destination =
+                    data.directionalLights[directionalLightCount++];
             destination.colorIntensity = glm::vec4(light.color, light.intensity);
             destination.direction = glm::vec4(getWorldForward(scene, entity), 0.0f);
+
+            if (currentShadowLightIndex < 0 && light.castShadows) {
+                currentShadowLightIndex = lightIndex;
+                currentShadowLightDirection = glm::vec3(destination.direction);
+            }
         }
     );
 
@@ -227,6 +240,66 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
 
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPULightingData), &data);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+void Renderer::updateDirectionalShadow(const Scene &scene) {
+    currentShadowAvailable =
+            currentSettings.shadowsEnabled &&
+            currentSettings.debugView == DebugViewMode::Shaded &&
+            currentShadowLightIndex >= 0;
+    if (!currentShadowAvailable) {
+        return;
+    }
+
+    const float halfExtent = std::max(currentSettings.shadowDistance, 0.1f);
+    glm::vec3 center{0.0f};
+
+    if (const Entity *cameraEntity = scene.getActiveCameraEntity()) {
+        center = getWorldPosition(scene, *cameraEntity);
+        center += getWorldForward(scene, *cameraEntity) * (halfExtent * 0.25f);
+    }
+
+    const glm::vec3 direction = glm::normalize(currentShadowLightDirection);
+    const glm::vec3 lightPosition = center - direction * halfExtent;
+    const glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
+    const glm::vec3 viewUp = std::abs(glm::dot(direction, worldUp)) > 0.99f
+                                 ? glm::vec3{0.0f, 0.0f, 1.0f}
+                                 : worldUp;
+
+    const glm::mat4 lightProjection = glm::ortho(
+        -halfExtent,
+        halfExtent,
+        -halfExtent,
+        halfExtent,
+        0.1f,
+        halfExtent * 2.0f
+    );
+    const glm::mat4 lightView = glm::lookAt(
+        lightPosition,
+        center,
+        viewUp
+    );
+    currentLightSpaceMatrix = lightProjection * lightView;
+}
+
+void Renderer::bindDirectionalShadow() {
+    constexpr GLuint ShadowTextureSlot = 3;
+
+    phongShader.use();
+    phongShader.setInt(
+        "uShadowsEnabled",
+        currentShadowAvailable ? 1 : 0
+    );
+    phongShader.setInt("uShadowLightIndex", currentShadowLightIndex);
+    phongShader.setMat4("uLightSpaceMatrix", currentLightSpaceMatrix);
+    phongShader.setFloat("uShadowBiasMin", currentSettings.shadowBiasMin);
+    phongShader.setFloat("uShadowBiasSlope", currentSettings.shadowBiasSlope);
+    phongShader.setInt("uShadowPcfRadius", currentSettings.shadowPcfRadius);
+
+    if (currentShadowAvailable) {
+        shadowMap.bindTexture(ShadowTextureSlot);
+        phongShader.setInt("uShadowMap", ShadowTextureSlot);
+    }
 }
 
 void Renderer::updateDebugBuffer() {
@@ -827,6 +900,96 @@ void Renderer::outlineRenderPass(const RenderQueue &queue) {
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
+void Renderer::shadowDepthRenderPass(const RenderQueue &queue) {
+    if (!currentShadowAvailable) {
+        return;
+    }
+
+    shadowMap.resize(currentSettings.shadowMapResolution);
+
+    GLint previousDrawFramebuffer = 0;
+    GLint previousReadFramebuffer = 0;
+    GLint previousViewport[4]{};
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
+    glGetIntegerv(GL_VIEWPORT, previousViewport);
+
+    shadowMap.bindForWriting();
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    shadowDepthShader.use();
+    shadowDepthShader.setMat4(
+        "uLightSpaceMatrix",
+        currentLightSpaceMatrix
+    );
+
+    for (const RenderItem &item : queue.opaque) {
+        applyCullMode(item.meshRenderer->material->rasterState.cullMode);
+        shadowDepthShader.setMat4("uModel", item.worldMatrix);
+        item.meshRenderer->mesh->draw();
+
+        ++currentStats.drawCalls;
+        ++currentStats.shadowDrawCalls;
+        const std::uint64_t triangleCount =
+                item.meshRenderer->mesh->getTriangleCount();
+        currentStats.triangleCount += triangleCount;
+        currentStats.shadowTriangleCount += triangleCount;
+    }
+
+    for (const InstancedRenderItem &item : queue.instancedOpaque) {
+        const std::size_t instanceCount = item.localMatrices.size();
+        const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        if (byteSize > instanceBufferCapacity) {
+            glBufferData(
+                GL_ARRAY_BUFFER,
+                static_cast<GLsizeiptr>(byteSize),
+                nullptr,
+                GL_DYNAMIC_DRAW
+            );
+            instanceBufferCapacity = byteSize;
+        }
+        glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            static_cast<GLsizeiptr>(byteSize),
+            item.localMatrices.data()
+        );
+
+        applyCullMode(item.material->rasterState.cullMode);
+        shadowDepthShader.setMat4("uModel", item.worldMatrix);
+        item.mesh->drawInstanced(
+            instanceVBO,
+            static_cast<GLsizei>(instanceCount)
+        );
+
+        ++currentStats.drawCalls;
+        ++currentStats.shadowDrawCalls;
+        const std::uint64_t triangleCount =
+                static_cast<std::uint64_t>(item.mesh->getTriangleCount()) *
+                instanceCount;
+        currentStats.triangleCount += triangleCount;
+        currentStats.shadowTriangleCount += triangleCount;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFramebuffer);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFramebuffer);
+    glViewport(
+        previousViewport[0],
+        previousViewport[1],
+        previousViewport[2],
+        previousViewport[3]
+    );
+}
+
 void Renderer::render(const Scene &scene, const RenderOptions &options) {
     currentEnvironmentMap = nullptr;
     scene.each<SkyboxComponent>([&](const SkyboxComponent &skybox) {
@@ -836,6 +999,10 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     });
 
     const RenderQueue queue = buildRenderQueue(scene, options);
+
+    updateDirectionalShadow(scene);
+    shadowDepthRenderPass(queue);
+    bindDirectionalShadow();
 
     // Complete the opaque depth buffer first. The skybox then fills only the
     // untouched background, followed by sorted transparent geometry.

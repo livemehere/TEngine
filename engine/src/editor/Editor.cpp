@@ -161,8 +161,12 @@ void Editor::drawDebug(
         ImGui::SeparatorText("Performance");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::Text(
-            "Scene Draw Calls: %llu",
+            "Total Draw Calls: %llu",
             static_cast<unsigned long long>(renderStats.drawCalls)
+        );
+        ImGui::Text(
+            "Shadow Draw Calls: %llu",
+            static_cast<unsigned long long>(renderStats.shadowDrawCalls)
         );
         ImGui::Text(
             "Instanced Draw Calls: %llu",
@@ -175,6 +179,10 @@ void Editor::drawDebug(
         ImGui::Text(
             "Submitted Triangles: %llu",
             static_cast<unsigned long long>(renderStats.triangleCount)
+        );
+        ImGui::Text(
+            "Shadow Triangles: %llu",
+            static_cast<unsigned long long>(renderStats.shadowTriangleCount)
         );
         const std::uint64_t estimatedSavedCalls =
                 renderStats.instanceCount > renderStats.instancedDrawCalls
@@ -257,6 +265,88 @@ void Editor::drawDebug(
         ImGui::TextDisabled(
             "Applied once to the final scene image."
         );
+
+        ImGui::SeparatorText("Directional Shadows");
+        ImGui::Checkbox(
+            "Enabled##DirectionalShadows",
+            &renderSettings.shadowsEnabled
+        );
+        if (renderSettings.shadowsEnabled) {
+            constexpr int shadowResolutions[] = {512, 1024, 2048, 4096};
+            constexpr const char *shadowResolutionLabels[] = {
+                "512",
+                "1024",
+                "2048",
+                "4096"
+            };
+            int resolutionIndex = 0;
+            for (int index = 0;
+                 index < IM_ARRAYSIZE(shadowResolutions);
+                 ++index) {
+                if (renderSettings.shadowMapResolution ==
+                    shadowResolutions[index]) {
+                    resolutionIndex = index;
+                    break;
+                }
+            }
+
+            GLint maximumTextureSize = 1;
+            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
+            if (ImGui::BeginCombo(
+                "Resolution",
+                shadowResolutionLabels[resolutionIndex]
+            )) {
+                for (int index = 0;
+                     index < IM_ARRAYSIZE(shadowResolutions);
+                     ++index) {
+                    const bool supported =
+                            shadowResolutions[index] <= maximumTextureSize;
+                    ImGui::BeginDisabled(!supported);
+                    if (ImGui::Selectable(
+                        shadowResolutionLabels[index],
+                        resolutionIndex == index
+                    )) {
+                        renderSettings.shadowMapResolution =
+                                shadowResolutions[index];
+                    }
+                    ImGui::EndDisabled();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::DragFloat(
+                "Distance",
+                &renderSettings.shadowDistance,
+                0.25f,
+                1.0f,
+                200.0f,
+                "%.1f"
+            );
+            ImGui::DragFloat(
+                "Minimum Bias",
+                &renderSettings.shadowBiasMin,
+                0.00005f,
+                0.0f,
+                0.05f,
+                "%.5f"
+            );
+            ImGui::DragFloat(
+                "Slope Bias",
+                &renderSettings.shadowBiasSlope,
+                0.0001f,
+                0.0f,
+                0.1f,
+                "%.4f"
+            );
+            ImGui::SliderInt(
+                "PCF Radius",
+                &renderSettings.shadowPcfRadius,
+                0,
+                3
+            );
+            ImGui::TextDisabled(
+                "The first enabled directional light with Cast Shadows is used."
+            );
+        }
 
         if (renderSettings.debugView == DebugViewMode::Depth) {
             ImGui::DragFloatRange2(
