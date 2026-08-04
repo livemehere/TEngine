@@ -25,9 +25,10 @@ struct XRayOutlineGroup {
 };
 
 struct InstancedRenderItem {
-    const Entity *entity = nullptr;
-    const InstancedMeshRendererComponent *meshRenderer = nullptr;
+    const Mesh *mesh = nullptr;
+    const Material *material = nullptr;
     glm::mat4 worldMatrix{1.0f};
+    std::vector<glm::mat4> localMatrices;
 };
 
 struct RenderQueue {

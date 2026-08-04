@@ -4,6 +4,7 @@
 #include "../rendering/Lights.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/mesh/InstancedMeshRendererComponent.h"
+#include "../rendering/model/InstancedModelRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 
 void ComponentTypeRegistry::addDescriptor(ComponentTypeDescriptor descriptor) {
@@ -28,6 +29,9 @@ void registerBuiltinComponentTypes(ComponentTypeRegistry &registry) {
     registry.registerComponent<MeshRendererComponent>("Mesh Renderer");
     registry.registerComponent<InstancedMeshRendererComponent>(
         "Instanced Mesh Renderer"
+    );
+    registry.registerComponent<InstancedModelRendererComponent>(
+        "Instanced Model Renderer"
     );
     registry.registerComponent<CameraComponent>("Camera");
     registry.registerComponent<AmbientLightComponent>("Ambient Light");

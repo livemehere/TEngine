@@ -70,6 +70,11 @@ ResourceManager::getMaterialResources() const {
     return materialCatalog;
 }
 
+std::span<const ResourceEntry<Model>>
+ResourceManager::getModelResources() const {
+    return modelCatalog;
+}
+
 Material *ResourceManager::findMutableMaterial(const Material *material) {
     if (!material) {
         return nullptr;
@@ -317,6 +322,12 @@ const Model &ResourceManager::loadModel(
     auto [it, inserted] = models.emplace(
         key,
         std::move(model)
+    );
+
+    registerResource(
+        modelCatalog,
+        path + (flipUVs ? " [Flipped UV]" : ""),
+        *it->second
     );
 
     for (size_t partIndex = 0;

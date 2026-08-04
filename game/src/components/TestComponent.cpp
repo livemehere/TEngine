@@ -12,5 +12,5 @@ void TestComponent::update(float dt) {
 
     Transform &transform =
             entity->getComponent<TransformComponent>().local;
-    transform.position.x += speed * dt;
+    transform.rotation.y += speed * dt;
 }

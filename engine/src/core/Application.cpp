@@ -36,8 +36,11 @@ void Application::run() {
         const WindowSize &size = window.get_size();
         const MouseState &mouseState = input.getMouseState();
 
+        Scene &displayedScene = runtimeScene ? *runtimeScene : scene;
+
         editor.beginFrame();
         const RenderExtent viewport = editor.drawSceneView(
+            displayedScene,
             finalFBO.getTextureId(),
             runtimeScene != nullptr
         );

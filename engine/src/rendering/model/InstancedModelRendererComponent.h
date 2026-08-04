@@ -1,22 +1,21 @@
 #pragma once
 
 #include "../../scene/Component.h"
-#include "InstanceData.h"
-#include "Mesh.h"
-#include "materials/Material.h"
+#include "../mesh/InstanceData.h"
+#include "Model.h"
 
-class InstancedMeshRendererComponent final : public Component {
+class InstancedModelRendererComponent final : public Component {
 public:
-    const Mesh *mesh = nullptr;
-    const Material *material = nullptr;
+    const Model *model = nullptr;
+    const Material *fallbackMaterial = nullptr;
     InstanceCollection instances;
 
-    InstancedMeshRendererComponent() = default;
+    InstancedModelRendererComponent() = default;
 
-    InstancedMeshRendererComponent(
-        const Mesh *mesh,
-        const Material *material
-    ) : mesh(mesh), material(material) {}
+    InstancedModelRendererComponent(
+        const Model *model,
+        const Material *fallbackMaterial = nullptr
+    ) : model(model), fallbackMaterial(fallbackMaterial) {}
 
     [[nodiscard]] InstanceId addInstance(const Transform &transform = {}) {
         return instances.add(transform);

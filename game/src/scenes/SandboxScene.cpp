@@ -2,8 +2,6 @@
 
 #include <array>
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <camera/CameraComponent.h>
 #include <graphics/CubeMap.h>
 #include <rendering/Lights.h>
@@ -121,24 +119,16 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     constexpr float spacing = 0.35f;
     constexpr float cubeSize = 0.12f;
     const float gridHalfExtent = (gridSize - 1) * spacing * 0.5f;
-    instancedRenderer.localMatrices.reserve(gridSize * gridSize);
-
     for (int z = 0; z < gridSize; ++z) {
         for (int x = 0; x < gridSize; ++x) {
-            glm::mat4 localMatrix{1.0f};
-            localMatrix = glm::translate(
-                localMatrix,
-                glm::vec3(
+            Transform instanceTransform;
+            instanceTransform.position = {
                     x * spacing - gridHalfExtent,
                     cubeSize,
                     z * spacing - gridHalfExtent
-                )
-            );
-            localMatrix = glm::scale(
-                localMatrix,
-                glm::vec3(cubeSize)
-            );
-            instancedRenderer.localMatrices.push_back(localMatrix);
+            };
+            instanceTransform.scale = glm::vec3(cubeSize);
+            (void)instancedRenderer.addInstance(instanceTransform);
         }
     }
 

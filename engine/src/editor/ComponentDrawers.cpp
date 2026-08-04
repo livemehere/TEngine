@@ -1,7 +1,10 @@
 #include "ComponentDrawerRegistry.h"
+#include "InstanceSelection.h"
 
 #include <algorithm>
 #include <cfloat>
+#include <cstdint>
+#include <format>
 #include <span>
 #include <string_view>
 #include <unordered_set>
@@ -13,6 +16,7 @@
 #include "../rendering/Lights.h"
 #include "../rendering/mesh/InstancedMeshRendererComponent.h"
 #include "../rendering/mesh/MeshRendererComponent.h"
+#include "../rendering/model/InstancedModelRendererComponent.h"
 #include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 #include "../resources/ResourceManager.h"
@@ -155,6 +159,107 @@ namespace {
 
         ImGui::PopID();
         return changed;
+    }
+
+    void drawInstanceCollection(
+        EntityId entityId,
+        InstanceRendererType rendererType,
+        InstanceCollection &instances,
+        std::optional<InstanceSelection> &selection
+    ) {
+        int requestedCount = static_cast<int>(instances.size());
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::InputInt("Instance Count", &requestedCount)) {
+            requestedCount = std::clamp(requestedCount, 0, 100000);
+            instances.resize(static_cast<std::size_t>(requestedCount));
+        }
+
+        const bool ownsSelection = selection &&
+                                   selection->entityId == entityId &&
+                                   selection->rendererType == rendererType;
+        if (ownsSelection && !instances.find(selection->instanceId)) {
+            selection.reset();
+        }
+
+        if (ImGui::Button("Add Instance")) {
+            const InstanceId id = instances.add();
+            selection = InstanceSelection{
+                .entityId = entityId,
+                .instanceId = id,
+                .rendererType = rendererType
+            };
+        }
+
+        ImGui::SameLine();
+        const bool canDuplicate = selection &&
+                                  selection->entityId == entityId &&
+                                  selection->rendererType == rendererType &&
+                                  instances.find(selection->instanceId);
+        ImGui::BeginDisabled(!canDuplicate);
+        if (ImGui::Button("Duplicate")) {
+            const Transform transform =
+                    instances.find(selection->instanceId)->transform;
+            const InstanceId id = instances.add(transform);
+            selection->instanceId = id;
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!canDuplicate);
+        if (ImGui::Button("Remove")) {
+            (void)instances.remove(selection->instanceId);
+            selection.reset();
+        }
+        ImGui::EndDisabled();
+
+        constexpr float listHeight = 140.0f;
+        if (ImGui::BeginListBox("##Instances", ImVec2(-FLT_MIN, listHeight))) {
+            std::vector<InstanceData> &items = instances.getItems();
+            ImGuiListClipper clipper;
+            clipper.Begin(static_cast<int>(items.size()));
+            while (clipper.Step()) {
+                for (int index = clipper.DisplayStart;
+                     index < clipper.DisplayEnd;
+                     ++index) {
+                    const InstanceData &instance = items[index];
+                    const bool selected = selection &&
+                                          selection->entityId == entityId &&
+                                          selection->rendererType == rendererType &&
+                                          selection->instanceId == instance.id;
+                    const std::string label = std::format(
+                        "Instance {}##{}",
+                        index,
+                        instance.id
+                    );
+                    if (ImGui::Selectable(label.c_str(), selected)) {
+                        selection = InstanceSelection{
+                            .entityId = entityId,
+                            .instanceId = instance.id,
+                            .rendererType = rendererType
+                        };
+                    }
+                }
+            }
+            ImGui::EndListBox();
+        }
+
+        if (!selection ||
+            selection->entityId != entityId ||
+            selection->rendererType != rendererType) {
+            ImGui::TextDisabled("Select an instance to edit its transform.");
+            return;
+        }
+
+        InstanceData *selected = instances.find(selection->instanceId);
+        if (!selected) {
+            selection.reset();
+            return;
+        }
+
+        ImGui::SeparatorText("Selected Instance");
+        drawVec3Control("position", selected->transform.position, 0.0f);
+        drawVec3Control("rotation", selected->transform.rotation, 0.0f);
+        drawVec3Control("scale", selected->transform.scale, 1.0f);
     }
 
     void collectMeshRendererComponents(
@@ -534,7 +639,8 @@ namespace {
 
 void registerDefaultComponentDrawers(
     ComponentDrawerRegistry &registry,
-    ResourceManager &resources
+    ResourceManager &resources,
+    std::optional<InstanceSelection> &instanceSelection
 ) {
     registry.registerDrawer<TransformComponent>(
         "Local Transform",
@@ -558,7 +664,7 @@ void registerDefaultComponentDrawers(
 
     registry.registerDrawer<InstancedMeshRendererComponent>(
         "Instanced Mesh Renderer",
-        [&resources](
+        [&resources, &instanceSelection](
             Scene &,
             Entity &,
             InstancedMeshRendererComponent &component
@@ -574,10 +680,26 @@ void registerDefaultComponentDrawers(
                 component.material,
                 resources.getMaterialResources()
             );
-            ImGui::Text(
-                "Instance Count: %zu",
-                component.localMatrices.size()
+            drawInstanceCollection(
+                component.getEntityId(),
+                InstanceRendererType::Mesh,
+                component.instances,
+                instanceSelection
             );
+            if (component.mesh) {
+                const std::uint64_t trianglesPerInstance =
+                        component.mesh->getTriangleCount();
+                ImGui::Text(
+                    "Triangles / Instance: %llu",
+                    static_cast<unsigned long long>(trianglesPerInstance)
+                );
+                ImGui::Text(
+                    "Submitted Triangles: %llu",
+                    static_cast<unsigned long long>(
+                        trianglesPerInstance * component.instances.size()
+                    )
+                );
+            }
             if (component.material &&
                 component.material->renderQueue != RenderQueueType::Opaque) {
                 ImGui::TextColored(
@@ -585,6 +707,55 @@ void registerDefaultComponentDrawers(
                     "Only opaque materials are currently rendered."
                 );
             }
+        }
+    );
+
+    registry.registerDrawer<InstancedModelRendererComponent>(
+        "Instanced Model Renderer",
+        [&resources, &instanceSelection](
+            Scene &,
+            Entity &,
+            InstancedModelRendererComponent &component
+        ) {
+            ImGui::Checkbox("Enabled", &component.enabled);
+            drawResourceSelector(
+                "Model",
+                component.model,
+                resources.getModelResources()
+            );
+            drawResourceSelector(
+                "Fallback Material",
+                component.fallbackMaterial,
+                resources.getMaterialResources()
+            );
+            drawInstanceCollection(
+                component.getEntityId(),
+                InstanceRendererType::Model,
+                component.instances,
+                instanceSelection
+            );
+            if (component.model) {
+                std::uint64_t trianglesPerInstance = 0;
+                for (const ModelPart &part : component.model->parts) {
+                    if (part.mesh) {
+                        trianglesPerInstance += part.mesh->getTriangleCount();
+                    }
+                }
+                ImGui::Text("Mesh Parts: %zu", component.model->parts.size());
+                ImGui::Text(
+                    "Triangles / Instance: %llu",
+                    static_cast<unsigned long long>(trianglesPerInstance)
+                );
+                ImGui::Text(
+                    "Submitted Triangles: %llu",
+                    static_cast<unsigned long long>(
+                        trianglesPerInstance * component.instances.size()
+                    )
+                );
+            }
+            ImGui::TextDisabled(
+                "Each model mesh/material pair is rendered as one instanced draw."
+            );
         }
     );
 

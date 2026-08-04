@@ -13,6 +13,7 @@
 class Scene;
 class ComponentTypeRegistry;
 class ResourceManager;
+struct InstanceSelection;
 
 class ComponentDrawerRegistry {
 public:
@@ -75,5 +76,6 @@ public:
 
 void registerDefaultComponentDrawers(
     ComponentDrawerRegistry &registry,
-    ResourceManager &resources
+    ResourceManager &resources,
+    std::optional<InstanceSelection> &instanceSelection
 );

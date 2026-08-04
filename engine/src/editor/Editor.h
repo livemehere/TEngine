@@ -1,8 +1,10 @@
 #pragma once
 
 #include <glad/glad.h>
+#include <imgui.h>
 
 #include "ComponentDrawerRegistry.h"
+#include "InstanceSelection.h"
 #include "../rendering/RenderExtent.h"
 #include "../rendering/RenderSettings.h"
 #include "../rendering/RenderStats.h"
@@ -11,6 +13,8 @@
 class Scene;
 class ComponentTypeRegistry;
 class ResourceManager;
+class Mesh;
+struct Model;
 struct MouseState;
 struct WindowSize;
 
@@ -21,18 +25,36 @@ enum class PlayModeRequest {
 
 
 class Editor {
+    enum class GizmoOperation {
+        Translate,
+        Rotate,
+        Scale
+    };
+
+    enum class EntityCreationType {
+        Empty,
+        InstancedMesh,
+        InstancedModel
+    };
+
     struct EntityCreationRequest {
         std::optional<EntityId> parentId;
+        EntityCreationType type = EntityCreationType::Empty;
+        const Mesh *mesh = nullptr;
+        const Model *model = nullptr;
+        std::string name = "Entity";
     };
 
     const ComponentTypeRegistry &componentTypes;
     ResourceManager &resources;
     ComponentDrawerRegistry componentDrawers;
     std::optional<EntityId> selectedEntityId;
+    std::optional<InstanceSelection> selectedInstance;
     std::optional<EntityMoveRequest> pendingMoveReq;
     std::optional<EntityCreationRequest> pendingEntityCreation;
     std::optional<EntityId> pendingEntityDeletion;
     std::optional<PlayModeRequest> pendingPlayModeRequest;
+    GizmoOperation gizmoOperation = GizmoOperation::Translate;
 
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
@@ -47,6 +69,13 @@ class Editor {
     void drawEntityNode(Scene& scene, const Entity& entity);
     void drawSiblingList(Scene& scene, std::optional<EntityId> id);
     void drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex);
+    void drawEntityCreationMenu(std::optional<EntityId> parentId);
+    void drawSelectedInstanceGizmo(
+        Scene &scene,
+        ImVec2 imageMin,
+        ImVec2 imageSize,
+        const RenderExtent &extent
+    );
 public:
     Editor(
         const ComponentTypeRegistry &componentTypes,
@@ -63,5 +92,5 @@ public:
         RenderSettings& renderSettings,
         const RenderStats& renderStats
     );
-    RenderExtent drawSceneView(GLuint textureId, bool isPlaying);
+    RenderExtent drawSceneView(Scene &scene, GLuint textureId, bool isPlaying);
 };

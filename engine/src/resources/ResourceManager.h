@@ -46,6 +46,7 @@ class ResourceManager {
 
     std::vector<ResourceEntry<Mesh>> meshCatalog;
     std::vector<ResourceEntry<Material>> materialCatalog;
+    std::vector<ResourceEntry<Model>> modelCatalog;
 
     std::filesystem::path resolvePath(std::filesystem::path filepath) const;
 
@@ -60,6 +61,8 @@ public:
     std::span<const ResourceEntry<Mesh>> getMeshResources();
 
     std::span<const ResourceEntry<Material>> getMaterialResources() const;
+
+    std::span<const ResourceEntry<Model>> getModelResources() const;
 
     Material *findMutableMaterial(const Material *material);
 

@@ -3,6 +3,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 add_library(TEngine STATIC
     src/common.h
@@ -28,6 +29,7 @@ add_library(TEngine STATIC
     src/editor/Editor.h
     src/editor/EditorTheme.cpp
     src/editor/EditorTheme.h
+    src/editor/InstanceSelection.h
 
     src/graphics/Cubemap.cpp
     src/graphics/CubeMap.h
@@ -56,6 +58,7 @@ add_library(TEngine STATIC
     src/rendering/mesh/MeshData.h
     src/rendering/mesh/MeshRendererComponent.h
     src/rendering/mesh/InstancedMeshRendererComponent.h
+    src/rendering/mesh/InstanceData.h
     src/rendering/mesh/Vertex.h
     src/rendering/mesh/materials/PhongMaterial.cpp
     src/rendering/mesh/materials/PhongMaterial.h
@@ -67,6 +70,7 @@ add_library(TEngine STATIC
     src/rendering/model/Model.h
     src/rendering/model/ModelImporter.cpp
     src/rendering/model/ModelImporter.h
+    src/rendering/model/InstancedModelRendererComponent.h
     src/rendering/skybox/SkyboxComponent.h
 
     src/resources/ResourceManager.cpp
@@ -100,6 +104,7 @@ target_link_libraries(TEngine
         imgui::imgui
         glm::glm
         assimp::assimp
+        imguizmo::imguizmo
 )
 
 target_compile_definitions(TEngine

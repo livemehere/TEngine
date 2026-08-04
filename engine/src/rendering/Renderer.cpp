@@ -12,6 +12,7 @@
 #include "../graphics/CubeMap.h"
 #include "Lights.h"
 #include "skybox/SkyboxComponent.h"
+#include "model/InstancedModelRendererComponent.h"
 
 namespace {
     void applyCullMode(CullMode mode) {
@@ -429,16 +430,75 @@ RenderQueue Renderer::buildRenderQueue(
             if (!component.enabled ||
                 !component.mesh ||
                 !component.material ||
-                component.localMatrices.empty() ||
+                component.instances.empty() ||
                 component.material->renderQueue != RenderQueueType::Opaque) {
                 return;
             }
 
-            queue.instancedOpaque.push_back({
-                .entity = &entity,
-                .meshRenderer = &component,
+            InstancedRenderItem item{
+                .mesh = component.mesh,
+                .material = component.material,
                 .worldMatrix = scene.getWorldMatrix(entity)
-            });
+            };
+            item.localMatrices.reserve(component.instances.size());
+            for (const InstanceData &instance : component.instances.getItems()) {
+                item.localMatrices.push_back(instance.transform.getLocalMatrix());
+            }
+            queue.instancedOpaque.push_back(std::move(item));
+        }
+    );
+
+    scene.each<TransformComponent, InstancedModelRendererComponent>(
+        [&](const Entity &entity,
+            const TransformComponent &,
+            const InstancedModelRendererComponent &component) {
+            if (!component.enabled || !component.model || component.instances.empty()) {
+                return;
+            }
+
+            const Model &model = *component.model;
+            std::vector<glm::mat4> nodeMatrices(model.nodes.size(), glm::mat4{1.0f});
+
+            for (std::size_t nodeIndex = 0; nodeIndex < model.nodes.size(); ++nodeIndex) {
+                const ModelNode &node = model.nodes[nodeIndex];
+                const glm::mat4 localMatrix = node.localTransform.getLocalMatrix();
+                nodeMatrices[nodeIndex] = node.parentIndex
+                    ? nodeMatrices[*node.parentIndex] * localMatrix
+                    : localMatrix;
+
+                for (const std::size_t partIndex : node.partIndices) {
+                    if (partIndex >= model.parts.size()) {
+                        continue;
+                    }
+
+                    const ModelPart &part = model.parts[partIndex];
+                    if (!part.mesh) {
+                        continue;
+                    }
+
+                    const Material *material = component.fallbackMaterial;
+                    if (part.materialSlot < model.materials.size() &&
+                        model.materials[part.materialSlot]) {
+                        material = model.materials[part.materialSlot];
+                    }
+                    if (!material || material->renderQueue != RenderQueueType::Opaque) {
+                        continue;
+                    }
+
+                    InstancedRenderItem item{
+                        .mesh = part.mesh.get(),
+                        .material = material,
+                        .worldMatrix = scene.getWorldMatrix(entity)
+                    };
+                    item.localMatrices.reserve(component.instances.size());
+                    for (const InstanceData &instance : component.instances.getItems()) {
+                        item.localMatrices.push_back(
+                            instance.transform.getLocalMatrix() * nodeMatrices[nodeIndex]
+                        );
+                    }
+                    queue.instancedOpaque.push_back(std::move(item));
+                }
+            }
         }
     );
 
@@ -467,8 +527,8 @@ RenderQueue Renderer::buildRenderQueue(
         queue.instancedOpaque.begin(),
         queue.instancedOpaque.end(),
         [](const InstancedRenderItem &left, const InstancedRenderItem &right) {
-            const Material *leftMaterial = left.meshRenderer->material;
-            const Material *rightMaterial = right.meshRenderer->material;
+            const Material *leftMaterial = left.material;
+            const Material *rightMaterial = right.material;
 
             if (&leftMaterial->shader != &rightMaterial->shader) {
                 return std::less<const Shader *>{}(
@@ -480,8 +540,8 @@ RenderQueue Renderer::buildRenderQueue(
                 return std::less<const Material *>{}(leftMaterial, rightMaterial);
             }
             return std::less<const Mesh *>{}(
-                left.meshRenderer->mesh,
-                right.meshRenderer->mesh
+                left.mesh,
+                right.mesh
             );
         }
     );
@@ -616,8 +676,7 @@ void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
     );
 
     for (const InstancedRenderItem &item : queue.instancedOpaque) {
-        const InstancedMeshRendererComponent &component = *item.meshRenderer;
-        const std::size_t instanceCount = component.localMatrices.size();
+        const std::size_t instanceCount = item.localMatrices.size();
         const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
 
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -634,14 +693,14 @@ void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
             GL_ARRAY_BUFFER,
             0,
             static_cast<GLsizeiptr>(byteSize),
-            component.localMatrices.data()
+            item.localMatrices.data()
         );
 
-        applyCullMode(component.material->rasterState.cullMode);
-        component.material->bind();
-        component.material->bindEnvironment(currentEnvironmentMap);
-        component.material->shader.setMat4("uModel", item.worldMatrix);
-        component.mesh->drawInstanced(
+        applyCullMode(item.material->rasterState.cullMode);
+        item.material->bind();
+        item.material->bindEnvironment(currentEnvironmentMap);
+        item.material->shader.setMat4("uModel", item.worldMatrix);
+        item.mesh->drawInstanced(
             instanceVBO,
             static_cast<GLsizei>(instanceCount)
         );
@@ -650,7 +709,7 @@ void Renderer::instancedOpaqueRenderPass(const RenderQueue &queue) {
         ++currentStats.instancedDrawCalls;
         currentStats.instanceCount += instanceCount;
         currentStats.triangleCount +=
-                static_cast<std::uint64_t>(component.mesh->getTriangleCount()) *
+                static_cast<std::uint64_t>(item.mesh->getTriangleCount()) *
                 instanceCount;
     }
 

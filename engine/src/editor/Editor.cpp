@@ -8,9 +8,13 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
+#include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../core/Input.h"
+#include "../rendering/mesh/InstancedMeshRendererComponent.h"
+#include "../rendering/model/InstancedModelRendererComponent.h"
+#include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
 
 Editor::Editor(
@@ -20,7 +24,11 @@ Editor::Editor(
     : componentTypes(componentTypes),
       resources(resources) {
     EditorTheme::applyModernDark();
-    registerDefaultComponentDrawers(componentDrawers, resources);
+    registerDefaultComponentDrawers(
+        componentDrawers,
+        resources,
+        selectedInstance
+    );
 }
 
 std::optional<PlayModeRequest> Editor::consumePlayModeRequest() {
@@ -158,7 +166,7 @@ void Editor::drawDebug(
             static_cast<unsigned long long>(renderStats.instancedDrawCalls)
         );
         ImGui::Text(
-            "Instances: %llu",
+            "Submitted Mesh Instances: %llu",
             static_cast<unsigned long long>(renderStats.instanceCount)
         );
         ImGui::Text(
@@ -282,9 +290,7 @@ void Editor::drawHierarchy(Scene &scene) {
             ImGuiPopupFlags_MouseButtonRight |
             ImGuiPopupFlags_NoOpenOverItems
         )) {
-            if (ImGui::MenuItem("Create Empty Entity")) {
-                pendingEntityCreation = EntityCreationRequest{};
-            }
+            drawEntityCreationMenu(std::nullopt);
             ImGui::EndPopup();
         }
 
@@ -316,7 +322,29 @@ void Editor::drawHierarchy(Scene &scene) {
 
     if (pendingEntityCreation) {
         const std::optional<EntityId> parentId = pendingEntityCreation->parentId;
-        Entity &created = scene.createEntity("Entity");
+        Entity &created = scene.createEntity(pendingEntityCreation->name);
+
+        const std::span<const ResourceEntry<Material>> materials =
+                resources.getMaterialResources();
+        const Material *defaultMaterial = materials.empty()
+                                              ? nullptr
+                                              : materials.front().resource;
+
+        if (pendingEntityCreation->type == EntityCreationType::InstancedMesh) {
+            InstancedMeshRendererComponent &component =
+                    created.addComponent<InstancedMeshRendererComponent>(
+                        pendingEntityCreation->mesh,
+                        defaultMaterial
+                    );
+            (void)component.addInstance();
+        } else if (pendingEntityCreation->type == EntityCreationType::InstancedModel) {
+            InstancedModelRendererComponent &component =
+                    created.addComponent<InstancedModelRendererComponent>(
+                        pendingEntityCreation->model,
+                        defaultMaterial
+                    );
+            (void)component.addInstance();
+        }
 
         if (parentId) {
             scene.moveEntity(
@@ -329,6 +357,52 @@ void Editor::drawHierarchy(Scene &scene) {
 
         selectedEntityId = created.id;
         pendingEntityCreation.reset();
+    }
+}
+
+void Editor::drawEntityCreationMenu(std::optional<EntityId> parentId) {
+    if (ImGui::MenuItem("Create Empty Entity")) {
+        pendingEntityCreation = EntityCreationRequest{
+            .parentId = parentId
+        };
+    }
+
+    if (ImGui::BeginMenu("Create Instanced Mesh")) {
+        const std::span<const ResourceEntry<Mesh>> meshes =
+                resources.getMeshResources();
+        if (meshes.empty()) {
+            ImGui::TextDisabled("No meshes loaded");
+        }
+        for (const ResourceEntry<Mesh> &entry : meshes) {
+            if (ImGui::MenuItem(entry.name.c_str())) {
+                pendingEntityCreation = EntityCreationRequest{
+                    .parentId = parentId,
+                    .type = EntityCreationType::InstancedMesh,
+                    .mesh = entry.resource,
+                    .name = "Instanced " + entry.name
+                };
+            }
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Create Instanced Model")) {
+        const std::span<const ResourceEntry<Model>> models =
+                resources.getModelResources();
+        if (models.empty()) {
+            ImGui::TextDisabled("No models loaded");
+        }
+        for (const ResourceEntry<Model> &entry : models) {
+            if (ImGui::MenuItem(entry.name.c_str())) {
+                pendingEntityCreation = EntityCreationRequest{
+                    .parentId = parentId,
+                    .type = EntityCreationType::InstancedModel,
+                    .model = entry.resource,
+                    .name = "Instanced " + entry.name
+                };
+            }
+        }
+        ImGui::EndMenu();
     }
 }
 
@@ -385,7 +459,11 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
     ImGui::EndDragDropTarget();
 }
 
-RenderExtent Editor::drawSceneView(GLuint textureId, bool isPlaying) {
+RenderExtent Editor::drawSceneView(
+    Scene &scene,
+    GLuint textureId,
+    bool isPlaying
+) {
     constexpr ImGuiWindowFlags windowFlags =
         ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoScrollbar |
@@ -400,11 +478,36 @@ RenderExtent Editor::drawSceneView(GLuint textureId, bool isPlaying) {
         return {};
     }
 
+    const auto drawGizmoButton = [&](const char *label, GizmoOperation operation) {
+        const bool selected = gizmoOperation == operation;
+        if (selected) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        }
+        if (ImGui::Button(label, ImVec2(28.0f, 0.0f))) {
+            gizmoOperation = operation;
+        }
+        if (selected) {
+            ImGui::PopStyleColor();
+        }
+    };
+
+    drawGizmoButton("T", GizmoOperation::Translate);
+    ImGui::SameLine();
+    drawGizmoButton("R", GizmoOperation::Rotate);
+    ImGui::SameLine();
+    drawGizmoButton("S", GizmoOperation::Scale);
+
     constexpr float playButtonWidth = 72.0f;
-    const float toolbarWidth = ImGui::GetContentRegionAvail().x;
+    const float toolbarWidth =
+            ImGui::GetWindowContentRegionMax().x -
+            ImGui::GetWindowContentRegionMin().x;
+    ImGui::SameLine();
     ImGui::SetCursorPosX(
-        ImGui::GetCursorPosX() +
-        std::max(0.0f, (toolbarWidth - playButtonWidth) * 0.5f)
+        std::max(
+            ImGui::GetCursorPosX(),
+            ImGui::GetWindowContentRegionMin().x +
+            (toolbarWidth - playButtonWidth) * 0.5f
+        )
     );
 
     if (ImGui::Button(
@@ -427,10 +530,99 @@ RenderExtent Editor::drawSceneView(GLuint textureId, bool isPlaying) {
 
     if (extent.width > 0 && extent.height > 0) {
         ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        drawSelectedInstanceGizmo(
+            scene,
+            ImGui::GetItemRectMin(),
+            ImGui::GetItemRectSize(),
+            extent
+        );
     }
 
     ImGui::End();
     return extent;
+}
+
+void Editor::drawSelectedInstanceGizmo(
+    Scene &scene,
+    ImVec2 imageMin,
+    ImVec2 imageSize,
+    const RenderExtent &extent
+) {
+    if (!selectedInstance || !selectedEntityId ||
+        selectedInstance->entityId != *selectedEntityId) {
+        return;
+    }
+
+    Entity *entity = scene.findEntity(selectedInstance->entityId);
+    Entity *cameraEntity = scene.getActiveCameraEntity();
+    if (!entity || !cameraEntity) {
+        selectedInstance.reset();
+        return;
+    }
+
+    InstanceData *instance = nullptr;
+    if (selectedInstance->rendererType == InstanceRendererType::Mesh) {
+        if (auto *component =
+                entity->tryGetComponent<InstancedMeshRendererComponent>()) {
+            instance = component->findInstance(selectedInstance->instanceId);
+        }
+    } else {
+        if (auto *component =
+                entity->tryGetComponent<InstancedModelRendererComponent>()) {
+            instance = component->findInstance(selectedInstance->instanceId);
+        }
+    }
+
+    if (!instance) {
+        selectedInstance.reset();
+        return;
+    }
+
+    const glm::mat4 cameraWorldMatrix = scene.getWorldMatrix(*cameraEntity);
+    Transform cameraWorldTransform;
+    glm::mat4 viewMatrix;
+    if (Transform::decompose(cameraWorldMatrix, cameraWorldTransform)) {
+        cameraWorldTransform.scale = glm::vec3(1.0f);
+        viewMatrix = glm::inverse(cameraWorldTransform.getLocalMatrix());
+    } else {
+        viewMatrix = glm::inverse(cameraWorldMatrix);
+    }
+
+    const CameraComponent &camera =
+            cameraEntity->getComponent<CameraComponent>();
+    const glm::mat4 projectionMatrix = camera.getProjectionMatrix(extent);
+    const glm::mat4 entityWorldMatrix = scene.getWorldMatrix(*entity);
+    glm::mat4 instanceWorldMatrix =
+            entityWorldMatrix * instance->transform.getLocalMatrix();
+
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(imageMin.x, imageMin.y, imageSize.x, imageSize.y);
+    ImGuizmo::SetOrthographic(
+        std::holds_alternative<OrthoGraphicProjection>(camera.projection)
+    );
+
+    ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+    if (gizmoOperation == GizmoOperation::Rotate) {
+        operation = ImGuizmo::ROTATE;
+    } else if (gizmoOperation == GizmoOperation::Scale) {
+        operation = ImGuizmo::SCALE;
+    }
+
+    ImGuizmo::Manipulate(
+        glm::value_ptr(viewMatrix),
+        glm::value_ptr(projectionMatrix),
+        operation,
+        ImGuizmo::LOCAL,
+        glm::value_ptr(instanceWorldMatrix)
+    );
+
+    if (!ImGuizmo::IsUsing()) {
+        return;
+    }
+
+    const glm::mat4 localMatrix =
+            glm::inverse(entityWorldMatrix) * instanceWorldMatrix;
+    (void)Transform::decompose(localMatrix, instance->transform);
 }
 
 void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
@@ -453,6 +645,9 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
 
     if (ImGui::IsItemClicked()) {
         selectedEntityId = entity.id;
+        if (selectedInstance && selectedInstance->entityId != entity.id) {
+            selectedInstance.reset();
+        }
     }
 
     if (ImGui::BeginDragDropSource()) {
@@ -476,11 +671,7 @@ void Editor::drawEntityNode(Scene &scene, const Entity &entity) {
     }
 
     if (ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem("Create Child Entity")) {
-            pendingEntityCreation = EntityCreationRequest{
-                .parentId = entity.id
-            };
-        }
+        drawEntityCreationMenu(entity.id);
         ImGui::Separator();
         if (ImGui::MenuItem("Delete")) {
             pendingEntityDeletion = entity.id;
