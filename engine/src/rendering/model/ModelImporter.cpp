@@ -30,7 +30,8 @@ std::unique_ptr<Model> ModelImporter::import(
             aiProcess_Triangulate |
             aiProcess_JoinIdenticalVertices |
             aiProcess_ImproveCacheLocality |
-            aiProcess_GenSmoothNormals;
+            aiProcess_GenSmoothNormals |
+            aiProcess_CalcTangentSpace;
 
     if (flipUVs) {
         flags |= aiProcess_FlipUVs;
@@ -195,10 +196,44 @@ std::unique_ptr<Mesh> ModelImporter::processMesh(
             };
         }
 
+        glm::vec4 tangent{
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f
+        };
+
+        if (mesh->HasTangentsAndBitangents()) {
+            const aiVector3D &sourceTangent =
+                    mesh->mTangents[i];
+            const aiVector3D &sourceBitangent =
+                    mesh->mBitangents[i];
+            const glm::vec3 tangentDirection{
+                sourceTangent.x,
+                sourceTangent.y,
+                sourceTangent.z
+            };
+            const glm::vec3 bitangentDirection{
+                sourceBitangent.x,
+                sourceBitangent.y,
+                sourceBitangent.z
+            };
+            tangent = glm::vec4(
+                tangentDirection,
+                glm::dot(
+                    glm::cross(normal, tangentDirection),
+                    bitangentDirection
+                ) < 0.0f
+                    ? -1.0f
+                    : 1.0f
+            );
+        }
+
         vertices.emplace_back(
             position,
             normal,
-            texCoord
+            texCoord,
+            tangent
         );
     }
 
@@ -313,6 +348,8 @@ void ModelImporter::processMaterials(
 
             importedMaterial.specularTexture =
                     nullptr;
+            importedMaterial.normalTexture =
+                    nullptr;
 
             try {
                 importedMaterial.specularTexture =
@@ -325,6 +362,31 @@ void ModelImporter::processMaterials(
             } catch (const std::exception &e) {
                 LOG(std::format(
                     "Specular texture load failed: {}",
+                    e.what()
+                ));
+            }
+
+
+            try {
+                importedMaterial.normalTexture =
+                        loadMaterialTexture(
+                            sourceMaterial,
+                            aiTextureType_NORMALS,
+                            scene,
+                            modelPath
+                        );
+                if (!importedMaterial.normalTexture) {
+                    importedMaterial.normalTexture =
+                            loadMaterialTexture(
+                                sourceMaterial,
+                                aiTextureType_HEIGHT,
+                                scene,
+                                modelPath
+                            );
+                }
+            } catch (const std::exception &e) {
+                LOG(std::format(
+                    "Normal texture load failed: {}",
                     e.what()
                 ));
             }

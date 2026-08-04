@@ -33,6 +33,13 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 "textures/box_specular_map.png",
                 TextureColorSpace::Linear
             );
+    const Texture2D &brickTexture =
+            resourceManager.loadTexture("textures/brick/brickwall.png");
+    const Texture2D &brickNormalTexture =
+            resourceManager.loadTexture(
+                "textures/brick/brickwall_normal.png",
+                TextureColorSpace::Linear
+            );
     const std::array<std::string, 6> skyboxFaces{
         "textures/skybox/right.jpg",
         "textures/skybox/left.jpg",
@@ -73,16 +80,34 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     boxMaterial.useBlinnPhong = true;
     boxMaterial.environmentStrength = 0.08f;
 
-    PhongMaterial &warmMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/warm",
+    PhongMaterial &flatBrickMaterial = resourceManager.loadPhongMaterial(
+        "sandbox/brick-flat",
         phongShader,
-        whiteTexture
+        brickTexture
     );
-    warmMaterial.baseColor = {0.72f, 0.28f, 0.12f, 1.0f};
-    warmMaterial.specularTexture = &whiteTexture;
-    warmMaterial.specularStrength = 0.65f;
-    warmMaterial.shininess = 48.0f;
-    warmMaterial.useBlinnPhong = true;
+    flatBrickMaterial.baseColor = glm::vec4(1.0f);
+    flatBrickMaterial.specularTexture = &whiteTexture;
+    flatBrickMaterial.specularStrength = 0.2f;
+    flatBrickMaterial.shininess = 24.0f;
+    flatBrickMaterial.useBlinnPhong = true;
+
+    PhongMaterial &normalMappedBrickMaterial =
+            resourceManager.loadPhongMaterial(
+                "sandbox/brick-normal-mapped",
+                phongShader,
+                brickTexture
+            );
+    normalMappedBrickMaterial.baseColor = glm::vec4(1.0f);
+    normalMappedBrickMaterial.specularTexture = &whiteTexture;
+    normalMappedBrickMaterial.normalTexture = &brickNormalTexture;
+    normalMappedBrickMaterial.specularStrength = 0.2f;
+    normalMappedBrickMaterial.shininess = 24.0f;
+    normalMappedBrickMaterial.useBlinnPhong = true;
+    normalMappedBrickMaterial.useNormalMapping = true;
+    normalMappedBrickMaterial.normalStrength = 1.0f;
+    // Texture2D flips image rows during loading, so this tutorial map needs
+    // its tangent-space green channel restored.
+    normalMappedBrickMaterial.flipNormalY = true;
 
     PhongMaterial &coolMaterial = resourceManager.loadPhongMaterial(
         "sandbox/cool",
@@ -101,7 +126,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 unlitShader,
                 whiteTexture
             );
-    pointLightMarkerMaterial.baseColor = {0.2f, 0.55f, 1.0f, 1.0f};
+    pointLightMarkerMaterial.baseColor = {1.0f, 0.94f, 0.82f, 1.0f};
 
     UnlitMaterial &spotLightMarkerMaterial =
             resourceManager.loadUnlitMaterial(
@@ -154,29 +179,29 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     backWallRenderer.outlineMode = OutlineMode::ScaleFromPivot;
 
     (void)createCube(
-        "Warm Tall Block",
+        "Brick Cube - Flat Normals",
         {
-            .position = {-2.5f, 1.0f, -1.0f},
-            .rotation = {0.0f, 18.0f, 0.0f},
-            .scale = {1.25f, 2.0f, 1.25f}
+            .position = {-1.6f, 1.15f, 0.0f},
+            .rotation = {0.0f, -15.0f, 0.0f},
+            .scale = {2.1f, 2.1f, 2.1f}
         },
-        warmMaterial
+        flatBrickMaterial
     );
 
     (void)createCube(
-        "Textured Block",
+        "Brick Cube - Normal Mapped",
         {
-            .position = {1.8f, 0.75f, -0.8f},
-            .rotation = {0.0f, -25.0f, 0.0f},
-            .scale = {1.5f, 1.5f, 1.5f}
+            .position = {1.6f, 1.15f, 0.0f},
+            .rotation = {0.0f, -15.0f, 0.0f},
+            .scale = {2.1f, 2.1f, 2.1f}
         },
-        boxMaterial
+        normalMappedBrickMaterial
     );
 
     (void)createCube(
         "Floating Cool Block",
         {
-            .position = {0.2f, 2.8f, 1.5f},
+            .position = {0.2f, 3.1f, -3.8f},
             .rotation = {18.0f, 30.0f, 8.0f},
             .scale = {1.0f, 1.0f, 1.0f}
         },
@@ -186,7 +211,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     (void)createCube(
         "Low Cool Block",
         {
-            .position = {3.7f, 0.4f, 2.0f},
+            .position = {4.2f, 0.4f, -3.0f},
             .rotation = {0.0f, 35.0f, 0.0f},
             .scale = {1.4f, 0.8f, 1.4f}
         },
@@ -205,7 +230,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         instanceTransform.position = {
             -4.0f + static_cast<float>(index),
             0.25f + static_cast<float>(index % 3) * 0.15f,
-            3.8f
+            -4.7f
         };
         instanceTransform.rotation.y = static_cast<float>(index) * 12.0f;
         instanceTransform.scale = glm::vec3(0.45f);
@@ -218,7 +243,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
             scene.instantiateModel(bagModel, floorMaterial, "Backpack");
     if (Entity *bagEntity = scene.findEntity(bagId)) {
         bagEntity->getComponent<TransformComponent>().local = {
-            .position = {-0.5f, 0.0f, -3.0f},
+            .position = {-4.2f, 0.0f, -3.0f},
             .rotation = {0.0f, 25.0f, 0.0f},
             .scale = {0.55f, 0.55f, 0.55f}
         };
@@ -239,19 +264,19 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     directionalLight.intensity = 0.75f;
     directionalLight.castShadows = true;
 
-    const glm::vec3 pointLightPosition{2.4f, 3.2f, 1.8f};
-    Entity &pointLightEntity = scene.createEntity("Blue Point Light");
+    const glm::vec3 pointLightPosition{0.0f, 3.8f, 4.2f};
+    Entity &pointLightEntity = scene.createEntity("Normal Map Point Light");
     pointLightEntity.getComponent<TransformComponent>().local.position =
             pointLightPosition;
     PointLightComponent &pointLight =
             pointLightEntity.addComponent<PointLightComponent>();
     pointLight.range = 9.0f;
-    pointLight.color = {0.18f, 0.48f, 1.0f};
-    pointLight.intensity = 5.0f;
+    pointLight.color = {1.0f, 0.94f, 0.82f};
+    pointLight.intensity = 5.5f;
     pointLight.castShadows = true;
 
     (void)createCube(
-        "Blue Point Light Marker",
+        "Normal Map Point Light Marker",
         {
             .position = pointLightPosition,
             .rotation = {0.0f, 0.0f, 0.0f},
@@ -260,12 +285,12 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         pointLightMarkerMaterial
     );
 
-    const glm::vec3 spotLightPosition{-3.8f, 5.0f, 3.0f};
+    const glm::vec3 spotLightPosition{-4.5f, 4.5f, -1.5f};
     Entity &spotLightEntity = scene.createEntity("Red Spot Light");
     Transform &spotLightTransform =
             spotLightEntity.getComponent<TransformComponent>().local;
     spotLightTransform.position = spotLightPosition;
-    spotLightTransform.lookAt({-2.0f, 0.0f, -0.5f});
+    spotLightTransform.lookAt({-4.0f, 0.0f, -4.5f});
     SpotLightComponent &spotLight =
             spotLightEntity.addComponent<SpotLightComponent>();
     spotLight.range = 12.0f;

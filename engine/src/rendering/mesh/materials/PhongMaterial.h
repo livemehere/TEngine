@@ -12,10 +12,14 @@ class PhongMaterial : public Material {
 public:
     const Texture2D& albedoTexture;
     const Texture2D* specularTexture = nullptr;
+    const Texture2D* normalTexture = nullptr;
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
     bool useBlinnPhong = false;
+    bool useNormalMapping = true;
+    bool flipNormalY = false;
+    float normalStrength = 1.0f;
     EnvironmentMappingMode environmentMappingMode =
             EnvironmentMappingMode::Reflection;
     float environmentStrength = 0.0f;

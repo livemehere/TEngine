@@ -57,15 +57,20 @@ layout (std140) uniform DebugData {
 in vec2 vTexCoord;
 in vec3 vNormal;
 in vec3 vPos;
+in mat3 vTBN;
 
 struct Material {
     sampler2D albedo;
     sampler2D specular;
+    sampler2D normalMap;
     int hasSpecularMap;
+    int hasNormalMap;
     vec4 baseColor;
     float shininess;
     float specularStrength;
     int useBlinnPhong;
+    int flipNormalY;
+    float normalStrength;
     int environmentMappingMode;
     float environmentStrength;
     float refractiveIndex;
@@ -205,7 +210,7 @@ float calculatePointShadow(int lightIndex)
     return shadow / float(sampleCount);
 }
 
-vec4 applyDebugView(vec4 shadedColor)
+vec4 applyDebugView(vec4 shadedColor, vec3 surfaceNormal)
 {
     if(debugData.viewMode == 1){
         float depth = -(camera.view * vec4(vPos, 1.0)).z;
@@ -215,11 +220,25 @@ vec4 applyDebugView(vec4 shadedColor)
     }
 
     if(debugData.viewMode == 2){
-        vec3 normal = normalize(vNormal);
-        return vec4(normal * 0.5 + 0.5, 1.0);
+        return vec4(normalize(surfaceNormal) * 0.5 + 0.5, 1.0);
     }
 
     return shadedColor;
+}
+
+vec3 getSurfaceNormal()
+{
+    if(material.hasNormalMap == 0){
+        return normalize(vNormal);
+    }
+
+    vec3 tangentNormal = texture(material.normalMap, vTexCoord).rgb;
+    tangentNormal = tangentNormal * 2.0 - 1.0;
+    tangentNormal.xy *= max(material.normalStrength, 0.0);
+    if(material.flipNormalY != 0){
+        tangentNormal.y = -tangentNormal.y;
+    }
+    return normalize(vTBN * normalize(tangentNormal));
 }
 
 vec3 calculateAmbient(vec3 albedo)
@@ -351,7 +370,7 @@ void main()
     vec3 result = calculateAmbient(albedo);
 
     /** point lights */
-    vec3 normal = normalize(vNormal);
+    vec3 normal = getSurfaceNormal();
     vec3 viewDir = normalize(camera.position.xyz - vPos);
     int pointLightCount = min(lights.lightCounts.y,MAX_POINT_LIGHTS);
     int directionalLightCount = min(lights.lightCounts.x,MAX_DIRECTIONAL_LIGHTS);
@@ -412,5 +431,5 @@ void main()
 
     vec3 fogColor = vec3(0.5, 0.6,0.7);
     vec3 finalColor = mix(result, fogColor, fogAmount);
-    FragColor = applyDebugView(vec4(finalColor, alpha));
+    FragColor = applyDebugView(vec4(finalColor, alpha), normal);
 }

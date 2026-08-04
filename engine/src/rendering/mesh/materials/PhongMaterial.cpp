@@ -4,6 +4,8 @@
 
 namespace {
     constexpr GLuint EnvironmentTextureSlot = 2;
+    // Renderer reserves 3 and 4 for directional and point shadow maps.
+    constexpr GLuint NormalTextureSlot = 5;
 }
 
 void PhongMaterial::bind() const {
@@ -29,6 +31,15 @@ void PhongMaterial::bind() const {
         shader.setInt("material.hasSpecularMap",1);
     }else {
         shader.setInt("material.hasSpecularMap",0);
+    }
+
+    const bool hasNormalMap = normalTexture && useNormalMapping;
+    shader.setInt("material.hasNormalMap", hasNormalMap ? 1 : 0);
+    shader.setFloat("material.normalStrength", normalStrength);
+    shader.setInt("material.flipNormalY", flipNormalY ? 1 : 0);
+    if (hasNormalMap) {
+        normalTexture->bind(NormalTextureSlot);
+        shader.setInt("material.normalMap", NormalTextureSlot);
     }
 }
 

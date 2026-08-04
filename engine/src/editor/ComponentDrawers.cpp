@@ -5,6 +5,7 @@
 #include <cfloat>
 #include <cstdint>
 #include <format>
+#include <iterator>
 #include <span>
 #include <string_view>
 #include <unordered_set>
@@ -310,7 +311,7 @@ namespace {
         return result;
     }
 
-    void drawEnvironmentMappingControls(
+    void drawPhongMaterialControls(
         const std::vector<MeshRendererComponent *> &components,
         ResourceManager &resources
     ) {
@@ -353,6 +354,81 @@ namespace {
         ImGui::TextDisabled(
             "Blinn-Phong uses the halfway vector for specular highlights."
         );
+
+        std::vector<PhongMaterial *> normalMappedMaterials;
+        std::ranges::copy_if(
+            materials,
+            std::back_inserter(normalMappedMaterials),
+            [](const PhongMaterial *material) {
+                return material->normalTexture != nullptr;
+            }
+        );
+
+        if (!normalMappedMaterials.empty()) {
+            ImGui::SeparatorText("Normal Mapping");
+
+            const bool firstEnabled =
+                    normalMappedMaterials.front()->useNormalMapping;
+            const bool enabledMixed = std::ranges::any_of(
+                normalMappedMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->useNormalMapping != firstEnabled;
+                }
+            );
+            bool enabled = firstEnabled;
+            if (enabledMixed) {
+                ImGui::TextUnformatted("Enabled: Mixed");
+            }
+            if (ImGui::Checkbox("Enabled##NormalMapping", &enabled)) {
+                for (PhongMaterial *material : normalMappedMaterials) {
+                    material->useNormalMapping = enabled;
+                }
+            }
+
+            const float firstNormalStrength =
+                    normalMappedMaterials.front()->normalStrength;
+            const bool normalStrengthMixed = std::ranges::any_of(
+                normalMappedMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->normalStrength != firstNormalStrength;
+                }
+            );
+            float normalStrength = firstNormalStrength;
+            if (ImGui::SliderFloat(
+                normalStrengthMixed ? "Strength (Mixed)" : "Strength##Normal",
+                &normalStrength,
+                0.0f,
+                2.0f,
+                "%.2f"
+            )) {
+                for (PhongMaterial *material : normalMappedMaterials) {
+                    material->normalStrength = normalStrength;
+                }
+            }
+
+            const bool firstFlipY =
+                    normalMappedMaterials.front()->flipNormalY;
+            const bool flipYMixed = std::ranges::any_of(
+                normalMappedMaterials,
+                [&](const PhongMaterial *material) {
+                    return material->flipNormalY != firstFlipY;
+                }
+            );
+            bool flipY = firstFlipY;
+            if (flipYMixed) {
+                ImGui::TextUnformatted("Flip Green Channel: Mixed");
+            }
+            if (ImGui::Checkbox("Flip Green Channel", &flipY)) {
+                for (PhongMaterial *material : normalMappedMaterials) {
+                    material->flipNormalY = flipY;
+                }
+            }
+
+            ImGui::TextDisabled(
+                "%zu material(s) with a normal map in this subtree.",
+                normalMappedMaterials.size()
+            );
+        }
 
         const EnvironmentMappingMode firstMode =
                 materials.front()->environmentMappingMode;
@@ -667,7 +743,7 @@ namespace {
         }
 
         drawGeometryDebugControls(components);
-        drawEnvironmentMappingControls(components, resources);
+        drawPhongMaterialControls(components, resources);
     }
 }
 
