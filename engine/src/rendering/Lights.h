@@ -15,6 +15,7 @@ public:
     float range{1.0f};
     glm::vec3 color{1.0f};
     float intensity{1.0f};
+    bool castShadows = true;
 };
 
 class DirectionalLightComponent final : public Component {

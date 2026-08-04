@@ -25,4 +25,9 @@ struct RenderSettings {
     float shadowBiasMin = 0.0005f;
     float shadowBiasSlope = 0.005f;
     int shadowPcfRadius = 1;
+    bool pointShadowsEnabled = true;
+    int pointShadowMapResolution = 1024;
+    float pointShadowBias = 0.05f;
+    float pointShadowSoftness = 0.04f;
+    int pointShadowSampleCount = 20;
 };

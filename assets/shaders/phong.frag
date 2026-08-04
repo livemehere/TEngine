@@ -81,6 +81,27 @@ uniform int uShadowLightIndex;
 uniform float uShadowBiasMin;
 uniform float uShadowBiasSlope;
 uniform int uShadowPcfRadius;
+uniform samplerCube uPointShadowMap;
+uniform int uPointShadowsEnabled;
+uniform int uPointShadowLightIndex;
+uniform vec3 uPointShadowLightPosition;
+uniform float uPointShadowFarPlane;
+uniform float uPointShadowBias;
+uniform float uPointShadowSoftness;
+uniform int uPointShadowSampleCount;
+
+const vec3 pointShadowSampleDirections[20] = vec3[](
+    vec3( 1.0,  1.0,  1.0), vec3( 1.0, -1.0,  1.0),
+    vec3(-1.0, -1.0,  1.0), vec3(-1.0,  1.0,  1.0),
+    vec3( 1.0,  1.0, -1.0), vec3( 1.0, -1.0, -1.0),
+    vec3(-1.0, -1.0, -1.0), vec3(-1.0,  1.0, -1.0),
+    vec3( 1.0,  1.0,  0.0), vec3( 1.0, -1.0,  0.0),
+    vec3(-1.0, -1.0,  0.0), vec3(-1.0,  1.0,  0.0),
+    vec3( 1.0,  0.0,  1.0), vec3(-1.0,  0.0,  1.0),
+    vec3( 1.0,  0.0, -1.0), vec3(-1.0,  0.0, -1.0),
+    vec3( 0.0,  1.0,  1.0), vec3( 0.0, -1.0,  1.0),
+    vec3( 0.0, -1.0, -1.0), vec3( 0.0,  1.0, -1.0)
+);
 
 out vec4 FragColor;
 
@@ -144,6 +165,46 @@ float calculateDirectionalShadow(
     return shadow / max(sampleCount, 1.0);
 }
 
+float calculatePointShadow(int lightIndex)
+{
+    if(uPointShadowsEnabled == 0 ||
+       lightIndex != uPointShadowLightIndex){
+        return 0.0;
+    }
+
+    vec3 fragmentToLight = vPos - uPointShadowLightPosition;
+    float currentDepth = length(fragmentToLight);
+    if(currentDepth <= 0.0 || currentDepth >= uPointShadowFarPlane){
+        return 0.0;
+    }
+
+    int sampleCount = clamp(uPointShadowSampleCount, 1, 20);
+    if(sampleCount == 1){
+        float closestDepth = texture(
+            uPointShadowMap,
+            fragmentToLight
+        ).r * uPointShadowFarPlane;
+        return currentDepth - uPointShadowBias > closestDepth ? 1.0 : 0.0;
+    }
+
+    float viewDistance = length(camera.position.xyz - vPos);
+    float diskRadius = uPointShadowSoftness *
+                       (1.0 + viewDistance / uPointShadowFarPlane);
+    float shadow = 0.0;
+    for(int sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex){
+        float closestDepth = texture(
+            uPointShadowMap,
+            fragmentToLight +
+                pointShadowSampleDirections[sampleIndex] * diskRadius
+        ).r * uPointShadowFarPlane;
+        shadow += currentDepth - uPointShadowBias > closestDepth
+                    ? 1.0
+                    : 0.0;
+    }
+
+    return shadow / float(sampleCount);
+}
+
 vec4 applyDebugView(vec4 shadedColor)
 {
     if(debugData.viewMode == 1){
@@ -198,7 +259,14 @@ vec3 calculateDirectionalLight(
     return (diffuse + specular) * (1.0 - shadow);
 }
 
-vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDir, float specularMask)
+vec3 calculatePointLight(
+    int lightIndex,
+    PointLight light,
+    vec3 albedo,
+    vec3 normal,
+    vec3 viewDir,
+    float specularMask
+)
 {
     /** diffuse */
     vec3 color = light.colorIntensity.rgb;
@@ -225,7 +293,8 @@ vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDi
         specular = color * intensity * attenuation * specularFactor * material.specularStrength * specularMask;
     }
 
-    return diffuse + specular;
+    float shadow = calculatePointShadow(lightIndex);
+    return (diffuse + specular) * (1.0 - shadow);
 }
 
 vec3 calculateSpotLight(SpotLight light, vec3 albedo, vec3 normal, vec3 viewDir, float specularMask)
@@ -305,7 +374,14 @@ void main()
     }
 
     for(int i=0; i<pointLightCount; i++){
-       result += calculatePointLight(lights.pointLights[i], albedo, normal, viewDir, specularMask);
+       result += calculatePointLight(
+           i,
+           lights.pointLights[i],
+           albedo,
+           normal,
+           viewDir,
+           specularMask
+       );
     }
 
     for(int i=0; i< spotLightCount; i++){

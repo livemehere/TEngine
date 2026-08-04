@@ -846,6 +846,7 @@ void registerDefaultComponentDrawers(
         "Point Light",
         [](Scene &, Entity &, PointLightComponent &light) {
             ImGui::Checkbox("Enabled", &light.enabled);
+            ImGui::Checkbox("Cast Shadows", &light.castShadows);
             ImGui::ColorEdit3("Color", &light.color.x);
             ImGui::DragFloat("Intensity", &light.intensity, 0.01f, 0.0f, 100.0f);
             ImGui::DragFloat("Range", &light.range, 0.1f, 0.0f, 100000.0f);

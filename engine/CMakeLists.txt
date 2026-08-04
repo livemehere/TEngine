@@ -47,6 +47,8 @@ add_library(TEngine STATIC
     src/rendering/Lights.h
     src/rendering/PostProcessor.cpp
     src/rendering/PostProcessor.h
+    src/rendering/PointShadowMap.cpp
+    src/rendering/PointShadowMap.h
     src/rendering/RenderExtent.h
     src/rendering/RenderQueue.h
     src/rendering/RenderSettings.h

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <optional>
 
 #include <glm/vec4.hpp>
@@ -11,6 +12,7 @@
 #include "RenderQueue.h"
 #include "RenderSettings.h"
 #include "RenderStats.h"
+#include "PointShadowMap.h"
 #include "ShadowMap.h"
 #include "mesh/MeshRendererComponent.h"
 
@@ -85,7 +87,9 @@ class Renderer {
     const Shader &skyboxShader;
     const Shader &normalDebugShader;
     const Shader &shadowDepthShader;
+    const Shader &pointShadowDepthShader;
     ShadowMap shadowMap;
+    PointShadowMap pointShadowMap;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -102,12 +106,19 @@ class Renderer {
     glm::vec3 currentShadowLightDirection{0.0f, -1.0f, 0.0f};
     int currentShadowLightIndex = -1;
     bool currentShadowAvailable = false;
+    std::array<glm::mat4, 6> currentPointShadowMatrices{};
+    glm::vec3 currentPointShadowLightPosition{0.0f};
+    float currentPointShadowFarPlane = 1.0f;
+    int currentPointShadowLightIndex = -1;
+    bool currentPointShadowAvailable = false;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
     void updateDebugBuffer();
     void updateDirectionalShadow(const Scene& scene);
     void bindDirectionalShadow();
+    void updatePointShadow();
+    void bindPointShadow();
 
     /** passes */
     [[nodiscard]] RenderQueue buildRenderQueue(const Scene& scene, const RenderOptions& options) const;
@@ -117,6 +128,12 @@ class Renderer {
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
     void shadowDepthRenderPass(const RenderQueue& queue);
+    void pointShadowDepthRenderPass(const RenderQueue& queue);
+    void drawShadowCasters(
+        const RenderQueue& queue,
+        const Shader& shader,
+        std::uint64_t triangleMultiplier
+    );
     void meshRenderPass(const glm::mat4& worldMatrix, const Mesh& mesh, const Material& material, bool writeOutlineStencil);
     void skyboxRenderPass();
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);

@@ -348,6 +348,83 @@ void Editor::drawDebug(
             );
         }
 
+        ImGui::SeparatorText("Point Shadows");
+        ImGui::Checkbox(
+            "Enabled##PointShadows",
+            &renderSettings.pointShadowsEnabled
+        );
+        if (renderSettings.pointShadowsEnabled) {
+            constexpr int pointShadowResolutions[] = {256, 512, 1024, 2048};
+            constexpr const char *pointShadowResolutionLabels[] = {
+                "256",
+                "512",
+                "1024",
+                "2048"
+            };
+            int resolutionIndex = 0;
+            for (int index = 0;
+                 index < IM_ARRAYSIZE(pointShadowResolutions);
+                 ++index) {
+                if (renderSettings.pointShadowMapResolution ==
+                    pointShadowResolutions[index]) {
+                    resolutionIndex = index;
+                    break;
+                }
+            }
+
+            GLint maximumTextureSize = 1;
+            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
+            if (ImGui::BeginCombo(
+                "Resolution##PointShadows",
+                pointShadowResolutionLabels[resolutionIndex]
+            )) {
+                for (int index = 0;
+                     index < IM_ARRAYSIZE(pointShadowResolutions);
+                     ++index) {
+                    const bool supported =
+                            pointShadowResolutions[index] <= maximumTextureSize;
+                    ImGui::BeginDisabled(!supported);
+                    if (ImGui::Selectable(
+                        pointShadowResolutionLabels[index],
+                        resolutionIndex == index
+                    )) {
+                        renderSettings.pointShadowMapResolution =
+                                pointShadowResolutions[index];
+                    }
+                    ImGui::EndDisabled();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::DragFloat(
+                "Bias##PointShadows",
+                &renderSettings.pointShadowBias,
+                0.001f,
+                0.0f,
+                1.0f,
+                "%.3f"
+            );
+            ImGui::DragFloat(
+                "Softness##PointShadows",
+                &renderSettings.pointShadowSoftness,
+                0.001f,
+                0.0f,
+                0.5f,
+                "%.3f"
+            );
+            ImGui::SliderInt(
+                "PCF Samples##PointShadows",
+                &renderSettings.pointShadowSampleCount,
+                1,
+                20
+            );
+            ImGui::TextDisabled(
+                "The first enabled point light with Cast Shadows is used."
+            );
+            ImGui::TextDisabled(
+                "The light Range is also the shadow far plane."
+            );
+        }
+
         if (renderSettings.debugView == DebugViewMode::Depth) {
             ImGui::DragFloatRange2(
                 "Depth Range",
