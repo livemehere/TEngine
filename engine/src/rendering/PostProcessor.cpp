@@ -5,6 +5,7 @@
 #include "../graphics/FrameBuffer.h"
 #include "../graphics/Shader.h"
 #include "../resources/ResourceManager.h"
+#include "RenderSettings.h"
 
 namespace {
     void restoreCapability(const GLenum capability, const GLboolean wasEnabled) {
@@ -32,7 +33,11 @@ PostProcessor::~PostProcessor() {
     }
 }
 
-void PostProcessor::render(const FrameBuffer& source, FrameBuffer& destination) {
+void PostProcessor::render(
+    const FrameBuffer& source,
+    FrameBuffer& destination,
+    const RenderSettings& settings
+) {
     if (&source == &destination) {
         throw std::invalid_argument("Post-process source and destination must be different framebuffers");
     }
@@ -65,6 +70,8 @@ void PostProcessor::render(const FrameBuffer& source, FrameBuffer& destination) 
     glClear(GL_COLOR_BUFFER_BIT);
 
     shader.use();
+    shader.setInt("uGammaCorrectionEnabled", settings.gammaCorrection ? 1 : 0);
+    shader.setFloat("uGamma", settings.gamma);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, source.getTextureId());
 

@@ -17,4 +17,6 @@ struct RenderSettings {
     float debugDepthNear = 0.0f;
     float debugDepthFar = 30.0f;
     int msaaSamples = 1;
+    bool gammaCorrection = true;
+    float gamma = 2.2f;
 };

@@ -7,7 +7,20 @@
 
 #include "../thirdparty/stb_image.h"
 
-Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels)
+namespace {
+    GLenum getInternalFormat(const TextureColorSpace colorSpace) {
+        return colorSpace == TextureColorSpace::SRGB
+                   ? GL_SRGB8_ALPHA8
+                   : GL_RGBA8;
+    }
+}
+
+Texture2D::Texture2D(
+    int width,
+    int height,
+    std::span<const uint8_t> pixels,
+    const TextureColorSpace colorSpace
+)
     : width(width), height(height) {
     if (const size_t expectedSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
         pixels.size() != expectedSize) {
@@ -34,7 +47,7 @@ Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels)
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        GL_RGBA8,
+        getInternalFormat(colorSpace),
         width,
         height,
         0,
@@ -44,7 +57,10 @@ Texture2D::Texture2D(int width, int height, std::span<const uint8_t> pixels)
     );
 }
 
-Texture2D::Texture2D(const std::string &filepath) {
+Texture2D::Texture2D(
+    const std::string &filepath,
+    const TextureColorSpace colorSpace
+) {
     stbi_set_flip_vertically_on_load(true);
 
     int channels; // ignore
@@ -71,7 +87,7 @@ Texture2D::Texture2D(const std::string &filepath) {
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        GL_RGBA8,
+        getInternalFormat(colorSpace),
         width,
         height,
         0,
@@ -83,7 +99,10 @@ Texture2D::Texture2D(const std::string &filepath) {
     stbi_image_free(data);
 }
 
-Texture2D::Texture2D(std::span<const std::uint8_t> encodedData) {
+Texture2D::Texture2D(
+    std::span<const std::uint8_t> encodedData,
+    const TextureColorSpace colorSpace
+) {
     if (encodedData.empty()) {
         throw std::invalid_argument("Encoded texture data is empty");
     }
@@ -123,7 +142,7 @@ Texture2D::Texture2D(std::span<const std::uint8_t> encodedData) {
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        GL_RGBA8,
+        getInternalFormat(colorSpace),
         width,
         height,
         0,

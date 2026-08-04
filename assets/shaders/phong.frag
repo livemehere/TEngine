@@ -65,6 +65,7 @@ struct Material {
     vec4 baseColor;
     float shininess;
     float specularStrength;
+    int useBlinnPhong;
     int environmentMappingMode;
     float environmentStrength;
     float refractiveIndex;
@@ -75,6 +76,25 @@ uniform samplerCube uEnvironmentMap;
 uniform int uHasEnvironmentMap;
 
 out vec4 FragColor;
+
+float calculateSpecularFactor(vec3 normal, vec3 lightDir, vec3 viewDir)
+{
+    float specularAngle;
+    if(material.useBlinnPhong != 0){
+        vec3 halfway = lightDir + viewDir;
+        float halfwayLengthSquared = dot(halfway, halfway);
+        if(halfwayLengthSquared <= 0.000001){
+            return 0.0;
+        }
+        halfway *= inversesqrt(halfwayLengthSquared);
+        specularAngle = max(dot(normal, halfway), 0.0);
+    }else{
+        vec3 reflectDir = reflect(-lightDir, normal);
+        specularAngle = max(dot(reflectDir, viewDir), 0.0);
+    }
+
+    return pow(specularAngle, material.shininess);
+}
 
 vec4 applyDebugView(vec4 shadedColor)
 {
@@ -111,9 +131,7 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 albedo, vec3 normal,
 
     vec3 specular = vec3(0.0);
     if(diffuseFactor > 0.0){
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float specularAngle = max(dot(reflectDir, viewDir), 0.0);
-        float specularFactor = pow(specularAngle, material.shininess);
+        float specularFactor = calculateSpecularFactor(normal, lightDir, viewDir);
         specular = color * intensity * specularFactor * material.specularStrength * specularMask;
     }
 
@@ -143,9 +161,7 @@ vec3 calculatePointLight(PointLight light, vec3 albedo, vec3 normal, vec3 viewDi
 
     vec3 specular = vec3(0.0);
     if(diffuseFactor > 0.0){
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float specularAngle = max(dot(viewDir, reflectDir),0.0);
-        float specularFactor = pow(specularAngle, material.shininess);
+        float specularFactor = calculateSpecularFactor(normal, lightDir, viewDir);
         specular = color * intensity * attenuation * specularFactor * material.specularStrength * specularMask;
     }
 
@@ -189,9 +205,7 @@ vec3 calculateSpotLight(SpotLight light, vec3 albedo, vec3 normal, vec3 viewDir,
 
     vec3 specular = vec3(0.0);
     if(diffuseFactor > 0.0){
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float specularAngle = max(dot(reflectDir, viewDir), 0.0);
-        float specularFactor = pow(specularAngle, material.shininess);
+        float specularFactor = calculateSpecularFactor(normal, lightDir, viewDir);
 
         specular = color * intensity * coneFactor * specularFactor * material.specularStrength * specularMask;
     }

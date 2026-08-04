@@ -94,7 +94,11 @@ void Application::run() {
                 postProcessSource = &resolvedSceneFBO;
             }
 
-            postProcessor.render(*postProcessSource, finalFBO);
+            postProcessor.render(
+                *postProcessSource,
+                finalFBO,
+                renderSettings
+            );
         }
 
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});

@@ -5,6 +5,8 @@
 
 #include <glad/glad.h>
 
+#include "TextureColorSpace.h"
+
 class CubeMap {
     GLuint id = 0;
     GLuint vao = 0;
@@ -56,7 +58,10 @@ class CubeMap {
     };
 
 public:
-    CubeMap(std::span<const std::string> faces);
+    CubeMap(
+        std::span<const std::string> faces,
+        TextureColorSpace colorSpace
+    );
     ~CubeMap();
 
     CubeMap(const CubeMap&) = delete;

@@ -320,6 +320,40 @@ namespace {
             return;
         }
 
+        const bool firstUsesBlinnPhong = materials.front()->useBlinnPhong;
+        const bool lightingModelMixed = std::ranges::any_of(
+            materials,
+            [&](const PhongMaterial *material) {
+                return material->useBlinnPhong != firstUsesBlinnPhong;
+            }
+        );
+
+        ImGui::SeparatorText("Specular Lighting");
+        constexpr const char *lightingModelNames[] = {
+            "Phong",
+            "Blinn-Phong"
+        };
+        const int lightingModel = firstUsesBlinnPhong ? 1 : 0;
+        if (ImGui::BeginCombo(
+            "Lighting Model",
+            lightingModelMixed ? "Mixed" : lightingModelNames[lightingModel]
+        )) {
+            for (int index = 0; index < IM_ARRAYSIZE(lightingModelNames); ++index) {
+                if (ImGui::Selectable(
+                    lightingModelNames[index],
+                    !lightingModelMixed && lightingModel == index
+                )) {
+                    for (PhongMaterial *material : materials) {
+                        material->useBlinnPhong = index == 1;
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::TextDisabled(
+            "Blinn-Phong uses the halfway vector for specular highlights."
+        );
+
         const EnvironmentMappingMode firstMode =
                 materials.front()->environmentMappingMode;
         const bool modeMixed = std::ranges::any_of(

@@ -6,15 +6,28 @@
 
 #include <glad/glad.h>
 
+#include "TextureColorSpace.h"
+
 /* RGBA support only for simplicity */
 class Texture2D {
    GLuint id = 0;
    int width = 0;
    int height = 0;
 public:
-   Texture2D(int width, int height, std::span<const uint8_t> pixels);
-   Texture2D(const std::string& filepath);
-   Texture2D(std::span<const std::uint8_t> encodedData);
+   Texture2D(
+       int width,
+       int height,
+       std::span<const uint8_t> pixels,
+       TextureColorSpace colorSpace
+   );
+   Texture2D(
+       const std::string& filepath,
+       TextureColorSpace colorSpace
+   );
+   Texture2D(
+       std::span<const std::uint8_t> encodedData,
+       TextureColorSpace colorSpace
+   );
 
    ~Texture2D() {
       if (id != 0) {

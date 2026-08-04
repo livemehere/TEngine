@@ -6,7 +6,10 @@
 
 #include "../thirdparty/stb_image.h"
 
-CubeMap::CubeMap(std::span<const std::string> faces) {
+CubeMap::CubeMap(
+    std::span<const std::string> faces,
+    const TextureColorSpace colorSpace
+) {
     if (faces.size() != 6) {
         throw std::invalid_argument("Cube map requires exactly six faces");
     }
@@ -46,7 +49,9 @@ CubeMap::CubeMap(std::span<const std::string> faces) {
         glTexImage2D(
             GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<GLenum>(i),
             0,
-            GL_RGBA8,
+            colorSpace == TextureColorSpace::SRGB
+                ? GL_SRGB8_ALPHA8
+                : GL_RGBA8,
             width,
             height,
             0,

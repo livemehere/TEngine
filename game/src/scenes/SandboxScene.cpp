@@ -28,7 +28,10 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     const Texture2D &boxTexture =
             resourceManager.loadTexture("textures/box.png");
     const Texture2D &boxSpecularMapTexture =
-            resourceManager.loadTexture("textures/box_specular_map.png");
+            resourceManager.loadTexture(
+                "textures/box_specular_map.png",
+                TextureColorSpace::Linear
+            );
     const Texture2D &grassTexture =
             resourceManager.loadTexture("textures/grass.png");
     const std::array<std::string, 6> skyboxFaces{

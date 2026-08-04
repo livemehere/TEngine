@@ -15,6 +15,7 @@ void PhongMaterial::bind() const {
     shader.setVec4("material.baseColor",baseColor);
     shader.setFloat("material.shininess",shininess);
     shader.setFloat("material.specularStrength",specularStrength);
+    shader.setInt("material.useBlinnPhong", useBlinnPhong ? 1 : 0);
     shader.setInt(
         "material.environmentMappingMode",
         static_cast<int>(environmentMappingMode)

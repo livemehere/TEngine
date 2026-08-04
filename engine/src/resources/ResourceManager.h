@@ -84,23 +84,29 @@ public:
 
     UnlitMaterial &loadUnlitMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 
-    const Texture2D &loadTexture(const std::string &path);
+    const Texture2D &loadTexture(
+        const std::string &path,
+        TextureColorSpace colorSpace = TextureColorSpace::SRGB
+    );
 
     const Texture2D &loadEncodedTexture(
         const std::string &key,
-        std::span<const std::uint8_t> encodedData
+        std::span<const std::uint8_t> encodedData,
+        TextureColorSpace colorSpace = TextureColorSpace::SRGB
     );
 
     const Texture2D &loadRawTexture(
         const std::string &key,
         int width,
         int height,
-        std::span<const std::uint8_t> rgbaPixels
+        std::span<const std::uint8_t> rgbaPixels,
+        TextureColorSpace colorSpace = TextureColorSpace::SRGB
     );
 
     const CubeMap &loadCubeMap(
         const std::string& key,
-        std::span<const std::string> faces
+        std::span<const std::string> faces,
+        TextureColorSpace colorSpace = TextureColorSpace::SRGB
     );
 
     const Model &loadModel(const std::string &path, bool flipUVs);

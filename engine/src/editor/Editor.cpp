@@ -239,6 +239,25 @@ void Editor::drawDebug(
         }
         ImGui::TextDisabled("Maximum supported samples: %d", maximumSamples);
 
+        ImGui::Checkbox(
+            "Gamma Correction",
+            &renderSettings.gammaCorrection
+        );
+        if (renderSettings.gammaCorrection) {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Gamma",
+                &renderSettings.gamma,
+                0.01f,
+                1.0f,
+                4.0f,
+                "%.2f"
+            );
+        }
+        ImGui::TextDisabled(
+            "Applied once to the final scene image."
+        );
+
         if (renderSettings.debugView == DebugViewMode::Depth) {
             ImGui::DragFloatRange2(
                 "Depth Range",

@@ -350,6 +350,12 @@ const Texture2D *ModelImporter::loadMaterialTexture(
     const aiScene *scene,
     const std::filesystem::path &modelPath
 ) {
+    const TextureColorSpace colorSpace =
+            textureType == aiTextureType_BASE_COLOR ||
+            textureType == aiTextureType_DIFFUSE
+                ? TextureColorSpace::SRGB
+                : TextureColorSpace::Linear;
+
     aiString textureReference;
 
     if (material->GetTexture(
@@ -399,7 +405,8 @@ const Texture2D *ModelImporter::loadMaterialTexture(
             return &resourceManager
                     .loadEncodedTexture(
                         resourceKey,
-                        encodedData
+                        encodedData,
+                        colorSpace
                     );
         }
 
@@ -432,7 +439,8 @@ const Texture2D *ModelImporter::loadMaterialTexture(
             static_cast<int>(
                 embeddedTexture->mHeight
             ),
-            rgbaPixels
+            rgbaPixels,
+            colorSpace
         );
     }
 
@@ -443,6 +451,7 @@ const Texture2D *ModelImporter::loadMaterialTexture(
     ).lexically_normal();
 
     return &resourceManager.loadTexture(
-        texturePath.string()
+        texturePath.string(),
+        colorSpace
     );
 }

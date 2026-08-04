@@ -5,6 +5,7 @@
 class FrameBuffer;
 class ResourceManager;
 class Shader;
+struct RenderSettings;
 
 class PostProcessor {
     GLuint vao = 0;
@@ -17,5 +18,9 @@ public:
     PostProcessor(const PostProcessor&) = delete;
     PostProcessor& operator=(const PostProcessor&) = delete;
 
-    void render(const FrameBuffer& source, FrameBuffer& destination);
+    void render(
+        const FrameBuffer& source,
+        FrameBuffer& destination,
+        const RenderSettings& settings
+    );
 };

@@ -15,6 +15,7 @@ public:
     glm::vec4 baseColor;
     float shininess;
     float specularStrength;
+    bool useBlinnPhong = false;
     EnvironmentMappingMode environmentMappingMode =
             EnvironmentMappingMode::Reflection;
     float environmentStrength = 0.0f;

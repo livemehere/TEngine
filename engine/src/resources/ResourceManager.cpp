@@ -10,6 +10,17 @@
 #include "../rendering/model/ModelImporter.h"
 
 namespace {
+    std::string textureCacheKey(
+        const std::string &sourceKey,
+        const TextureColorSpace colorSpace
+    ) {
+        return sourceKey + (
+            colorSpace == TextureColorSpace::SRGB
+                ? "#srgb"
+                : "#linear"
+        );
+    }
+
     template<typename T>
     void registerResource(
         std::vector<ResourceEntry<T>> &catalog,
@@ -98,7 +109,12 @@ Material *ResourceManager::findMutableMaterial(const Material *material) {
 const Texture2D &ResourceManager::getWhiteTexture() {
     if (!whiteTexture) {
         constexpr std::array<std::uint8_t, 4> pixels{255, 255, 255, 255};
-        whiteTexture = std::make_unique<Texture2D>(1, 1, pixels);
+        whiteTexture = std::make_unique<Texture2D>(
+            1,
+            1,
+            pixels,
+            TextureColorSpace::SRGB
+        );
     }
     return *whiteTexture;
 }
@@ -217,14 +233,19 @@ UnlitMaterial &ResourceManager::loadUnlitMaterial(const std::string &key, const 
     return *it->second;
 }
 
-const Texture2D &ResourceManager::loadTexture(const std::string &path) {
-    const std::string key = resolvePath(path).lexically_normal().string();
+const Texture2D &ResourceManager::loadTexture(
+    const std::string &path,
+    const TextureColorSpace colorSpace
+) {
+    const std::string resolvedPath =
+            resolvePath(path).lexically_normal().string();
+    const std::string key = textureCacheKey(resolvedPath, colorSpace);
 
     if (const auto it = textures.find(key); it != textures.end()) {
         return *it->second;
     }
 
-    auto texture = std::make_unique<Texture2D>(key);
+    auto texture = std::make_unique<Texture2D>(resolvedPath, colorSpace);
 
     auto [it, inserted] = textures.emplace(key, std::move(texture));
 
@@ -233,18 +254,20 @@ const Texture2D &ResourceManager::loadTexture(const std::string &path) {
 
 const Texture2D &ResourceManager::loadEncodedTexture(
     const std::string &key,
-    std::span<const std::uint8_t> encodedData
+    std::span<const std::uint8_t> encodedData,
+    const TextureColorSpace colorSpace
 ) {
-    if (const auto it = textures.find(key);
+    const std::string cacheKey = textureCacheKey(key, colorSpace);
+    if (const auto it = textures.find(cacheKey);
         it != textures.end()) {
         return *it->second;
     }
 
     auto texture =
-            std::make_unique<Texture2D>(encodedData);
+            std::make_unique<Texture2D>(encodedData, colorSpace);
 
     auto [it, inserted] = textures.emplace(
-        key,
+        cacheKey,
         std::move(texture)
     );
 
@@ -255,9 +278,11 @@ const Texture2D &ResourceManager::loadRawTexture(
     const std::string &key,
     int width,
     int height,
-    std::span<const std::uint8_t> rgbaPixels
+    std::span<const std::uint8_t> rgbaPixels,
+    const TextureColorSpace colorSpace
 ) {
-    if (const auto it = textures.find(key);
+    const std::string cacheKey = textureCacheKey(key, colorSpace);
+    if (const auto it = textures.find(cacheKey);
         it != textures.end()) {
         return *it->second;
     }
@@ -265,11 +290,12 @@ const Texture2D &ResourceManager::loadRawTexture(
     auto texture = std::make_unique<Texture2D>(
         width,
         height,
-        rgbaPixels
+        rgbaPixels,
+        colorSpace
     );
 
     auto [it, inserted] = textures.emplace(
-        key,
+        cacheKey,
         std::move(texture)
     );
 
@@ -278,9 +304,11 @@ const Texture2D &ResourceManager::loadRawTexture(
 
 const CubeMap &ResourceManager::loadCubeMap(
     const std::string& key,
-    std::span<const std::string> faces
+    std::span<const std::string> faces,
+    const TextureColorSpace colorSpace
 ) {
-    if (const auto it = cubeMaps.find(key); it != cubeMaps.end()) {
+    const std::string cacheKey = textureCacheKey(key, colorSpace);
+    if (const auto it = cubeMaps.find(cacheKey); it != cubeMaps.end()) {
         return *it->second;
     }
 
@@ -290,8 +318,8 @@ const CubeMap &ResourceManager::loadCubeMap(
         resolvedFaces.push_back(resolvePath(face).lexically_normal().string());
     }
 
-    auto cubeMap = std::make_unique<CubeMap>(resolvedFaces);
-    auto [it, inserted] = cubeMaps.emplace(key, std::move(cubeMap));
+    auto cubeMap = std::make_unique<CubeMap>(resolvedFaces, colorSpace);
+    auto [it, inserted] = cubeMaps.emplace(cacheKey, std::move(cubeMap));
     return *it->second;
 }
 
