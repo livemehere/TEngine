@@ -20,6 +20,7 @@ public:
 
     void render(
         const FrameBuffer& source,
+        const FrameBuffer* bloom,
         FrameBuffer& destination,
         const RenderSettings& settings
     );

@@ -45,6 +45,8 @@ add_library(TEngine STATIC
     src/graphics/TextureColorSpace.h
 
     src/rendering/Lights.h
+    src/rendering/BloomProcessor.cpp
+    src/rendering/BloomProcessor.h
     src/rendering/PostProcessor.cpp
     src/rendering/PostProcessor.h
     src/rendering/PointShadowMap.cpp

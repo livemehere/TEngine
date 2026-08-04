@@ -284,6 +284,38 @@ void Editor::drawDebug(
             "Tone mapping is bypassed for debug views."
         );
 
+        ImGui::Checkbox("Bloom", &renderSettings.bloomEnabled);
+        if (renderSettings.bloomEnabled) {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Threshold",
+                &renderSettings.bloomThreshold,
+                0.01f,
+                0.0f,
+                20.0f,
+                "%.2f"
+            );
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat(
+                "Strength",
+                &renderSettings.bloomStrength,
+                0.01f,
+                0.0f,
+                2.0f,
+                "%.2f"
+            );
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderInt(
+                "Blur Passes",
+                &renderSettings.bloomBlurPasses,
+                0,
+                32
+            );
+        }
+        ImGui::TextDisabled(
+            "Bloom is combined before tone mapping."
+        );
+
         ImGui::Checkbox(
             "Gamma Correction",
             &renderSettings.gammaCorrection

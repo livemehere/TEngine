@@ -25,6 +25,10 @@ struct RenderSettings {
     bool hdrEnabled = true;
     ToneMappingMode toneMapping = ToneMappingMode::Exposure;
     float exposure = 1.0f;
+    bool bloomEnabled = true;
+    float bloomThreshold = 1.0f;
+    float bloomStrength = 0.15f;
+    int bloomBlurPasses = 10;
     bool gammaCorrection = true;
     float gamma = 2.2f;
     bool shadowsEnabled = true;

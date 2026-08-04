@@ -164,6 +164,26 @@ const Shader & ResourceManager::getPostProcessShader() {
 
 }
 
+const Shader &ResourceManager::getBloomExtractShader() {
+    if (!bloomExtractShader) {
+        bloomExtractShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/bloomExtract.frag")
+        );
+    }
+    return *bloomExtractShader;
+}
+
+const Shader &ResourceManager::getGaussianBlurShader() {
+    if (!gaussianBlurShader) {
+        gaussianBlurShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/gaussianBlur.frag")
+        );
+    }
+    return *gaussianBlurShader;
+}
+
 const Shader &ResourceManager::getSkyboxShader() {
     if (!skyboxShader) {
         skyboxShader = std::make_unique<Shader>(

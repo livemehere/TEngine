@@ -33,6 +33,8 @@ class ResourceManager {
     std::unique_ptr<Shader> unlitShader;
     std::unique_ptr<Shader> outlineShader;
     std::unique_ptr<Shader> postProcessShader;
+    std::unique_ptr<Shader> bloomExtractShader;
+    std::unique_ptr<Shader> gaussianBlurShader;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Shader> normalDebugShader;
     std::unique_ptr<Shader> shadowDepthShader;
@@ -77,6 +79,10 @@ public:
     const Shader &getOutlineShader();
 
     const Shader &getPostProcessShader();
+
+    const Shader &getBloomExtractShader();
+
+    const Shader &getGaussianBlurShader();
 
     const Shader &getSkyboxShader();
 

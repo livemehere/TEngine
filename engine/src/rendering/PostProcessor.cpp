@@ -24,6 +24,7 @@ PostProcessor::PostProcessor(ResourceManager &resourceManager) : shader(resource
     glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
     shader.use();
     shader.setInt("uSceneTexture", 0);
+    shader.setInt("uBloomTexture", 1);
     glUseProgram(previousProgram);
 }
 
@@ -35,6 +36,7 @@ PostProcessor::~PostProcessor() {
 
 void PostProcessor::render(
     const FrameBuffer& source,
+    const FrameBuffer* bloom,
     FrameBuffer& destination,
     const RenderSettings& settings
 ) {
@@ -52,14 +54,17 @@ void PostProcessor::render(
     GLint previousProgram = 0;
     GLint previousVertexArray = 0;
     GLint previousActiveTexture = GL_TEXTURE0;
-    GLint previousTexture2D = 0;
+    GLint previousTexture2DSlot0 = 0;
+    GLint previousTexture2DSlot1 = 0;
 
     glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
     glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVertexArray);
     glGetIntegerv(GL_ACTIVE_TEXTURE, &previousActiveTexture);
     glActiveTexture(GL_TEXTURE0);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture2D);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture2DSlot0);
+    glActiveTexture(GL_TEXTURE1);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture2DSlot1);
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
@@ -79,15 +84,22 @@ void PostProcessor::render(
         static_cast<int>(settings.toneMapping)
     );
     shader.setFloat("uExposure", settings.exposure);
+    shader.setInt("uBloomEnabled", bloom != nullptr ? 1 : 0);
+    shader.setFloat("uBloomStrength", settings.bloomStrength);
     shader.setInt("uGammaCorrectionEnabled", settings.gammaCorrection ? 1 : 0);
     shader.setFloat("uGamma", settings.gamma);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, source.getTextureId());
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, bloom != nullptr ? bloom->getTextureId() : 0);
 
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    glBindTexture(GL_TEXTURE_2D, previousTexture2D);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, previousTexture2DSlot1);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, previousTexture2DSlot0);
     glActiveTexture(previousActiveTexture);
     glBindVertexArray(previousVertexArray);
     glUseProgram(previousProgram);

@@ -4,9 +4,12 @@ in vec2 vTexCoord;
 out vec4 FragColor;
 
 uniform sampler2D uSceneTexture;
+uniform sampler2D uBloomTexture;
 uniform int uHdrEnabled;
 uniform int uToneMappingMode;
 uniform float uExposure;
+uniform int uBloomEnabled;
+uniform float uBloomStrength;
 uniform int uGammaCorrectionEnabled;
 uniform float uGamma;
 
@@ -17,6 +20,14 @@ void main()
         vTexCoord
     );
     vec3 sceneColor = max(sceneSample.rgb, vec3(0.0));
+
+    if (uBloomEnabled != 0) {
+        vec3 bloomColor = max(
+            texture(uBloomTexture, vTexCoord).rgb,
+            vec3(0.0)
+        );
+        sceneColor += bloomColor * max(uBloomStrength, 0.0);
+    }
 
     if(uHdrEnabled != 0){
         if(uToneMappingMode == 0){

@@ -11,6 +11,7 @@ Application::Application(GameModule &game)
       input(window),
       resourceManager(ASSET_ROOT),
       renderer(resourceManager),
+      bloomProcessor(resourceManager),
       postProcessor(resourceManager),
       sceneFBO({
           .extent = {1, 1},
@@ -106,8 +107,14 @@ void Application::run() {
                 postProcessSource = &resolvedSceneFBO;
             }
 
+            const FrameBuffer* bloom = bloomProcessor.process(
+                *postProcessSource,
+                renderSettings
+            );
+
             postProcessor.render(
                 *postProcessSource,
+                bloom,
                 finalFBO,
                 renderSettings
             );

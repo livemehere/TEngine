@@ -154,7 +154,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 unlitShader,
                 whiteTexture
             );
-    pointLightMarkerMaterial.baseColor = {1.0f, 0.94f, 0.82f, 1.0f};
+    pointLightMarkerMaterial.baseColor = {8.0f, 7.2f, 5.5f, 1.0f};
 
     UnlitMaterial &spotLightMarkerMaterial =
             resourceManager.loadUnlitMaterial(
@@ -162,7 +162,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 unlitShader,
                 whiteTexture
             );
-    spotLightMarkerMaterial.baseColor = {1.0f, 0.2f, 0.08f, 1.0f};
+    spotLightMarkerMaterial.baseColor = {5.0f, 0.3f, 0.1f, 1.0f};
 
     const auto createCube = [&scene, &cubeMesh](
         const char *name,

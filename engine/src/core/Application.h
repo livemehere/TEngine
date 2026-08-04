@@ -10,6 +10,7 @@
 #include "../scene/ComponentTypeRegistry.h"
 #include "../editor/Editor.h"
 #include "../graphics/FrameBuffer.h"
+#include "../rendering/BloomProcessor.h"
 #include "../rendering/PostProcessor.h"
 
 class GameModule;
@@ -23,6 +24,7 @@ class Application {
 
     RenderSettings renderSettings;
     Renderer renderer;
+    BloomProcessor bloomProcessor;
     PostProcessor postProcessor;
     FrameBuffer sceneFBO;
     FrameBuffer resolvedSceneFBO;
