@@ -2,6 +2,7 @@
 #include "EditorTheme.h"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <limits>
 
@@ -9,6 +10,7 @@
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 #include <ImGuizmo.h>
+#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../core/Input.h"
@@ -16,6 +18,7 @@
 #include "../rendering/model/InstancedModelRendererComponent.h"
 #include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
+#include "../scene/SceneRaycaster.h"
 
 Editor::Editor(
     const ComponentTypeRegistry &componentTypes,
@@ -228,6 +231,12 @@ void Editor::drawDebug(
         ImGui::SeparatorText("Input");
         ImGui::Text("Cursor: %.2f, %.2f", mouseState.screenX, mouseState.screenY);
         ImGui::Text("Delta: %.2f, %.2f", mouseState.deltaX, mouseState.deltaY);
+        if (const std::optional<glm::vec2> scenePosition =
+                sceneViewport.windowToLocal({mouseState.screenX, mouseState.screenY})) {
+            ImGui::Text("Scene Cursor: %.2f, %.2f", scenePosition->x, scenePosition->y);
+        } else {
+            ImGui::TextDisabled("Scene Cursor: Outside");
+        }
         ImGui::Text("Left: %s", mouseState.leftBtnDown ? "Pressed" : "None");
         ImGui::Text("Right: %s", mouseState.rightBtnDown ? "Pressed" : "None");
 
@@ -462,7 +471,8 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
 RenderExtent Editor::drawSceneView(
     Scene &scene,
     GLuint textureId,
-    bool isPlaying
+    bool isPlaying,
+    const MouseState &mouseState
 ) {
     constexpr ImGuiWindowFlags windowFlags =
         ImGuiWindowFlags_NoCollapse |
@@ -551,16 +561,107 @@ RenderExtent Editor::drawSceneView(
 
     if (extent.width > 0 && extent.height > 0) {
         ImGui::Image(textureId, available, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-        drawSelectionGizmo(
-            scene,
-            ImGui::GetItemRectMin(),
-            ImGui::GetItemRectSize(),
+        const ImVec2 imageMin = ImGui::GetItemRectMin();
+        const ImVec2 imageSize = ImGui::GetItemRectSize();
+        const ImVec2 mainViewportPosition = ImGui::GetMainViewport()->Pos;
+        sceneViewport.set(
+            {
+                (imageMin.x - mainViewportPosition.x) * scale.x,
+                (imageMin.y - mainViewportPosition.y) * scale.y
+            },
             extent
         );
+
+        const bool imageHovered = ImGui::IsItemHovered();
+        drawSelectionGizmo(
+            scene,
+            imageMin,
+            imageSize,
+            extent
+        );
+
+        if (!isPlaying &&
+            imageHovered &&
+            mouseState.leftBtnPressed &&
+            !ImGuizmo::IsOver() &&
+            !ImGuizmo::IsUsing()) {
+            pickScene(scene, mouseState);
+        }
     }
 
     ImGui::End();
     return extent;
+}
+
+void Editor::pickScene(Scene &scene, const MouseState &mouseState) {
+    const std::optional<glm::vec2> localPosition =
+            sceneViewport.windowToLocal({mouseState.screenX, mouseState.screenY});
+    Entity *cameraEntity = scene.getActiveCameraEntity();
+    if (!localPosition || !cameraEntity) {
+        return;
+    }
+
+    const glm::vec2 ndc = sceneViewport.localToNdc(*localPosition);
+    const CameraComponent &camera =
+            cameraEntity->getComponent<CameraComponent>();
+    const glm::mat4 cameraWorld = scene.getWorldMatrix(*cameraEntity);
+
+    Transform cameraTransform;
+    glm::mat4 viewMatrix;
+    if (Transform::decompose(cameraWorld, cameraTransform)) {
+        cameraTransform.scale = glm::vec3(1.0f);
+        viewMatrix = glm::inverse(cameraTransform.getLocalMatrix());
+    } else {
+        viewMatrix = glm::inverse(cameraWorld);
+    }
+
+    const glm::mat4 projectionMatrix =
+            camera.getProjectionMatrix(sceneViewport.getExtent());
+    const glm::mat4 inverseViewProjection =
+            glm::inverse(projectionMatrix * viewMatrix);
+
+    glm::vec4 nearPoint = inverseViewProjection *
+                          glm::vec4(ndc.x, ndc.y, -1.0f, 1.0f);
+    glm::vec4 farPoint = inverseViewProjection *
+                         glm::vec4(ndc.x, ndc.y, 1.0f, 1.0f);
+    if (std::abs(nearPoint.w) <= 1e-6f || std::abs(farPoint.w) <= 1e-6f) {
+        return;
+    }
+    nearPoint /= nearPoint.w;
+    farPoint /= farPoint.w;
+
+    const glm::vec3 direction = glm::vec3(farPoint - nearPoint);
+    if (glm::dot(direction, direction) <= 1e-8f) {
+        return;
+    }
+
+    const std::optional<SceneRaycastHit> hit = SceneRaycaster::cast(
+        scene,
+        Ray{
+            .origin = glm::vec3(nearPoint),
+            .direction = glm::normalize(direction)
+        }
+    );
+
+    if (!hit) {
+        selectedEntityId.reset();
+        selectedInstance.reset();
+        return;
+    }
+
+    selectedEntityId = hit->entityId;
+    selectedInstance.reset();
+    if (!hit->instanceId) {
+        return;
+    }
+
+    selectedInstance = InstanceSelection{
+        .entityId = hit->entityId,
+        .instanceId = *hit->instanceId,
+        .rendererType = hit->target == SceneRaycastTarget::MeshInstance
+                            ? InstanceRendererType::Mesh
+                            : InstanceRendererType::Model
+    };
 }
 
 void Editor::drawSelectionGizmo(

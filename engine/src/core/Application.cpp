@@ -42,7 +42,8 @@ void Application::run() {
         const RenderExtent viewport = editor.drawSceneView(
             displayedScene,
             finalFBO.getTextureId(),
-            runtimeScene != nullptr
+            runtimeScene != nullptr,
+            mouseState
         );
         const bool canRenderScene = viewport.width > 0 && viewport.height > 0;
 

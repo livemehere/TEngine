@@ -30,6 +30,7 @@ add_library(TEngine STATIC
     src/editor/EditorTheme.cpp
     src/editor/EditorTheme.h
     src/editor/InstanceSelection.h
+    src/editor/SceneViewport.h
 
     src/graphics/Cubemap.cpp
     src/graphics/CubeMap.h
@@ -86,6 +87,8 @@ add_library(TEngine STATIC
     src/scene/Scene.h
     src/scene/SceneSerializer.cpp
     src/scene/SceneSerializer.h
+    src/scene/SceneRaycaster.cpp
+    src/scene/SceneRaycaster.h
     src/scene/TransformComponent.h
 
     src/thirdparty/stb_image.cpp

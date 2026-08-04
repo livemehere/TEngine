@@ -5,6 +5,7 @@
 
 #include "ComponentDrawerRegistry.h"
 #include "InstanceSelection.h"
+#include "SceneViewport.h"
 #include "../rendering/RenderExtent.h"
 #include "../rendering/RenderSettings.h"
 #include "../rendering/RenderStats.h"
@@ -55,6 +56,7 @@ class Editor {
     std::optional<EntityId> pendingEntityDeletion;
     std::optional<PlayModeRequest> pendingPlayModeRequest;
     GizmoOperation gizmoOperation = GizmoOperation::Translate;
+    SceneViewport sceneViewport;
 
     void drawHierarchy(Scene& scene);
     void drawInspector(Scene& scene);
@@ -76,6 +78,7 @@ class Editor {
         ImVec2 imageSize,
         const RenderExtent &extent
     );
+    void pickScene(Scene &scene, const MouseState &mouseState);
 public:
     Editor(
         const ComponentTypeRegistry &componentTypes,
@@ -92,5 +95,10 @@ public:
         RenderSettings& renderSettings,
         const RenderStats& renderStats
     );
-    RenderExtent drawSceneView(Scene &scene, GLuint textureId, bool isPlaying);
+    RenderExtent drawSceneView(
+        Scene &scene,
+        GLuint textureId,
+        bool isPlaying,
+        const MouseState &mouseState
+    );
 };

@@ -1,5 +1,8 @@
 #include "Mesh.h"
 
+#include <algorithm>
+#include <limits>
+
 #include <glm/vec4.hpp>
 
 namespace {
@@ -13,7 +16,20 @@ namespace {
     }
 }
 
-Mesh::Mesh(std::span<const Vertex> vertices, std::span<const GLuint> indices) : indexCount(static_cast<GLsizei>(indices.size())){
+Mesh::Mesh(std::span<const Vertex> vertices, std::span<const GLuint> sourceIndices)
+    : indexCount(static_cast<GLsizei>(sourceIndices.size())),
+      indices(sourceIndices.begin(), sourceIndices.end()) {
+    positions.reserve(vertices.size());
+    if (!vertices.empty()) {
+        bounds.min = glm::vec3(std::numeric_limits<float>::max());
+        bounds.max = glm::vec3(std::numeric_limits<float>::lowest());
+        for (const Vertex &vertex : vertices) {
+            positions.push_back(vertex.position);
+            bounds.min = glm::min(bounds.min, vertex.position);
+            bounds.max = glm::max(bounds.max, vertex.position);
+        }
+    }
+
     // VAO
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -26,7 +42,7 @@ Mesh::Mesh(std::span<const Vertex> vertices, std::span<const GLuint> indices) : 
     // EBO
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sourceIndices.size() * sizeof(GLuint), sourceIndices.data(), GL_STATIC_DRAW);
 
     // layout
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
