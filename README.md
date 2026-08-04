@@ -67,3 +67,7 @@ stencil
 
 <img width="1908" height="1073" alt="image" src="https://github.com/user-attachments/assets/58a30f73-a6a2-4757-88d5-0057529512ca" />
 
+#### SSAO and result
+
+https://github.com/user-attachments/assets/34e867c0-fd19-4dcc-957a-786a1ce93026
+
