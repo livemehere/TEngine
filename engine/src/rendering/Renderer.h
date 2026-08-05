@@ -13,6 +13,7 @@
 #include "RenderSettings.h"
 #include "RenderStats.h"
 #include "GBuffer.h"
+#include "FrameBufferDebugRenderer.h"
 #include "SSAOProcessor.h"
 #include "PointShadowMap.h"
 #include "ShadowMap.h"
@@ -96,6 +97,7 @@ class Renderer {
     PointShadowMap pointShadowMap;
     GBuffer gBuffer;
     SSAOProcessor ssaoProcessor;
+    FrameBufferDebugRenderer frameBufferDebugRenderer;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -120,6 +122,10 @@ class Renderer {
     float currentPointShadowFarPlane = 1.0f;
     int currentPointShadowLightIndex = -1;
     bool currentPointShadowAvailable = false;
+    const FrameBuffer* currentSSAOTexture = nullptr;
+    float currentCameraNear = 0.1f;
+    float currentCameraFar = 1000.0f;
+    bool currentCameraOrthographic = false;
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
@@ -138,6 +144,7 @@ class Renderer {
     );
     void deferredGeometryPass(const RenderQueue& queue);
     void deferredLightingPass(const FrameBuffer* ssaoTexture);
+    void frameBufferDebugPass();
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
@@ -182,4 +189,7 @@ public:
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
     [[nodiscard]] const RenderStats& getStats() const { return currentStats; }
+    [[nodiscard]] GLuint getFrameBufferDebugTextureId() const {
+        return frameBufferDebugRenderer.getTextureId();
+    }
 };

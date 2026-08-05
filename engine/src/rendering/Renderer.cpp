@@ -123,7 +123,8 @@ Renderer::Renderer(ResourceManager &resourceManager)
       shadowMap(1),
       pointShadowMap(1),
       gBuffer({1, 1}),
-      ssaoProcessor(resourceManager) {
+      ssaoProcessor(resourceManager),
+      frameBufferDebugRenderer(resourceManager) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -167,6 +168,9 @@ void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) 
         .projectionMatrix = glm::mat4(1.0f),
         .position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
     };
+    currentCameraNear = 0.1f;
+    currentCameraFar = 1000.0f;
+    currentCameraOrthographic = false;
 
     if (const Entity *cameraEntity = scene.getActiveCameraEntity()) {
         const CameraComponent &camera = cameraEntity->getComponent<CameraComponent>();
@@ -182,6 +186,19 @@ void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) 
 
         data.projectionMatrix = camera.getProjectionMatrix(size);
         data.position = glm::vec4(glm::vec3(worldMatrix[3]), 1.0f);
+
+        if (std::holds_alternative<OrthoGraphicProjection>(camera.projection)) {
+            const auto &projection =
+                    std::get<OrthoGraphicProjection>(camera.projection);
+            currentCameraNear = projection.near;
+            currentCameraFar = projection.far;
+            currentCameraOrthographic = true;
+        } else {
+            const auto &projection =
+                    std::get<PerspectiveProjection>(camera.projection);
+            currentCameraNear = projection.near;
+            currentCameraFar = projection.far;
+        }
     }
 
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUCameraData), &data);
@@ -282,9 +299,13 @@ void Renderer::updateLightsBuffer(const Scene &scene) {
 }
 
 void Renderer::updateDirectionalShadow(const Scene &scene) {
+    const bool needsDirectionalShadow =
+            currentSettings.debugView == DebugViewMode::Shaded ||
+            currentSettings.frameBufferDebugView ==
+                FrameBufferDebugView::DirectionalShadow;
     currentShadowAvailable =
             currentSettings.shadowsEnabled &&
-            currentSettings.debugView == DebugViewMode::Shaded &&
+            needsDirectionalShadow &&
             currentShadowLightIndex >= 0;
     if (!currentShadowAvailable) {
         return;
@@ -340,9 +361,13 @@ void Renderer::bindDirectionalShadow(const Shader& shader) {
 
 void Renderer::updatePointShadow() {
     constexpr float NearPlane = 0.1f;
+    const bool needsPointShadow =
+            currentSettings.debugView == DebugViewMode::Shaded ||
+            currentSettings.frameBufferDebugView ==
+                FrameBufferDebugView::PointShadow;
     currentPointShadowAvailable =
             currentSettings.pointShadowsEnabled &&
-            currentSettings.debugView == DebugViewMode::Shaded &&
+            needsPointShadow &&
             currentPointShadowLightIndex >= 0 &&
             currentPointShadowFarPlane > NearPlane;
     if (!currentPointShadowAvailable) {
@@ -447,6 +472,8 @@ void Renderer::beginFrame(
 ) {
     currentSettings = settings;
     currentStats = {};
+    currentSSAOTexture = nullptr;
+    frameBufferDebugRenderer.reset();
     currentRenderExtent = size;
     GLint targetFramebuffer = 0;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &targetFramebuffer);
@@ -1084,6 +1111,83 @@ void Renderer::deferredLightingPass(const FrameBuffer* ssaoTexture) {
     );
 }
 
+void Renderer::frameBufferDebugPass() {
+    const FrameBufferDebugView mode = currentSettings.frameBufferDebugView;
+    if (mode == FrameBufferDebugView::Off) {
+        return;
+    }
+
+    const bool deferredSource =
+            mode >= FrameBufferDebugView::GBufferPosition &&
+            mode <= FrameBufferDebugView::SSAOBlurred;
+    if (deferredSource &&
+        currentSettings.renderingPath != RenderingPath::Deferred) {
+        return;
+    }
+
+    // Keep valid textures bound to both sampler types. Some macOS OpenGL
+    // drivers validate every active sampler even when its branch is unused.
+    GLuint texture2D = gBuffer.getPositionTextureId();
+    GLuint cubeTexture = pointShadowMap.getTextureId();
+    switch (mode) {
+        case FrameBufferDebugView::Off:
+            return;
+        case FrameBufferDebugView::GBufferPosition:
+            texture2D = gBuffer.getPositionTextureId();
+            break;
+        case FrameBufferDebugView::GBufferNormal:
+            texture2D = gBuffer.getNormalTextureId();
+            break;
+        case FrameBufferDebugView::GBufferAlbedo:
+        case FrameBufferDebugView::GBufferSpecular:
+            texture2D = gBuffer.getAlbedoSpecTextureId();
+            break;
+        case FrameBufferDebugView::GBufferDepth:
+            texture2D = gBuffer.getDepthStencilTextureId();
+            break;
+        case FrameBufferDebugView::SSAORaw:
+            if (!currentSSAOTexture) {
+                return;
+            }
+            texture2D = ssaoProcessor.getRawTextureId();
+            break;
+        case FrameBufferDebugView::SSAOBlurred:
+            if (!currentSSAOTexture) {
+                return;
+            }
+            texture2D = ssaoProcessor.getBlurredTextureId();
+            break;
+        case FrameBufferDebugView::DirectionalShadow:
+            if (!currentShadowAvailable) {
+                return;
+            }
+            texture2D = shadowMap.getTextureId();
+            break;
+        case FrameBufferDebugView::PointShadow:
+            if (!currentPointShadowAvailable) {
+                return;
+            }
+            cubeTexture = pointShadowMap.getTextureId();
+            break;
+    }
+
+    if (frameBufferDebugRenderer.render({
+        .mode = mode,
+        .texture2D = texture2D,
+        .cubeTexture = cubeTexture,
+        .extent = currentRenderExtent,
+        .cameraNear = currentCameraNear,
+        .cameraFar = currentCameraFar,
+        .depthRangeNear = currentSettings.debugDepthNear,
+        .depthRangeFar = currentSettings.debugDepthFar,
+        .orthographic = currentCameraOrthographic,
+        .cubeFace = currentSettings.pointShadowDebugFace
+    })) {
+        ++currentStats.drawCalls;
+        ++currentStats.frameBufferDebugDrawCalls;
+    }
+}
+
 void Renderer::normalDebugRenderPass(const RenderQueue &queue) {
     if (queue.normalDebug.empty()) {
         return;
@@ -1375,6 +1479,7 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
             currentStats.drawCalls += 2;
             currentStats.ssaoDrawCalls += 2;
         }
+        currentSSAOTexture = ssaoTexture;
         deferredLightingPass(ssaoTexture);
 
         const bool isGBufferDebugView =
@@ -1405,4 +1510,5 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 }
 
 void Renderer::endFrame() {
+    frameBufferDebugPass();
 }

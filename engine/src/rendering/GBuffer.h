@@ -9,7 +9,7 @@ class GBuffer {
     GLuint positionTexture = 0;
     GLuint normalTexture = 0;
     GLuint albedoSpecTexture = 0;
-    GLuint depthStencilRBO = 0;
+    GLuint depthStencilTexture = 0;
     int width = 0;
     int height = 0;
 
@@ -24,6 +24,18 @@ public:
 
     [[nodiscard]] GLuint getPositionTextureId() const {
         return positionTexture;
+    }
+
+    [[nodiscard]] GLuint getNormalTextureId() const {
+        return normalTexture;
+    }
+
+    [[nodiscard]] GLuint getAlbedoSpecTextureId() const {
+        return albedoSpecTexture;
+    }
+
+    [[nodiscard]] GLuint getDepthStencilTextureId() const {
+        return depthStencilTexture;
     }
 
     void resize(RenderExtent extent);

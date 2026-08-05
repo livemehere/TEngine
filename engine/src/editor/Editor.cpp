@@ -20,6 +20,29 @@
 #include "../scene/Scene.h"
 #include "../scene/SceneRaycaster.h"
 
+namespace {
+constexpr const char *frameBufferDebugViewNames[] = {
+    "Off",
+    "G-buffer Position",
+    "G-buffer Normal",
+    "G-buffer Albedo",
+    "G-buffer Specular",
+    "G-buffer Depth",
+    "SSAO Raw",
+    "SSAO Blurred",
+    "Directional Shadow",
+    "Point Shadow"
+};
+
+const char *getFrameBufferDebugViewName(const FrameBufferDebugView view) {
+    const int index = static_cast<int>(view);
+    if (index < 0 || index >= IM_ARRAYSIZE(frameBufferDebugViewNames)) {
+        return "Framebuffer";
+    }
+    return frameBufferDebugViewNames[index];
+}
+}
+
 Editor::Editor(
     const ComponentTypeRegistry &componentTypes,
     ResourceManager &resources
@@ -202,6 +225,12 @@ void Editor::drawDebug(
                 static_cast<unsigned long long>(renderStats.ssaoDrawCalls)
             );
         }
+        ImGui::Text(
+            "Framebuffer Debug Calls: %llu",
+            static_cast<unsigned long long>(
+                renderStats.frameBufferDebugDrawCalls
+            )
+        );
         const std::uint64_t estimatedSavedCalls =
                 renderStats.instanceCount > renderStats.instancedDrawCalls
                     ? renderStats.instanceCount - renderStats.instancedDrawCalls
@@ -255,6 +284,83 @@ void Editor::drawDebug(
             renderSettings.debugView =
                     static_cast<DebugViewMode>(debugView);
         }
+
+        ImGui::SeparatorText("Framebuffer Preview");
+        int frameBufferDebugView =
+                static_cast<int>(renderSettings.frameBufferDebugView);
+        if (ImGui::BeginCombo(
+            "Attachment",
+            getFrameBufferDebugViewName(
+                renderSettings.frameBufferDebugView
+            )
+        )) {
+            for (int index = 0;
+                 index < IM_ARRAYSIZE(frameBufferDebugViewNames);
+                 ++index) {
+                const auto candidate =
+                        static_cast<FrameBufferDebugView>(index);
+                const bool needsDeferred =
+                        candidate >= FrameBufferDebugView::GBufferPosition &&
+                        candidate <= FrameBufferDebugView::SSAOBlurred;
+                bool supported =
+                        !needsDeferred ||
+                        renderSettings.renderingPath == RenderingPath::Deferred;
+                if (candidate == FrameBufferDebugView::SSAORaw ||
+                    candidate == FrameBufferDebugView::SSAOBlurred) {
+                    supported = supported && renderSettings.ssaoEnabled;
+                } else if (candidate ==
+                           FrameBufferDebugView::DirectionalShadow) {
+                    supported = renderSettings.shadowsEnabled;
+                } else if (candidate ==
+                           FrameBufferDebugView::PointShadow) {
+                    supported = renderSettings.pointShadowsEnabled;
+                }
+                ImGui::BeginDisabled(!supported);
+                if (ImGui::Selectable(
+                    frameBufferDebugViewNames[index],
+                    frameBufferDebugView == index
+                )) {
+                    frameBufferDebugView = index;
+                    renderSettings.frameBufferDebugView = candidate;
+                }
+                ImGui::EndDisabled();
+            }
+            ImGui::EndCombo();
+        }
+        if (renderSettings.renderingPath == RenderingPath::Forward &&
+            renderSettings.frameBufferDebugView >=
+                FrameBufferDebugView::GBufferPosition &&
+            renderSettings.frameBufferDebugView <=
+                FrameBufferDebugView::SSAOBlurred) {
+            renderSettings.frameBufferDebugView =
+                    FrameBufferDebugView::Off;
+        }
+        if (renderSettings.frameBufferDebugView !=
+            FrameBufferDebugView::Off) {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderFloat(
+                "Size",
+                &renderSettings.frameBufferDebugScale,
+                0.15f,
+                0.5f,
+                "%.2f"
+            );
+        }
+        if (renderSettings.frameBufferDebugView ==
+            FrameBufferDebugView::PointShadow) {
+            constexpr const char *cubeFaceNames[] = {
+                "+X", "-X", "+Y", "-Y", "+Z", "-Z"
+            };
+            ImGui::Combo(
+                "Cubemap Face",
+                &renderSettings.pointShadowDebugFace,
+                cubeFaceNames,
+                IM_ARRAYSIZE(cubeFaceNames)
+            );
+        }
+        ImGui::TextDisabled(
+            "Displays the selected attachment over the Scene view."
+        );
 
         bool wireframe = renderSettings.rasterization ==
                          RasterizationMode::Wireframe;
@@ -592,7 +698,9 @@ void Editor::drawDebug(
             );
         }
 
-        if (renderSettings.debugView == DebugViewMode::Depth) {
+        if (renderSettings.debugView == DebugViewMode::Depth ||
+            renderSettings.frameBufferDebugView ==
+                FrameBufferDebugView::GBufferDepth) {
             ImGui::DragFloatRange2(
                 "Depth Range",
                 &renderSettings.debugDepthNear,
@@ -852,6 +960,8 @@ void Editor::drawInsertionSlot(std::optional<EntityId> id, size_t insertIndex) {
 RenderExtent Editor::drawSceneView(
     Scene &scene,
     GLuint textureId,
+    GLuint frameBufferDebugTextureId,
+    const RenderSettings &renderSettings,
     bool isPlaying,
     const MouseState &mouseState
 ) {
@@ -960,6 +1070,69 @@ RenderExtent Editor::drawSceneView(
             imageSize,
             extent
         );
+
+        if (frameBufferDebugTextureId != 0 &&
+            renderSettings.frameBufferDebugView !=
+                FrameBufferDebugView::Off) {
+            const float maximumWidth = std::max(imageSize.x - 24.0f, 1.0f);
+            float previewWidth = std::min(
+                std::max(
+                    imageSize.x * renderSettings.frameBufferDebugScale,
+                    140.0f
+                ),
+                maximumWidth
+            );
+            float previewHeight = previewWidth *
+                                  imageSize.y /
+                                  std::max(imageSize.x, 1.0f);
+            const float maximumHeight = imageSize.y * 0.5f;
+            if (previewHeight > maximumHeight) {
+                previewHeight = maximumHeight;
+                previewWidth = previewHeight *
+                               imageSize.x /
+                               std::max(imageSize.y, 1.0f);
+            }
+
+            const ImVec2 previewMin{
+                imageMin.x + imageSize.x - previewWidth - 12.0f,
+                imageMin.y + 12.0f
+            };
+            const ImVec2 previewMax{
+                previewMin.x + previewWidth,
+                previewMin.y + previewHeight
+            };
+            ImDrawList *drawList = ImGui::GetWindowDrawList();
+            drawList->AddImage(
+                frameBufferDebugTextureId,
+                previewMin,
+                previewMax,
+                ImVec2(0.0f, 1.0f),
+                ImVec2(1.0f, 0.0f)
+            );
+            drawList->AddRect(
+                previewMin,
+                previewMax,
+                IM_COL32(220, 225, 235, 220),
+                2.0f,
+                0,
+                1.0f
+            );
+
+            const float labelHeight = ImGui::GetTextLineHeight() + 8.0f;
+            drawList->AddRectFilled(
+                previewMin,
+                ImVec2(previewMax.x, previewMin.y + labelHeight),
+                IM_COL32(10, 13, 18, 205),
+                2.0f
+            );
+            drawList->AddText(
+                ImVec2(previewMin.x + 6.0f, previewMin.y + 4.0f),
+                IM_COL32(235, 238, 245, 255),
+                getFrameBufferDebugViewName(
+                    renderSettings.frameBufferDebugView
+                )
+            );
+        }
 
         if (!isPlaying &&
             imageHovered &&

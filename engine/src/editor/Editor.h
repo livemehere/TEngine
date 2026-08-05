@@ -98,6 +98,8 @@ public:
     RenderExtent drawSceneView(
         Scene &scene,
         GLuint textureId,
+        GLuint frameBufferDebugTextureId,
+        const RenderSettings &renderSettings,
         bool isPlaying,
         const MouseState &mouseState
     );

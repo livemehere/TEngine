@@ -244,6 +244,16 @@ const Shader &ResourceManager::getSSAOBlurShader() {
     return *ssaoBlurShader;
 }
 
+const Shader &ResourceManager::getFrameBufferDebugShader() {
+    if (!frameBufferDebugShader) {
+        frameBufferDebugShader = std::make_unique<Shader>(
+            resolvePath("shaders/postProcess.vert"),
+            resolvePath("shaders/framebufferDebug.frag")
+        );
+    }
+    return *frameBufferDebugShader;
+}
+
 const Shader &ResourceManager::getSkyboxShader() {
     if (!skyboxShader) {
         skyboxShader = std::make_unique<Shader>(

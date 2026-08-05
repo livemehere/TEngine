@@ -56,6 +56,8 @@ void Application::run() {
         const RenderExtent viewport = editor.drawSceneView(
             displayedScene,
             finalFBO.getTextureId(),
+            renderer.getFrameBufferDebugTextureId(),
+            renderSettings,
             runtimeScene != nullptr,
             mouseState
         );

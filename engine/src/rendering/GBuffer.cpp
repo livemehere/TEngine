@@ -46,7 +46,7 @@ GBuffer::GBuffer(const RenderExtent extent)
     glGenTextures(1, &positionTexture);
     glGenTextures(1, &normalTexture);
     glGenTextures(1, &albedoSpecTexture);
-    glGenRenderbuffers(1, &depthStencilRBO);
+    glGenTextures(1, &depthStencilTexture);
 
     try {
         allocateAttachments();
@@ -55,7 +55,7 @@ GBuffer::GBuffer(const RenderExtent extent)
         glDeleteTextures(1, &positionTexture);
         glDeleteTextures(1, &normalTexture);
         glDeleteTextures(1, &albedoSpecTexture);
-        glDeleteRenderbuffers(1, &depthStencilRBO);
+        glDeleteTextures(1, &depthStencilTexture);
         throw;
     }
 }
@@ -65,18 +65,16 @@ GBuffer::~GBuffer() {
     glDeleteTextures(1, &positionTexture);
     glDeleteTextures(1, &normalTexture);
     glDeleteTextures(1, &albedoSpecTexture);
-    glDeleteRenderbuffers(1, &depthStencilRBO);
+    glDeleteTextures(1, &depthStencilTexture);
 }
 
 void GBuffer::allocateAttachments() {
     GLint previousDrawFramebuffer = 0;
     GLint previousReadFramebuffer = 0;
     GLint previousTexture = 0;
-    GLint previousRenderbuffer = 0;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
-    glGetIntegerv(GL_RENDERBUFFER_BINDING, &previousRenderbuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, id);
     allocateColorTexture(
@@ -105,30 +103,38 @@ void GBuffer::allocateAttachments() {
     };
     glDrawBuffers(3, attachments);
 
-    glBindRenderbuffer(GL_RENDERBUFFER, depthStencilRBO);
-    glRenderbufferStorage(
-        GL_RENDERBUFFER,
+    glBindTexture(GL_TEXTURE_2D, depthStencilTexture);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
         GL_DEPTH24_STENCIL8,
         width,
-        height
+        height,
+        0,
+        GL_DEPTH_STENCIL,
+        GL_UNSIGNED_INT_24_8,
+        nullptr
     );
-    glFramebufferRenderbuffer(
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_DEPTH_STENCIL_ATTACHMENT,
-        GL_RENDERBUFFER,
-        depthStencilRBO
+        GL_TEXTURE_2D,
+        depthStencilTexture,
+        0
     );
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         glBindTexture(GL_TEXTURE_2D, previousTexture);
-        glBindRenderbuffer(GL_RENDERBUFFER, previousRenderbuffer);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFramebuffer);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFramebuffer);
         throw std::runtime_error("G-buffer incomplete");
     }
 
     glBindTexture(GL_TEXTURE_2D, previousTexture);
-    glBindRenderbuffer(GL_RENDERBUFFER, previousRenderbuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFramebuffer);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFramebuffer);
 }

@@ -127,7 +127,10 @@ const FrameBuffer* SSAOProcessor::process(
 ) {
     const bool needsSSAO =
             settings.debugView == DebugViewMode::Shaded ||
-            settings.debugView == DebugViewMode::SSAO;
+            settings.debugView == DebugViewMode::SSAO ||
+            settings.frameBufferDebugView == FrameBufferDebugView::SSAORaw ||
+            settings.frameBufferDebugView ==
+                FrameBufferDebugView::SSAOBlurred;
     if (!settings.ssaoEnabled || !needsSSAO) {
         return nullptr;
     }

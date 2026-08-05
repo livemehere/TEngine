@@ -35,4 +35,12 @@ public:
         const RenderSettings& settings,
         RenderExtent extent
     );
+
+    [[nodiscard]] GLuint getRawTextureId() const {
+        return ssaoBuffer.getTextureId();
+    }
+
+    [[nodiscard]] GLuint getBlurredTextureId() const {
+        return blurBuffer.getTextureId();
+    }
 };

@@ -10,6 +10,19 @@ enum class DebugViewMode : int {
     SSAO
 };
 
+enum class FrameBufferDebugView : int {
+    Off = 0,
+    GBufferPosition,
+    GBufferNormal,
+    GBufferAlbedo,
+    GBufferSpecular,
+    GBufferDepth,
+    SSAORaw,
+    SSAOBlurred,
+    DirectionalShadow,
+    PointShadow
+};
+
 enum class RasterizationMode : int {
     Fill = 0,
     Wireframe
@@ -27,6 +40,9 @@ enum class ToneMappingMode : int {
 
 struct RenderSettings {
     DebugViewMode debugView = DebugViewMode::Shaded;
+    FrameBufferDebugView frameBufferDebugView = FrameBufferDebugView::Off;
+    float frameBufferDebugScale = 0.3f;
+    int pointShadowDebugFace = 0;
     RenderingPath renderingPath = RenderingPath::Deferred;
     RasterizationMode rasterization = RasterizationMode::Fill;
     float debugDepthNear = 0.0f;
