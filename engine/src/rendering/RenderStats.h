@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "GpuProfiler.h"
+
 struct RenderStats {
     std::uint64_t drawCalls = 0;
     std::uint64_t instancedDrawCalls = 0;
@@ -14,4 +16,5 @@ struct RenderStats {
     std::uint64_t ssaoDrawCalls = 0;
     std::uint64_t frameBufferDebugDrawCalls = 0;
     std::uint64_t textDrawCalls = 0;
+    GpuTimings gpuTimings;
 };

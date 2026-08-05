@@ -6,6 +6,7 @@ class ShadowMap {
     GLuint framebuffer = 0;
     GLuint depthTexture = 0;
     int resolution = 0;
+    int maximumResolution = 1;
 
     void allocate();
 

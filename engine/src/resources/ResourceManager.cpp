@@ -349,7 +349,6 @@ const Shader &ResourceManager::getPointShadowDepthShader() {
     if (!pointShadowDepthShader) {
         pointShadowDepthShader = std::make_unique<Shader>(
             resolvePath("shaders/pointShadowDepth.vert"),
-            resolvePath("shaders/pointShadowDepth.geom"),
             resolvePath("shaders/pointShadowDepth.frag")
         );
     }

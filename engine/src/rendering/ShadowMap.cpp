@@ -5,6 +5,8 @@
 
 ShadowMap::ShadowMap(const int initialResolution)
     : resolution(std::max(1, initialResolution)) {
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumResolution);
+    resolution = std::clamp(resolution, 1, maximumResolution);
     glGenFramebuffers(1, &framebuffer);
     glGenTextures(1, &depthTexture);
 
@@ -27,15 +29,12 @@ ShadowMap::~ShadowMap() {
 }
 
 void ShadowMap::allocate() {
-    GLint maximumTextureSize = 1;
     GLint previousTexture = 0;
     GLint previousDrawFramebuffer = 0;
     GLint previousReadFramebuffer = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
-    resolution = std::clamp(resolution, 1, maximumTextureSize);
 
     glBindTexture(GL_TEXTURE_2D, depthTexture);
     glTexImage2D(
@@ -80,12 +79,10 @@ void ShadowMap::allocate() {
 }
 
 void ShadowMap::resize(const int newResolution) {
-    GLint maximumTextureSize = 1;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
     const int supportedResolution = std::clamp(
         newResolution,
         1,
-        maximumTextureSize
+        maximumResolution
     );
     if (resolution == supportedResolution) {
         return;

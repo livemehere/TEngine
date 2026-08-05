@@ -24,6 +24,17 @@ namespace {
     float lerp(const float from, const float to, const float amount) {
         return from + amount * (to - from);
     }
+
+    RenderExtent scaledExtent(
+        const RenderExtent extent,
+        const float scale
+    ) {
+        const float clampedScale = std::clamp(scale, 0.125f, 1.0f);
+        return {
+            std::max(1, static_cast<int>(extent.width * clampedScale)),
+            std::max(1, static_cast<int>(extent.height * clampedScale))
+        };
+    }
 }
 
 SSAOProcessor::SSAOProcessor(ResourceManager& resourceManager)
@@ -158,8 +169,12 @@ const FrameBuffer* SSAOProcessor::process(
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTextures[slot]);
     }
 
-    ssaoBuffer.resize(extent);
-    blurBuffer.resize(extent);
+    const RenderExtent renderExtent = scaledExtent(
+        extent,
+        settings.ssaoResolutionScale
+    );
+    ssaoBuffer.resize(renderExtent);
+    blurBuffer.resize(renderExtent);
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
@@ -172,6 +187,10 @@ const FrameBuffer* SSAOProcessor::process(
     ssaoShader.setInt(
         "uSampleCount",
         std::clamp(settings.ssaoSampleCount, 1, 64)
+    );
+    ssaoShader.setFloat(
+        "uResolutionScale",
+        std::clamp(settings.ssaoResolutionScale, 0.125f, 1.0f)
     );
     ssaoShader.setFloat("uRadius", std::max(settings.ssaoRadius, 0.001f));
     ssaoShader.setFloat("uBias", std::max(settings.ssaoBias, 0.0f));

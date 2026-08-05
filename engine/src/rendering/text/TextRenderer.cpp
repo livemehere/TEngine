@@ -13,16 +13,6 @@
 #include "../../scene/Scene.h"
 #include "../../scene/TransformComponent.h"
 
-namespace {
-    void restoreCapability(const GLenum capability, const GLboolean enabled) {
-        if (enabled == GL_TRUE) {
-            glEnable(capability);
-        } else {
-            glDisable(capability);
-        }
-    }
-}
-
 TextRenderer::TextRenderer(ResourceManager &resources)
     : font(resources.getDefaultFont()),
       shader(resources.getTextShader()) {
@@ -149,37 +139,6 @@ bool TextRenderer::draw(
         return false;
     }
 
-    const GLboolean previousBlend = glIsEnabled(GL_BLEND);
-    const GLboolean previousDepthTest = glIsEnabled(GL_DEPTH_TEST);
-    const GLboolean previousCullFace = glIsEnabled(GL_CULL_FACE);
-    const GLboolean previousStencilTest = glIsEnabled(GL_STENCIL_TEST);
-    GLboolean previousDepthMask = GL_TRUE;
-    GLint previousDepthFunc = GL_LESS;
-    GLint previousPolygonMode[2]{GL_FILL, GL_FILL};
-    GLint previousProgram = 0;
-    GLint previousVertexArray = 0;
-    GLint previousArrayBuffer = 0;
-    GLint previousActiveTexture = GL_TEXTURE0;
-    GLint previousTextureSlot0 = 0;
-    GLint previousBlendSourceRGB = GL_ONE;
-    GLint previousBlendDestinationRGB = GL_ZERO;
-    GLint previousBlendSourceAlpha = GL_ONE;
-    GLint previousBlendDestinationAlpha = GL_ZERO;
-
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
-    glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunc);
-    glGetIntegerv(GL_POLYGON_MODE, previousPolygonMode);
-    glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVertexArray);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &previousArrayBuffer);
-    glGetIntegerv(GL_ACTIVE_TEXTURE, &previousActiveTexture);
-    glGetIntegerv(GL_BLEND_SRC_RGB, &previousBlendSourceRGB);
-    glGetIntegerv(GL_BLEND_DST_RGB, &previousBlendDestinationRGB);
-    glGetIntegerv(GL_BLEND_SRC_ALPHA, &previousBlendSourceAlpha);
-    glGetIntegerv(GL_BLEND_DST_ALPHA, &previousBlendDestinationAlpha);
-    glActiveTexture(GL_TEXTURE0);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTextureSlot0);
-
     const GLsizeiptr requiredBytes = static_cast<GLsizeiptr>(
         vertices.size() * sizeof(Vertex)
     );
@@ -211,25 +170,10 @@ bool TextRenderer::draw(
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
     glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, previousTextureSlot0);
-    glActiveTexture(previousActiveTexture);
-    glUseProgram(previousProgram);
-    glBindVertexArray(previousVertexArray);
-    glBindBuffer(GL_ARRAY_BUFFER, previousArrayBuffer);
-    glDepthMask(previousDepthMask);
-    glDepthFunc(previousDepthFunc);
-    glPolygonMode(GL_FRONT, previousPolygonMode[0]);
-    glPolygonMode(GL_BACK, previousPolygonMode[1]);
-    glBlendFuncSeparate(
-        previousBlendSourceRGB,
-        previousBlendDestinationRGB,
-        previousBlendSourceAlpha,
-        previousBlendDestinationAlpha
-    );
-    restoreCapability(GL_BLEND, previousBlend);
-    restoreCapability(GL_DEPTH_TEST, previousDepthTest);
-    restoreCapability(GL_CULL_FACE, previousCullFace);
-    restoreCapability(GL_STENCIL_TEST, previousStencilTest);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
     return true;
 }
 

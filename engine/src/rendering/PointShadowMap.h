@@ -6,6 +6,7 @@ class PointShadowMap {
     GLuint framebuffer = 0;
     GLuint depthCubemap = 0;
     int resolution = 0;
+    int maximumResolution = 1;
 
     void allocate();
 
@@ -17,7 +18,7 @@ public:
     PointShadowMap &operator=(const PointShadowMap &) = delete;
 
     void resize(int newResolution);
-    void bindForWriting() const;
+    void bindFaceForWriting(int face) const;
     void bindTexture(GLuint slot) const;
 
     [[nodiscard]] int getResolution() const { return resolution; }

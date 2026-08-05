@@ -23,6 +23,7 @@
 class ResourceManager;
 class Shader;
 class CubeMap;
+class GpuProfiler;
 
 constexpr std::size_t MAX_POINT_LIGHTS = 16;
 constexpr std::size_t MAX_DIRECTIONAL_LIGHTS = 4;
@@ -95,6 +96,7 @@ class Renderer {
     const Shader &deferredLightingShader;
     const Shader &shadowDepthShader;
     const Shader &pointShadowDepthShader;
+    GpuProfiler &gpuProfiler;
     ShadowMap shadowMap;
     PointShadowMap pointShadowMap;
     GBuffer gBuffer;
@@ -166,7 +168,7 @@ class Renderer {
     void drawMeshOutline(const glm::mat4& worldMatrix, const Mesh& mesh, OutlineMode outlineMode, float width);
 
 public:
-    explicit Renderer(ResourceManager &resourceManager);
+    Renderer(ResourceManager &resourceManager, GpuProfiler &gpuProfiler);
     ~Renderer() {
         if (cameraUBO != 0) {
             glDeleteBuffers(1, &cameraUBO);
@@ -195,7 +197,7 @@ public:
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
     void renderCanvas(const Scene& scene, RenderExtent extent);
-    [[nodiscard]] const RenderStats& getStats() const { return currentStats; }
+    [[nodiscard]] RenderStats getStats() const;
     [[nodiscard]] GLuint getFrameBufferDebugTextureId() const {
         return frameBufferDebugRenderer.getTextureId();
     }

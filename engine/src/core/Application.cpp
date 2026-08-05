@@ -10,9 +10,9 @@ Application::Application(GameModule &game)
       window(1920, 1080, "TEngine", true),
       input(window),
       resourceManager(ASSET_ROOT),
-      renderer(resourceManager),
-      bloomProcessor(resourceManager),
-      postProcessor(resourceManager),
+      renderer(resourceManager, gpuProfiler),
+      bloomProcessor(resourceManager, gpuProfiler),
+      postProcessor(resourceManager, gpuProfiler),
       sceneFBO({
           .extent = {1, 1},
           .hasDepthStencil = true,
@@ -46,6 +46,8 @@ void Application::run() {
 
         window.pollEvents();
         input.update();
+        window.setVSync(renderSettings.vsyncEnabled);
+        gpuProfiler.beginFrame();
 
         const WindowSize &size = window.get_size();
         const MouseState &mouseState = input.getMouseState();
@@ -125,7 +127,10 @@ void Application::run() {
                 renderSettings
             );
             finalFBO.bind();
-            renderer.renderCanvas(activeScene, viewport);
+            {
+                auto gpuTiming = gpuProfiler.profile(GpuPass::CanvasText);
+                renderer.renderCanvas(activeScene, viewport);
+            }
         }
 
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});

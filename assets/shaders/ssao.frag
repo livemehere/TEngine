@@ -17,6 +17,7 @@ uniform int uSampleCount;
 uniform float uRadius;
 uniform float uBias;
 uniform float uPower;
+uniform float uResolutionScale;
 
 void main()
 {
@@ -33,7 +34,7 @@ void main()
     vec3 normal = normalize(mat3(camera.view) * worldNormal);
 
     vec2 noiseScale =
-            vec2(textureSize(gPosition, 0)) /
+            vec2(textureSize(gPosition, 0)) * uResolutionScale /
             vec2(textureSize(uNoiseTexture, 0));
     vec3 randomVector = normalize(
         texture(uNoiseTexture, vTexCoord * noiseScale).xyz

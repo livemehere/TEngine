@@ -6,6 +6,7 @@
 #include "../graphics/Shader.h"
 #include "../resources/ResourceManager.h"
 #include "RenderSettings.h"
+#include "GpuProfiler.h"
 
 namespace {
     void restoreCapability(const GLenum capability, const GLboolean wasEnabled) {
@@ -17,7 +18,11 @@ namespace {
     }
 }
 
-PostProcessor::PostProcessor(ResourceManager &resourceManager) : shader(resourceManager.getPostProcessShader()) {
+PostProcessor::PostProcessor(
+    ResourceManager &resourceManager,
+    GpuProfiler &gpuProfiler
+) : shader(resourceManager.getPostProcessShader()),
+    gpuProfiler(gpuProfiler) {
     glGenVertexArrays(1, &vao);
 
     GLint previousProgram = 0;
@@ -43,6 +48,7 @@ void PostProcessor::render(
     if (&source == &destination) {
         throw std::invalid_argument("Post-process source and destination must be different framebuffers");
     }
+    auto gpuTiming = gpuProfiler.profile(GpuPass::PostProcess);
 
     destination.bind();
 

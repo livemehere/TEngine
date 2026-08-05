@@ -31,6 +31,12 @@ struct InstancedRenderItem {
     std::vector<glm::mat4> localMatrices;
 };
 
+struct ShadowBatch {
+    const Mesh *mesh = nullptr;
+    CullMode cullMode = CullMode::Back;
+    std::vector<glm::mat4> worldMatrices;
+};
+
 struct RenderQueue {
     std::vector<RenderItem> opaque;
     std::vector<InstancedRenderItem> instancedOpaque;
@@ -39,4 +45,5 @@ struct RenderQueue {
     std::vector<RenderItem> normalDebug;
     std::vector<RenderItem> visibleOutlines;
     std::vector<XRayOutlineGroup> xRayOutlineGroups;
+    std::vector<ShadowBatch> shadowBatches;
 };

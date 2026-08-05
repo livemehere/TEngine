@@ -6,6 +6,7 @@
 
 class ResourceManager;
 class Shader;
+class GpuProfiler;
 struct RenderSettings;
 
 class BloomProcessor {
@@ -15,9 +16,10 @@ class BloomProcessor {
     FrameBuffer brightBuffer;
     FrameBuffer blurBufferA;
     FrameBuffer blurBufferB;
+    GpuProfiler &gpuProfiler;
 
 public:
-    explicit BloomProcessor(ResourceManager& resourceManager);
+    BloomProcessor(ResourceManager& resourceManager, GpuProfiler &gpuProfiler);
     ~BloomProcessor();
 
     BloomProcessor(const BloomProcessor&) = delete;

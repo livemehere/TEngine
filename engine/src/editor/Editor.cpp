@@ -184,8 +184,57 @@ void Editor::drawDebug(
     const RenderStats& renderStats
 ) {
     if (ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoCollapse)) {
+        static const GLint maximumSamples = [] {
+            GLint value = 1;
+            glGetIntegerv(GL_MAX_SAMPLES, &value);
+            return value;
+        }();
+        static const GLint maximumTextureSize = [] {
+            GLint value = 1;
+            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &value);
+            return value;
+        }();
         ImGui::SeparatorText("Performance");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        if (ImGui::TreeNodeEx(
+            "GPU Pass Timings",
+            ImGuiTreeNodeFlags_DefaultOpen
+        )) {
+            struct PassLabel {
+                GpuPass pass;
+                const char *label;
+            };
+            constexpr PassLabel passLabels[] = {
+                {GpuPass::DirectionalShadow, "Directional Shadow"},
+                {GpuPass::PointShadow, "Point Shadow"},
+                {GpuPass::Geometry, "Geometry"},
+                {GpuPass::SSAO, "SSAO"},
+                {GpuPass::DeferredLighting, "Deferred Lighting"},
+                {GpuPass::Forward, "Forward / Skybox"},
+                {GpuPass::Transparent, "Transparent / Debug"},
+                {GpuPass::Outline, "Outline"},
+                {GpuPass::WorldText, "World Text"},
+                {GpuPass::FrameBufferDebug, "Framebuffer Debug"},
+                {GpuPass::Bloom, "Bloom"},
+                {GpuPass::PostProcess, "Post-process"},
+                {GpuPass::CanvasText, "Canvas Text"}
+            };
+            ImGui::Text(
+                "Measured GPU Total: %.2f ms",
+                renderStats.gpuTimings.total()
+            );
+            for (const PassLabel &entry : passLabels) {
+                const double milliseconds =
+                        renderStats.gpuTimings.get(entry.pass);
+                if (milliseconds > 0.001) {
+                    ImGui::Text("%s: %.2f ms", entry.label, milliseconds);
+                }
+            }
+            ImGui::TextDisabled(
+                "One pass sampled per frame; results are asynchronous and smoothed."
+            );
+            ImGui::TreePop();
+        }
         ImGui::Text(
             "Total Draw Calls: %llu",
             static_cast<unsigned long long>(renderStats.drawCalls)
@@ -249,6 +298,7 @@ void Editor::drawDebug(
         ImGui::TextDisabled("Scene renderer only; post-process and ImGui excluded.");
 
         ImGui::SeparatorText("Rendering");
+        ImGui::Checkbox("VSync", &renderSettings.vsyncEnabled);
         constexpr const char *renderingPathNames[] = {
             "Forward",
             "Deferred"
@@ -387,8 +437,6 @@ void Editor::drawDebug(
             }
         }
 
-        GLint maximumSamples = 1;
-        glGetIntegerv(GL_MAX_SAMPLES, &maximumSamples);
         const bool deferredRendering =
                 renderSettings.renderingPath == RenderingPath::Deferred;
         ImGui::BeginDisabled(deferredRendering);
@@ -418,6 +466,14 @@ void Editor::drawDebug(
         ImGui::BeginDisabled(!deferredRendering);
         ImGui::Checkbox("Enabled##SSAO", &renderSettings.ssaoEnabled);
         if (renderSettings.ssaoEnabled) {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderFloat(
+                "Resolution Scale##SSAO",
+                &renderSettings.ssaoResolutionScale,
+                0.25f,
+                1.0f,
+                "%.2fx"
+            );
             ImGui::SetNextItemWidth(120.0f);
             ImGui::SliderInt(
                 "Samples##SSAO",
@@ -498,6 +554,14 @@ void Editor::drawDebug(
         ImGui::Checkbox("Bloom", &renderSettings.bloomEnabled);
         if (renderSettings.bloomEnabled) {
             ImGui::SetNextItemWidth(120.0f);
+            ImGui::SliderFloat(
+                "Resolution Scale##Bloom",
+                &renderSettings.bloomResolutionScale,
+                0.25f,
+                1.0f,
+                "%.2fx"
+            );
+            ImGui::SetNextItemWidth(120.0f);
             ImGui::DragFloat(
                 "Threshold",
                 &renderSettings.bloomThreshold,
@@ -570,8 +634,6 @@ void Editor::drawDebug(
                 }
             }
 
-            GLint maximumTextureSize = 1;
-            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
             if (ImGui::BeginCombo(
                 "Resolution",
                 shadowResolutionLabels[resolutionIndex]
@@ -652,8 +714,6 @@ void Editor::drawDebug(
                 }
             }
 
-            GLint maximumTextureSize = 1;
-            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
             if (ImGui::BeginCombo(
                 "Resolution##PointShadows",
                 pointShadowResolutionLabels[resolutionIndex]

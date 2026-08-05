@@ -5,14 +5,16 @@
 class FrameBuffer;
 class ResourceManager;
 class Shader;
+class GpuProfiler;
 struct RenderSettings;
 
 class PostProcessor {
     GLuint vao = 0;
     const Shader& shader;
+    GpuProfiler &gpuProfiler;
 
 public:
-    PostProcessor(ResourceManager& resourceManager);
+    PostProcessor(ResourceManager& resourceManager, GpuProfiler &gpuProfiler);
     ~PostProcessor();
 
     PostProcessor(const PostProcessor&) = delete;

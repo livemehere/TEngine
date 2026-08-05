@@ -12,6 +12,7 @@
 #include "../graphics/FrameBuffer.h"
 #include "../rendering/BloomProcessor.h"
 #include "../rendering/PostProcessor.h"
+#include "../rendering/GpuProfiler.h"
 
 class GameModule;
 
@@ -21,6 +22,7 @@ class Application {
     Input input;
 
     ResourceManager resourceManager;
+    GpuProfiler gpuProfiler;
 
     RenderSettings renderSettings;
     Renderer renderer;

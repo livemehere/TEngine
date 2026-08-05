@@ -25,6 +25,7 @@ class FrameBuffer {
     int height = 0;
     bool hasDepthStencil = true;
     int samples = 1;
+    int maximumSamples = 1;
     FrameBufferColorFormat colorFormat = FrameBufferColorFormat::RGBA8;
 
     void allocateAttachments();

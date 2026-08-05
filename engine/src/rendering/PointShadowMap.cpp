@@ -5,6 +5,8 @@
 
 PointShadowMap::PointShadowMap(const int initialResolution)
     : resolution(std::max(1, initialResolution)) {
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumResolution);
+    resolution = std::clamp(resolution, 1, maximumResolution);
     glGenFramebuffers(1, &framebuffer);
     glGenTextures(1, &depthCubemap);
 
@@ -27,15 +29,12 @@ PointShadowMap::~PointShadowMap() {
 }
 
 void PointShadowMap::allocate() {
-    GLint maximumTextureSize = 1;
     GLint previousTexture = 0;
     GLint previousDrawFramebuffer = 0;
     GLint previousReadFramebuffer = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
     glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &previousTexture);
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
-    resolution = std::clamp(resolution, 1, maximumTextureSize);
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
     for (GLuint face = 0; face < 6; ++face) {
@@ -58,9 +57,10 @@ void PointShadowMap::allocate() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferTexture(
+    glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X,
         depthCubemap,
         0
     );
@@ -80,12 +80,10 @@ void PointShadowMap::allocate() {
 }
 
 void PointShadowMap::resize(const int newResolution) {
-    GLint maximumTextureSize = 1;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximumTextureSize);
     const int supportedResolution = std::clamp(
         newResolution,
         1,
-        maximumTextureSize
+        maximumResolution
     );
     if (resolution == supportedResolution) {
         return;
@@ -95,8 +93,15 @@ void PointShadowMap::resize(const int newResolution) {
     allocate();
 }
 
-void PointShadowMap::bindForWriting() const {
+void PointShadowMap::bindFaceForWriting(const int face) const {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X + std::clamp(face, 0, 5),
+        depthCubemap,
+        0
+    );
     glViewport(0, 0, resolution, resolution);
 }
 

@@ -6,6 +6,7 @@
 #include "../graphics/Shader.h"
 #include "../resources/ResourceManager.h"
 #include "RenderSettings.h"
+#include "GpuProfiler.h"
 
 namespace {
     void restoreCapability(const GLenum capability, const GLboolean wasEnabled) {
@@ -20,9 +21,23 @@ namespace {
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
+
+    RenderExtent scaledExtent(
+        const RenderExtent extent,
+        const float scale
+    ) {
+        const float clampedScale = std::clamp(scale, 0.125f, 1.0f);
+        return {
+            std::max(1, static_cast<int>(extent.width * clampedScale)),
+            std::max(1, static_cast<int>(extent.height * clampedScale))
+        };
+    }
 }
 
-BloomProcessor::BloomProcessor(ResourceManager& resourceManager)
+BloomProcessor::BloomProcessor(
+    ResourceManager& resourceManager,
+    GpuProfiler &gpuProfiler
+)
     : extractShader(resourceManager.getBloomExtractShader()),
       blurShader(resourceManager.getGaussianBlurShader()),
       brightBuffer({
@@ -39,7 +54,8 @@ BloomProcessor::BloomProcessor(ResourceManager& resourceManager)
           .extent = {1, 1},
           .hasDepthStencil = false,
           .colorFormat = FrameBufferColorFormat::RGBA16F
-      }) {
+      }),
+      gpuProfiler(gpuProfiler) {
     glGenVertexArrays(1, &vao);
 
     GLint previousProgram = 0;
@@ -69,6 +85,7 @@ const FrameBuffer* BloomProcessor::process(
     if (source.isMultisampled()) {
         throw std::invalid_argument("Bloom source must be single-sampled");
     }
+    auto gpuTiming = gpuProfiler.profile(GpuPass::Bloom);
 
     const GLboolean wasDepthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
     const GLboolean wasStencilTestEnabled = glIsEnabled(GL_STENCIL_TEST);
@@ -91,7 +108,10 @@ const FrameBuffer* BloomProcessor::process(
     glActiveTexture(GL_TEXTURE0);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture2D);
 
-    const RenderExtent extent = source.getExtent();
+    const RenderExtent extent = scaledExtent(
+        source.getExtent(),
+        settings.bloomResolutionScale
+    );
     brightBuffer.resize(extent);
     blurBufferA.resize(extent);
     blurBufferB.resize(extent);

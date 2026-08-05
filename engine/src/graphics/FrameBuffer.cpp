@@ -45,7 +45,6 @@ FrameBuffer::FrameBuffer(const FrameBufferSpecification specification)
         throw std::invalid_argument("Framebuffer extent must be positive");
     }
 
-    GLint maximumSamples = 1;
     glGetIntegerv(GL_MAX_SAMPLES, &maximumSamples);
     samples = std::min(samples, maximumSamples);
 
@@ -164,8 +163,6 @@ void FrameBuffer::allocateAttachments() {
 }
 
 void FrameBuffer::setSamples(int sampleCount) {
-    GLint maximumSamples = 1;
-    glGetIntegerv(GL_MAX_SAMPLES, &maximumSamples);
     const int supportedSamples = std::clamp(sampleCount, 1, maximumSamples);
     if (samples == supportedSamples) {
         return;

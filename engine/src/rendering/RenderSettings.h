@@ -42,6 +42,7 @@ enum class ToneMappingMode : int {
 };
 
 struct RenderSettings {
+    bool vsyncEnabled = false;
     DebugViewMode debugView = DebugViewMode::Shaded;
     FrameBufferDebugView frameBufferDebugView = FrameBufferDebugView::Off;
     float frameBufferDebugScale = 0.3f;
@@ -55,11 +56,13 @@ struct RenderSettings {
     ToneMappingMode toneMapping = ToneMappingMode::Exposure;
     float exposure = 1.0f;
     bool bloomEnabled = true;
+    float bloomResolutionScale = 0.5f;
     float bloomThreshold = 1.0f;
     float bloomStrength = 0.15f;
-    int bloomBlurPasses = 10;
+    int bloomBlurPasses = 6;
     bool ssaoEnabled = true;
-    int ssaoSampleCount = 32;
+    float ssaoResolutionScale = 0.5f;
+    int ssaoSampleCount = 16;
     float ssaoRadius = 0.5f;
     float ssaoBias = 0.025f;
     float ssaoPower = 1.5f;
@@ -72,8 +75,8 @@ struct RenderSettings {
     float shadowBiasSlope = 0.005f;
     int shadowPcfRadius = 1;
     bool pointShadowsEnabled = true;
-    int pointShadowMapResolution = 1024;
+    int pointShadowMapResolution = 512;
     float pointShadowBias = 0.05f;
     float pointShadowSoftness = 0.04f;
-    int pointShadowSampleCount = 20;
+    int pointShadowSampleCount = 8;
 };

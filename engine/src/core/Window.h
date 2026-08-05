@@ -19,6 +19,7 @@ private:
     int h;
     int fb_w;
     int fb_h;
+    bool vsyncEnabled = true;
 
     void init();
     void create_window(int w, int h, const std::string& title, bool vsync);
@@ -32,6 +33,8 @@ public:
     bool should_close() const;
     void pollEvents();
     void update() const ;
+    void setVSync(bool enabled);
+    [[nodiscard]] bool isVSyncEnabled() const { return vsyncEnabled; }
 
     WindowSize get_size() const;
     GLFWwindow* get() const {

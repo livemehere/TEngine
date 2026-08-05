@@ -75,7 +75,8 @@ void Window::create_window(int w, int h, const std::string &title, bool vsync) {
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         throw std::runtime_error("Failed to initialize GLAD");
     }
-    glfwSwapInterval(vsync ? 1 : 0);
+    vsyncEnabled = vsync;
+    glfwSwapInterval(vsyncEnabled ? 1 : 0);
 
     // imgui
     imgui_init(window);
@@ -105,6 +106,14 @@ void Window::pollEvents() {
 void Window::update() const {
     imgui_render();
     glfwSwapBuffers(window);
+}
+
+void Window::setVSync(const bool enabled) {
+    if (vsyncEnabled == enabled) {
+        return;
+    }
+    vsyncEnabled = enabled;
+    glfwSwapInterval(vsyncEnabled ? 1 : 0);
 }
 
 WindowSize Window::get_size() const {

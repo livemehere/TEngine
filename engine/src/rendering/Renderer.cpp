@@ -14,6 +14,7 @@
 #include "../resources/ResourceManager.h"
 #include "../graphics/CubeMap.h"
 #include "Lights.h"
+#include "GpuProfiler.h"
 #include "skybox/SkyboxComponent.h"
 #include "model/InstancedModelRendererComponent.h"
 
@@ -106,7 +107,7 @@ namespace {
     int integer;     // 4               // 148
 }; */
 
-Renderer::Renderer(ResourceManager &resourceManager)
+Renderer::Renderer(ResourceManager &resourceManager, GpuProfiler &gpuProfiler)
     : phongShader(resourceManager.getPhongShader()),
       pbrShader(resourceManager.getPBRShader()),
       outlineShader(resourceManager.getOutlineShader()),
@@ -116,6 +117,7 @@ Renderer::Renderer(ResourceManager &resourceManager)
       deferredLightingShader(resourceManager.getDeferredLightingShader()),
       shadowDepthShader(resourceManager.getShadowDepthShader()),
       pointShadowDepthShader(resourceManager.getPointShadowDepthShader()),
+      gpuProfiler(gpuProfiler),
       shadowMap(1),
       pointShadowMap(1),
       gBuffer({1, 1}),
@@ -834,6 +836,45 @@ RenderQueue Renderer::buildRenderQueue(
         collectOutline(item);
     }
 
+    const auto appendShadowInstance = [&](const Mesh *mesh,
+                                          const CullMode cullMode,
+                                          const glm::mat4 &worldMatrix) {
+        auto batch = std::ranges::find_if(
+            queue.shadowBatches,
+            [&](const ShadowBatch &candidate) {
+                return candidate.mesh == mesh &&
+                       candidate.cullMode == cullMode;
+            }
+        );
+        if (batch == queue.shadowBatches.end()) {
+            batch = queue.shadowBatches.insert(
+                queue.shadowBatches.end(),
+                {
+                    .mesh = mesh,
+                    .cullMode = cullMode
+                }
+            );
+        }
+        batch->worldMatrices.push_back(worldMatrix);
+    };
+
+    for (const RenderItem &item : queue.opaque) {
+        appendShadowInstance(
+            item.meshRenderer->mesh,
+            item.meshRenderer->material->rasterState.cullMode,
+            item.worldMatrix
+        );
+    }
+    for (const InstancedRenderItem &item : queue.instancedOpaque) {
+        for (const glm::mat4 &localMatrix : item.localMatrices) {
+            appendShadowInstance(
+                item.mesh,
+                item.material->rasterState.cullMode,
+                item.worldMatrix * localMatrix
+            );
+        }
+    }
+
     return queue;
 }
 
@@ -1306,13 +1347,6 @@ void Renderer::shadowDepthRenderPass(const RenderQueue &queue) {
 
     shadowMap.resize(currentSettings.shadowMapResolution);
 
-    GLint previousDrawFramebuffer = 0;
-    GLint previousReadFramebuffer = 0;
-    GLint previousViewport[4]{};
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
-    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
-    glGetIntegerv(GL_VIEWPORT, previousViewport);
-
     shadowMap.bindForWriting();
     glDisable(GL_BLEND);
     glDisable(GL_STENCIL_TEST);
@@ -1330,14 +1364,8 @@ void Renderer::shadowDepthRenderPass(const RenderQueue &queue) {
 
     drawShadowCasters(queue, shadowDepthShader, 1);
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFramebuffer);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFramebuffer);
-    glViewport(
-        previousViewport[0],
-        previousViewport[1],
-        previousViewport[2],
-        previousViewport[3]
-    );
+    glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
+    glViewport(0, 0, currentRenderExtent.width, currentRenderExtent.height);
 }
 
 void Renderer::pointShadowDepthRenderPass(const RenderQueue &queue) {
@@ -1347,33 +1375,13 @@ void Renderer::pointShadowDepthRenderPass(const RenderQueue &queue) {
 
     pointShadowMap.resize(currentSettings.pointShadowMapResolution);
 
-    GLint previousDrawFramebuffer = 0;
-    GLint previousReadFramebuffer = 0;
-    GLint previousViewport[4]{};
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDrawFramebuffer);
-    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousReadFramebuffer);
-    glGetIntegerv(GL_VIEWPORT, previousViewport);
-
-    pointShadowMap.bindForWriting();
     glDisable(GL_BLEND);
     glDisable(GL_STENCIL_TEST);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
     pointShadowDepthShader.use();
-    for (std::size_t face = 0;
-         face < currentPointShadowMatrices.size();
-         ++face) {
-        const std::string uniformName =
-                "uShadowMatrices[" + std::to_string(face) + "]";
-        pointShadowDepthShader.setMat4(
-            uniformName.c_str(),
-            currentPointShadowMatrices[face]
-        );
-    }
     pointShadowDepthShader.setVec3(
         "uLightPosition",
         currentPointShadowLightPosition
@@ -1383,16 +1391,20 @@ void Renderer::pointShadowDepthRenderPass(const RenderQueue &queue) {
         currentPointShadowFarPlane
     );
 
-    drawShadowCasters(queue, pointShadowDepthShader, 6);
+    for (std::size_t face = 0;
+         face < currentPointShadowMatrices.size();
+         ++face) {
+        pointShadowMap.bindFaceForWriting(static_cast<int>(face));
+        glClear(GL_DEPTH_BUFFER_BIT);
+        pointShadowDepthShader.setMat4(
+            "uShadowMatrix",
+            currentPointShadowMatrices[face]
+        );
+        drawShadowCasters(queue, pointShadowDepthShader, 1);
+    }
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFramebuffer);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, previousReadFramebuffer);
-    glViewport(
-        previousViewport[0],
-        previousViewport[1],
-        previousViewport[2],
-        previousViewport[3]
-    );
+    glBindFramebuffer(GL_FRAMEBUFFER, currentTargetFramebuffer);
+    glViewport(0, 0, currentRenderExtent.width, currentRenderExtent.height);
 }
 
 void Renderer::drawShadowCasters(
@@ -1400,24 +1412,9 @@ void Renderer::drawShadowCasters(
     const Shader &shader,
     const std::uint64_t triangleMultiplier
 ) {
-
-    for (const RenderItem &item : queue.opaque) {
-        applyCullMode(item.meshRenderer->material->rasterState.cullMode);
-        shader.setMat4("uModel", item.worldMatrix);
-        item.meshRenderer->mesh->draw();
-
-        ++currentStats.drawCalls;
-        ++currentStats.shadowDrawCalls;
-        const std::uint64_t triangleCount =
-                static_cast<std::uint64_t>(
-                    item.meshRenderer->mesh->getTriangleCount()
-                ) * triangleMultiplier;
-        currentStats.triangleCount += triangleCount;
-        currentStats.shadowTriangleCount += triangleCount;
-    }
-
-    for (const InstancedRenderItem &item : queue.instancedOpaque) {
-        const std::size_t instanceCount = item.localMatrices.size();
+    shader.setMat4("uModel", glm::mat4(1.0f));
+    for (const ShadowBatch &batch : queue.shadowBatches) {
+        const std::size_t instanceCount = batch.worldMatrices.size();
         const std::size_t byteSize = instanceCount * sizeof(glm::mat4);
 
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -1434,12 +1431,11 @@ void Renderer::drawShadowCasters(
             GL_ARRAY_BUFFER,
             0,
             static_cast<GLsizeiptr>(byteSize),
-            item.localMatrices.data()
+            batch.worldMatrices.data()
         );
 
-        applyCullMode(item.material->rasterState.cullMode);
-        shader.setMat4("uModel", item.worldMatrix);
-        item.mesh->drawInstanced(
+        applyCullMode(batch.cullMode);
+        batch.mesh->drawInstanced(
             instanceVBO,
             static_cast<GLsizei>(instanceCount)
         );
@@ -1447,7 +1443,7 @@ void Renderer::drawShadowCasters(
         ++currentStats.drawCalls;
         ++currentStats.shadowDrawCalls;
         const std::uint64_t triangleCount =
-                static_cast<std::uint64_t>(item.mesh->getTriangleCount()) *
+                static_cast<std::uint64_t>(batch.mesh->getTriangleCount()) *
                 instanceCount *
                 triangleMultiplier;
         currentStats.triangleCount += triangleCount;
@@ -1469,24 +1465,40 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 
     updateDirectionalShadow(scene);
     updatePointShadow();
-    shadowDepthRenderPass(queue);
-    pointShadowDepthRenderPass(queue);
+    {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::DirectionalShadow);
+        shadowDepthRenderPass(queue);
+    }
+    {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::PointShadow);
+        pointShadowDepthRenderPass(queue);
+    }
 
     const bool useDeferred =
             currentSettings.renderingPath == RenderingPath::Deferred;
     if (useDeferred) {
-        deferredGeometryPass(queue);
-        const FrameBuffer* ssaoTexture = ssaoProcessor.process(
-            gBuffer,
-            currentSettings,
-            currentRenderExtent
-        );
+        {
+            auto gpuTiming = gpuProfiler.profile(GpuPass::Geometry);
+            deferredGeometryPass(queue);
+        }
+        const FrameBuffer* ssaoTexture = nullptr;
+        {
+            auto gpuTiming = gpuProfiler.profile(GpuPass::SSAO);
+            ssaoTexture = ssaoProcessor.process(
+                gBuffer,
+                currentSettings,
+                currentRenderExtent
+            );
+        }
         if (ssaoTexture) {
             currentStats.drawCalls += 2;
             currentStats.ssaoDrawCalls += 2;
         }
         currentSSAOTexture = ssaoTexture;
-        deferredLightingPass(ssaoTexture);
+        {
+            auto gpuTiming = gpuProfiler.profile(GpuPass::DeferredLighting);
+            deferredLightingPass(ssaoTexture);
+        }
 
         const bool isGBufferDebugView =
                 currentSettings.debugView >=
@@ -1504,21 +1516,31 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     // Deferred-compatible opaque Phong items are already present in the
     // target. The remaining special/transparent items use forward rendering
     // against the depth and stencil copied from the G-buffer.
-    opaqueRenderPass(queue, useDeferred);
-    instancedOpaqueRenderPass(queue, useDeferred);
-
-    if (currentSettings.debugView == DebugViewMode::Shaded) {
-        skyboxRenderPass();
+    {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::Forward);
+        opaqueRenderPass(queue, useDeferred);
+        instancedOpaqueRenderPass(queue, useDeferred);
+        if (currentSettings.debugView == DebugViewMode::Shaded) {
+            skyboxRenderPass();
+        }
     }
-    transparentRenderPass(queue);
-    normalDebugRenderPass(queue);
+    {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::Transparent);
+        transparentRenderPass(queue);
+        normalDebugRenderPass(queue);
+    }
     if (currentSettings.rasterization == RasterizationMode::Fill) {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::Outline);
         outlineRenderPass(queue);
     }
-    worldTextRenderPass(scene);
+    {
+        auto gpuTiming = gpuProfiler.profile(GpuPass::WorldText);
+        worldTextRenderPass(scene);
+    }
 }
 
 void Renderer::endFrame() {
+    auto gpuTiming = gpuProfiler.profile(GpuPass::FrameBufferDebug);
     frameBufferDebugPass();
 }
 
@@ -1538,4 +1560,10 @@ void Renderer::renderCanvas(const Scene &scene, const RenderExtent extent) {
         ++currentStats.drawCalls;
         ++currentStats.textDrawCalls;
     }
+}
+
+RenderStats Renderer::getStats() const {
+    RenderStats result = currentStats;
+    result.gpuTimings = gpuProfiler.getTimings();
+    return result;
 }
