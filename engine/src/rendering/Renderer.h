@@ -18,6 +18,7 @@
 #include "PointShadowMap.h"
 #include "ShadowMap.h"
 #include "mesh/MeshRendererComponent.h"
+#include "text/TextRenderer.h"
 
 class ResourceManager;
 class Shader;
@@ -99,6 +100,7 @@ class Renderer {
     GBuffer gBuffer;
     SSAOProcessor ssaoProcessor;
     FrameBufferDebugRenderer frameBufferDebugRenderer;
+    TextRenderer textRenderer;
     glm::vec4 outlineColor{ 0.4f, 0.8f, 0.0f, 1.0f};
     float outlineWidth = 0.02f;
     glm::vec4 normalDebugColor{1.0f, 0.75f, 0.1f, 1.0f};
@@ -127,6 +129,8 @@ class Renderer {
     float currentCameraNear = 0.1f;
     float currentCameraFar = 1000.0f;
     bool currentCameraOrthographic = false;
+    glm::mat4 currentViewMatrix{1.0f};
+    glm::mat4 currentProjectionMatrix{1.0f};
 
     void updateCameraBuffer(const Scene& scene, const RenderExtent& size);
     void updateLightsBuffer(const Scene& scene);
@@ -149,6 +153,7 @@ class Renderer {
     void transparentRenderPass(const RenderQueue& queue);
     void normalDebugRenderPass(const RenderQueue& queue);
     void outlineRenderPass(const RenderQueue& queue);
+    void worldTextRenderPass(const Scene& scene);
     void shadowDepthRenderPass(const RenderQueue& queue);
     void pointShadowDepthRenderPass(const RenderQueue& queue);
     void drawShadowCasters(
@@ -189,6 +194,7 @@ public:
     );
     void render(const Scene& scene, const RenderOptions& options = {});
     void endFrame();
+    void renderCanvas(const Scene& scene, RenderExtent extent);
     [[nodiscard]] const RenderStats& getStats() const { return currentStats; }
     [[nodiscard]] GLuint getFrameBufferDebugTextureId() const {
         return frameBufferDebugRenderer.getTextureId();

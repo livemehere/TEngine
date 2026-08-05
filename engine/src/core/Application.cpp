@@ -124,6 +124,8 @@ void Application::run() {
                 finalFBO,
                 renderSettings
             );
+            finalFBO.bind();
+            renderer.renderCanvas(activeScene, viewport);
         }
 
         FrameBuffer::bindDefault({size.fb_w, size.fb_h});

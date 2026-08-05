@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include "../camera/CameraComponent.h"
 #include "../rendering/Lights.h"
@@ -22,6 +23,7 @@
 #include "../rendering/mesh/materials/PhongMaterial.h"
 #include "../rendering/mesh/materials/PBRMaterial.h"
 #include "../rendering/skybox/SkyboxComponent.h"
+#include "../rendering/text/TextComponents.h"
 #include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
 #include "../scene/TransformComponent.h"
@@ -1211,6 +1213,31 @@ void registerDefaultComponentDrawers(
             ImGui::TextDisabled(
                 "The skybox follows the camera; entity transform is ignored."
             );
+        }
+    );
+
+    registry.registerDrawer<WorldTextComponent>(
+        "World Text",
+        [](Scene &, Entity &, WorldTextComponent &text) {
+            ImGui::Checkbox("Enabled", &text.enabled);
+            ImGui::InputText("Text", &text.text);
+            ImGui::ColorEdit4("Color", &text.color.x);
+            ImGui::DragFloat3("Local Offset", &text.localOffset.x, 0.01f);
+            ImGui::DragFloat("Scale", &text.scale, 0.001f, 0.001f, 1.0f);
+            ImGui::Checkbox("Centered", &text.centered);
+            ImGui::Checkbox("Depth Test", &text.depthTest);
+        }
+    );
+
+    registry.registerDrawer<CanvasTextComponent>(
+        "Canvas Text",
+        [](Scene &, Entity &, CanvasTextComponent &text) {
+            ImGui::Checkbox("Enabled", &text.enabled);
+            ImGui::InputText("Text", &text.text);
+            ImGui::ColorEdit4("Color", &text.color.x);
+            ImGui::DragFloat2("Position", &text.position.x, 1.0f);
+            ImGui::DragFloat("Scale", &text.scale, 0.01f, 0.01f, 10.0f);
+            ImGui::TextDisabled("Position uses bottom-left canvas coordinates.");
         }
     );
 }

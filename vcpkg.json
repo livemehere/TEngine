@@ -6,6 +6,7 @@
     "glad",
     "glm",
     "assimp",
+    "freetype",
     "imguizmo",
     {
       "name": "imgui",

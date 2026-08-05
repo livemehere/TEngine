@@ -4,6 +4,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(imguizmo CONFIG REQUIRED)
+find_package(Freetype REQUIRED)
 
 add_library(TEngine STATIC
     src/common.h
@@ -43,6 +44,8 @@ add_library(TEngine STATIC
     src/graphics/Texture2D.cpp
     src/graphics/Texture2D.h
     src/graphics/TextureColorSpace.h
+    src/graphics/Font.cpp
+    src/graphics/Font.h
 
     src/rendering/Lights.h
     src/rendering/BloomProcessor.cpp
@@ -66,6 +69,10 @@ add_library(TEngine STATIC
     src/rendering/ShadowMap.cpp
     src/rendering/ShadowMap.h
     src/rendering/Transform.h
+
+    src/rendering/text/TextComponents.h
+    src/rendering/text/TextRenderer.cpp
+    src/rendering/text/TextRenderer.h
 
     src/rendering/mesh/Mesh.cpp
     src/rendering/mesh/Mesh.h
@@ -123,6 +130,7 @@ target_link_libraries(TEngine
         glm::glm
         assimp::assimp
         imguizmo::imguizmo
+        Freetype::Freetype
 )
 
 target_compile_definitions(TEngine

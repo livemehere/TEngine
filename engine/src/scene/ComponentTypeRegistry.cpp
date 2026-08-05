@@ -6,6 +6,7 @@
 #include "../rendering/mesh/InstancedMeshRendererComponent.h"
 #include "../rendering/model/InstancedModelRendererComponent.h"
 #include "../rendering/skybox/SkyboxComponent.h"
+#include "../rendering/text/TextComponents.h"
 
 void ComponentTypeRegistry::addDescriptor(ComponentTypeDescriptor descriptor) {
     if (find(descriptor.type)) {
@@ -39,4 +40,6 @@ void registerBuiltinComponentTypes(ComponentTypeRegistry &registry) {
     registry.registerComponent<PointLightComponent>("Point Light");
     registry.registerComponent<SpotLightComponent>("Spot Light");
     registry.registerComponent<SkyboxComponent>("Skybox");
+    registry.registerComponent<WorldTextComponent>("World Text");
+    registry.registerComponent<CanvasTextComponent>("Canvas Text");
 }

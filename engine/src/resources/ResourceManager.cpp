@@ -135,6 +135,16 @@ const Texture2D &ResourceManager::getWhiteTexture() {
     return *whiteTexture;
 }
 
+const Font &ResourceManager::getDefaultFont() {
+    if (!defaultFont) {
+        defaultFont = std::make_unique<Font>(
+            resolvePath("fonts/Poppins-Regular.ttf"),
+            48
+        );
+    }
+    return *defaultFont;
+}
+
 /* shaders */
 const Shader &ResourceManager::getPhongShader() {
     if (!phongShader) {
@@ -180,6 +190,16 @@ const Shader &ResourceManager::getOutlineShader() {
         shader->bindUniformBlock("CameraData", UniformBinding::Camera);
     }
     return *outlineShader;
+}
+
+const Shader &ResourceManager::getTextShader() {
+    if (!textShader) {
+        textShader = std::make_unique<Shader>(
+            resolvePath("shaders/text.vert"),
+            resolvePath("shaders/text.frag")
+        );
+    }
+    return *textShader;
 }
 
 const Shader & ResourceManager::getPostProcessShader() {

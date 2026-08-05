@@ -13,4 +13,5 @@ struct RenderStats {
     std::uint64_t deferredLightingDrawCalls = 0;
     std::uint64_t ssaoDrawCalls = 0;
     std::uint64_t frameBufferDebugDrawCalls = 0;
+    std::uint64_t textDrawCalls = 0;
 };

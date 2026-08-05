@@ -10,6 +10,7 @@
 
 #include "../graphics/Shader.h"
 #include "../graphics/CubeMap.h"
+#include "../graphics/Font.h"
 #include "../graphics/Texture2D.h"
 #include "../rendering/mesh/Mesh.h"
 #include "../rendering/mesh/materials/PhongMaterial.h"
@@ -47,6 +48,8 @@ class ResourceManager {
     std::unique_ptr<Shader> normalDebugShader;
     std::unique_ptr<Shader> shadowDepthShader;
     std::unique_ptr<Shader> pointShadowDepthShader;
+    std::unique_ptr<Shader> textShader;
+    std::unique_ptr<Font> defaultFont;
 
     /* externally loaded resources */
     std::unordered_map<std::string, std::unique_ptr<Texture2D> > textures;
@@ -114,6 +117,10 @@ public:
     const Shader &getShadowDepthShader();
 
     const Shader &getPointShadowDepthShader();
+
+    const Shader &getTextShader();
+
+    const Font &getDefaultFont();
 
     PhongMaterial &loadPhongMaterial(const std::string &key, const Shader &shader, const Texture2D &texture);
 

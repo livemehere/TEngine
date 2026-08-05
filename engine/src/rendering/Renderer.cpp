@@ -120,7 +120,8 @@ Renderer::Renderer(ResourceManager &resourceManager)
       pointShadowMap(1),
       gBuffer({1, 1}),
       ssaoProcessor(resourceManager),
-      frameBufferDebugRenderer(resourceManager) {
+      frameBufferDebugRenderer(resourceManager),
+      textRenderer(resourceManager) {
     /* camera */
     glGenBuffers(1, &cameraUBO);
     glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
@@ -197,6 +198,9 @@ void Renderer::updateCameraBuffer(const Scene &scene, const RenderExtent& size) 
             currentCameraFar = projection.far;
         }
     }
+
+    currentViewMatrix = data.viewMatrix;
+    currentProjectionMatrix = data.projectionMatrix;
 
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GPUCameraData), &data);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -1511,8 +1515,27 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
     if (currentSettings.rasterization == RasterizationMode::Fill) {
         outlineRenderPass(queue);
     }
+    worldTextRenderPass(scene);
 }
 
 void Renderer::endFrame() {
     frameBufferDebugPass();
+}
+
+void Renderer::worldTextRenderPass(const Scene &scene) {
+    if (textRenderer.renderWorld(
+        scene,
+        currentViewMatrix,
+        currentProjectionMatrix
+    )) {
+        ++currentStats.drawCalls;
+        ++currentStats.textDrawCalls;
+    }
+}
+
+void Renderer::renderCanvas(const Scene &scene, const RenderExtent extent) {
+    if (textRenderer.renderCanvas(scene, extent)) {
+        ++currentStats.drawCalls;
+        ++currentStats.textDrawCalls;
+    }
 }

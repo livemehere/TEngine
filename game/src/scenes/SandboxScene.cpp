@@ -9,6 +9,7 @@
 #include <rendering/Lights.h>
 #include <rendering/mesh/MeshRendererComponent.h>
 #include <rendering/mesh/materials/PBRMaterial.h>
+#include <rendering/text/TextComponents.h>
 #include <resources/ResourceManager.h>
 #include <scene/Scene.h>
 
@@ -268,7 +269,31 @@ void SandboxScene::build(Scene &scene, ResourceManager &resources) {
             4.0f + static_cast<float>(index % 3) * 1.5f,
             0.0f
         };
+
+        Entity &label = scene.createEntity(
+            std::string(ShowcaseMaterials[index].name) + " Label"
+        );
+        label.getComponent<TransformComponent>().local.position = {
+            x,
+            y - 1.27f,
+            1.12f
+        };
+        WorldTextComponent &worldText =
+                label.addComponent<WorldTextComponent>();
+        worldText.text = ShowcaseMaterials[index].name;
+        worldText.color = {0.88f, 0.92f, 1.0f, 1.0f};
+        worldText.scale = 0.008f;
+        worldText.centered = true;
+        worldText.depthTest = true;
     }
+
+    Entity &hud = scene.createEntity("PBR Materials HUD");
+    CanvasTextComponent &canvasText =
+            hud.addComponent<CanvasTextComponent>();
+    canvasText.text = "PBR MATERIALS";
+    canvasText.position = {28.0f, 30.0f};
+    canvasText.scale = 0.9f;
+    canvasText.color = {0.88f, 0.93f, 1.0f, 0.92f};
 
     Entity &ambientEntity = scene.createEntity("Ambient Studio Fill");
     AmbientLightComponent &ambient =

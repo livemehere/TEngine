@@ -234,6 +234,10 @@ void Editor::drawDebug(
                 renderStats.frameBufferDebugDrawCalls
             )
         );
+        ImGui::Text(
+            "Text Draw Calls: %llu",
+            static_cast<unsigned long long>(renderStats.textDrawCalls)
+        );
         const std::uint64_t estimatedSavedCalls =
                 renderStats.instanceCount > renderStats.instancedDrawCalls
                     ? renderStats.instanceCount - renderStats.instancedDrawCalls
