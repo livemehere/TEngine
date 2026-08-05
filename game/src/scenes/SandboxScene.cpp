@@ -1,618 +1,338 @@
 #include "SandboxScene.h"
 
 #include <array>
+#include <string>
 
 #include "components/MotionComponents.h"
 
 #include <camera/CameraComponent.h>
-#include <graphics/CubeMap.h>
 #include <rendering/Lights.h>
 #include <rendering/mesh/MeshRendererComponent.h>
-#include <rendering/mesh/InstancedMeshRendererComponent.h>
-#include <rendering/mesh/materials/PhongMaterial.h>
 #include <rendering/mesh/materials/PBRMaterial.h>
-#include <rendering/mesh/materials/UnlitMaterial.h>
-#include <rendering/skybox/SkyboxComponent.h>
 #include <resources/ResourceManager.h>
 #include <scene/Scene.h>
 
-void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
-    Entity &cameraEntity = scene.createEntity("Editor Camera");
+namespace {
+struct ShowcaseMaterial {
+    const char *name;
+    const char *albedoPath;
+    const char *normalPath;
+    const char *roughnessPath;
+    const char *aoPath = nullptr;
+    bool metallic = false;
+    float normalStrength = 1.0f;
+};
+
+constexpr std::array<ShowcaseMaterial, 9> ShowcaseMaterials{{
+    {
+        .name = "Blue Metal Plate",
+        .albedoPath =
+            "textures/pbr/blue_metal_plate/blue_metal_plate_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/blue_metal_plate/blue_metal_plate_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/blue_metal_plate/blue_metal_plate_rough_1k.png",
+        .normalStrength = 1.15f
+    },
+    {
+        .name = "Broken Brick Wall",
+        .albedoPath =
+            "textures/pbr/broken_brick_wall/broken_brick_wall_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/broken_brick_wall/broken_brick_wall_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/broken_brick_wall/broken_brick_wall_rough_1k.png",
+        .normalStrength = 1.2f
+    },
+    {
+        .name = "Clay Roof Tiles",
+        .albedoPath =
+            "textures/pbr/clay_roof_tiles_03/clay_roof_tiles_03_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/clay_roof_tiles_03/clay_roof_tiles_03_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/clay_roof_tiles_03/clay_roof_tiles_03_rough_1k.png",
+        .normalStrength = 1.1f
+    },
+    {
+        .name = "Clean Asphalt",
+        .albedoPath =
+            "textures/pbr/clean_asphalt/clean_asphalt_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/clean_asphalt/clean_asphalt_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/clean_asphalt/clean_asphalt_rough_1k.png",
+        .normalStrength = 1.35f
+    },
+    {
+        .name = "Dark Rock",
+        .albedoPath =
+            "textures/pbr/dark_rock_02/dark_rock_02_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/dark_rock_02/dark_rock_02_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/dark_rock_02/dark_rock_02_rough_1k.png",
+        .normalStrength = 1.2f
+    },
+    {
+        .name = "Flour",
+        .albedoPath = "textures/pbr/flour/flour_diff_1k.jpg",
+        .normalPath = "textures/pbr/flour/flour_nor_gl_1k.png",
+        .roughnessPath = "textures/pbr/flour/flour_rough_1k.png",
+        .aoPath = "textures/pbr/flour/flour_ao_1k.jpg",
+        .normalStrength = 0.65f
+    },
+    {
+        .name = "Forest Leaves",
+        .albedoPath =
+            "textures/pbr/forest_leaves_02/forest_leaves_02_diffuse_1k.jpg",
+        .normalPath =
+            "textures/pbr/forest_leaves_02/forest_leaves_02_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/forest_leaves_02/forest_leaves_02_rough_1k.jpg",
+        .normalStrength = 1.1f
+    },
+    {
+        .name = "Damaged Road",
+        .albedoPath =
+            "textures/pbr/road_damaged_2/road_damaged_2_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/road_damaged_2/road_damaged_2_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/road_damaged_2/road_damaged_2_rough_1k.png",
+        .normalStrength = 1.3f
+    },
+    {
+        .name = "Rubber Tiles",
+        .albedoPath =
+            "textures/pbr/rubber_tiles/rubber_tiles_diff_1k.jpg",
+        .normalPath =
+            "textures/pbr/rubber_tiles/rubber_tiles_nor_gl_1k.png",
+        .roughnessPath =
+            "textures/pbr/rubber_tiles/rubber_tiles_rough_1k.png",
+        .normalStrength = 1.0f
+    }
+}};
+}
+
+void SandboxScene::build(Scene &scene, ResourceManager &resources) {
+    Entity &cameraEntity = scene.createEntity("Showcase Camera");
     Transform &cameraTransform =
             cameraEntity.getComponent<TransformComponent>().local;
-    cameraTransform.position = {17.0f, 9.0f, 19.0f};
-    cameraTransform.lookAt({0.0f, 1.2f, -2.5f});
-    cameraEntity.addComponent<CameraComponent>();
+    cameraTransform.position = {0.0f, 4.1f, 16.5f};
+    cameraTransform.lookAt({0.0f, 4.0f, 0.0f});
+    CameraComponent &camera = cameraEntity.addComponent<CameraComponent>();
+    if (auto *perspective =
+            std::get_if<PerspectiveProjection>(&camera.projection)) {
+        perspective->fov = 43.0f;
+        perspective->near = 0.1f;
+        perspective->far = 80.0f;
+    }
     scene.setActiveCamera(cameraEntity.id);
 
-    const Mesh &planeMesh = resourceManager.getPlaneMesh();
-    const Mesh &cubeMesh = resourceManager.getCubeMesh();
-    const Mesh &sphereMesh = resourceManager.getSphereMesh();
+    const Mesh &planeMesh = resources.getPlaneMesh();
+    const Mesh &cubeMesh = resources.getCubeMesh();
+    const Mesh &sphereMesh = resources.getSphereMesh();
+    const Texture2D &whiteTexture = resources.getWhiteTexture();
+    const Shader &pbrShader = resources.getPBRShader();
 
-    const Texture2D &whiteTexture = resourceManager.getWhiteTexture();
-    const Texture2D &boxTexture =
-            resourceManager.loadTexture("textures/box.png");
-    const Texture2D &boxSpecularMapTexture =
-            resourceManager.loadTexture(
-                "textures/box_specular_map.png",
-                TextureColorSpace::Linear
-            );
-    const Texture2D &brickTexture =
-            resourceManager.loadTexture("textures/brick/bricks2.jpg");
-    const Texture2D &brickNormalTexture =
-            resourceManager.loadTexture(
-                "textures/brick/bricks2_normal.jpg",
-                TextureColorSpace::Linear
-            );
-    const Texture2D &brickDepthTexture =
-            resourceManager.loadTexture(
-                "textures/brick/bricks2_disp.jpg",
-                TextureColorSpace::Linear
-            );
-    const Texture2D &rustyMetalAlbedo = resourceManager.loadTexture(
-        "textures/pbr/rusty_metal_04/albedo.jpg"
-    );
-    const Texture2D &rustyMetalNormal = resourceManager.loadTexture(
-        "textures/pbr/rusty_metal_04/normal_gl.jpg",
-        TextureColorSpace::Linear
-    );
-    const Texture2D &rustyMetalMetallic = resourceManager.loadTexture(
-        "textures/pbr/rusty_metal_04/metallic.jpg",
-        TextureColorSpace::Linear
-    );
-    const Texture2D &rustyMetalRoughness = resourceManager.loadTexture(
-        "textures/pbr/rusty_metal_04/roughness.jpg",
-        TextureColorSpace::Linear
-    );
-    const Texture2D &rustyMetalAO = resourceManager.loadTexture(
-        "textures/pbr/rusty_metal_04/ao.jpg",
-        TextureColorSpace::Linear
-    );
-    const std::array<std::string, 6> skyboxFaces{
-        "textures/skybox/right.jpg",
-        "textures/skybox/left.jpg",
-        "textures/skybox/top.jpg",
-        "textures/skybox/bottom.jpg",
-        "textures/skybox/front.jpg",
-        "textures/skybox/back.jpg"
-    };
-    const CubeMap &skyboxCubeMap =
-            resourceManager.loadCubeMap("defaultSkybox", skyboxFaces);
-
-    const Shader &phongShader = resourceManager.getPhongShader();
-    const Shader &pbrShader = resourceManager.getPBRShader();
-    const Shader &unlitShader = resourceManager.getUnlitShader();
-
-    Entity &skybox = scene.createEntity("Skybox");
-    skybox.addComponent<SkyboxComponent>(&skyboxCubeMap);
-
-    PhongMaterial &floorMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/floor",
-        phongShader,
-        whiteTexture
-    );
-    floorMaterial.baseColor = {0.42f, 0.46f, 0.52f, 1.0f};
-    floorMaterial.specularTexture = &whiteTexture;
-    floorMaterial.specularStrength = 0.12f;
-    floorMaterial.shininess = 16.0f;
-    floorMaterial.useBlinnPhong = true;
-
-    PhongMaterial &boxMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/textured-box",
-        phongShader,
-        boxTexture
-    );
-    boxMaterial.baseColor = {0.75f, 0.75f, 0.75f, 1.0f};
-    boxMaterial.specularTexture = &boxSpecularMapTexture;
-    boxMaterial.specularStrength = 0.8f;
-    boxMaterial.shininess = 64.0f;
-    boxMaterial.useBlinnPhong = true;
-    boxMaterial.environmentStrength = 0.08f;
-
-    PhongMaterial &flatBrickMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/brick-flat",
-        phongShader,
-        brickTexture
-    );
-    flatBrickMaterial.baseColor = glm::vec4(1.0f);
-    flatBrickMaterial.specularTexture = &whiteTexture;
-    flatBrickMaterial.specularStrength = 0.2f;
-    flatBrickMaterial.shininess = 24.0f;
-    flatBrickMaterial.useBlinnPhong = true;
-
-    PhongMaterial &normalMappedBrickMaterial =
-            resourceManager.loadPhongMaterial(
-                "sandbox/brick-normal-mapped",
-                phongShader,
-                brickTexture
-            );
-    normalMappedBrickMaterial.baseColor = glm::vec4(1.0f);
-    normalMappedBrickMaterial.specularTexture = &whiteTexture;
-    normalMappedBrickMaterial.normalTexture = &brickNormalTexture;
-    normalMappedBrickMaterial.specularStrength = 0.2f;
-    normalMappedBrickMaterial.shininess = 24.0f;
-    normalMappedBrickMaterial.useBlinnPhong = true;
-    normalMappedBrickMaterial.useNormalMapping = true;
-    normalMappedBrickMaterial.normalStrength = 1.0f;
-    // Texture2D flips image rows during loading, so this tutorial map needs
-    // its tangent-space green channel restored.
-    normalMappedBrickMaterial.flipNormalY = true;
-
-    PhongMaterial &parallaxBrickMaterial =
-            resourceManager.loadPhongMaterial(
-                "sandbox/brick-parallax-occlusion",
-                phongShader,
-                brickTexture
-            );
-    parallaxBrickMaterial.baseColor = glm::vec4(1.0f);
-    parallaxBrickMaterial.specularTexture = &whiteTexture;
-    parallaxBrickMaterial.normalTexture = &brickNormalTexture;
-    parallaxBrickMaterial.depthTexture = &brickDepthTexture;
-    parallaxBrickMaterial.specularStrength = 0.2f;
-    parallaxBrickMaterial.shininess = 24.0f;
-    parallaxBrickMaterial.useBlinnPhong = true;
-    parallaxBrickMaterial.useNormalMapping = true;
-    parallaxBrickMaterial.normalStrength = 1.0f;
-    parallaxBrickMaterial.flipNormalY = true;
-    parallaxBrickMaterial.parallaxMappingMode =
-            ParallaxMappingMode::Occlusion;
-    parallaxBrickMaterial.parallaxScale = 0.08f;
-    parallaxBrickMaterial.parallaxMinLayers = 8;
-    parallaxBrickMaterial.parallaxMaxLayers = 32;
-    parallaxBrickMaterial.discardParallaxEdges = false;
-
-    PhongMaterial &coolMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/cool",
-        phongShader,
-        whiteTexture
-    );
-    coolMaterial.baseColor = {0.12f, 0.32f, 0.68f, 1.0f};
-    coolMaterial.specularTexture = &whiteTexture;
-    coolMaterial.specularStrength = 0.8f;
-    coolMaterial.shininess = 72.0f;
-    coolMaterial.useBlinnPhong = true;
-
-    PhongMaterial &warmMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/warm-clay",
-        phongShader,
-        whiteTexture
-    );
-    warmMaterial.baseColor = {0.68f, 0.22f, 0.12f, 1.0f};
-    warmMaterial.specularTexture = &whiteTexture;
-    warmMaterial.specularStrength = 0.18f;
-    warmMaterial.shininess = 20.0f;
-    warmMaterial.useBlinnPhong = true;
-
-    PhongMaterial &mintMaterial = resourceManager.loadPhongMaterial(
-        "sandbox/mint",
-        phongShader,
-        whiteTexture
-    );
-    mintMaterial.baseColor = {0.18f, 0.58f, 0.42f, 1.0f};
-    mintMaterial.specularTexture = &whiteTexture;
-    mintMaterial.specularStrength = 0.25f;
-    mintMaterial.shininess = 32.0f;
-    mintMaterial.useBlinnPhong = true;
-
-    const auto makePBRMaterial = [&](
-        const std::string &name,
-        const glm::vec4 &color,
-        const float metallic,
-        const float roughness
-    ) -> PBRMaterial & {
-        PBRMaterial &material = resourceManager.loadPBRMaterial(
-            "sandbox/" + name,
-            pbrShader,
-            whiteTexture
-        );
-        material.baseColor = color;
-        material.metallic = metallic;
-        material.roughness = roughness;
-        material.ao = 1.0f;
-        return material;
-    };
-
-    PBRMaterial &pbrDielectricSmooth = makePBRMaterial(
-        "pbr-dielectric-smooth",
-        {0.72f, 0.06f, 0.04f, 1.0f},
-        0.0f,
-        0.15f
-    );
-    PBRMaterial &pbrDielectricRough = makePBRMaterial(
-        "pbr-dielectric-rough",
-        {0.72f, 0.06f, 0.04f, 1.0f},
-        0.0f,
-        0.8f
-    );
-    PBRMaterial &pbrMetalSmooth = makePBRMaterial(
-        "pbr-metal-smooth",
-        {1.0f, 0.71f, 0.22f, 1.0f},
-        1.0f,
-        0.15f
-    );
-    PBRMaterial &pbrMetalRough = makePBRMaterial(
-        "pbr-metal-rough",
-        {1.0f, 0.71f, 0.22f, 1.0f},
-        1.0f,
-        0.72f
-    );
-    PBRMaterial &rustyMetalMaterial = resourceManager.loadPBRMaterial(
-        "sandbox/pbr-rusty-metal-04",
+    PBRMaterial &floorMaterial = resources.loadPBRMaterial(
+        "showcase/studio-floor",
         pbrShader,
-        rustyMetalAlbedo
+        whiteTexture
     );
-    rustyMetalMaterial.normalTexture = &rustyMetalNormal;
-    rustyMetalMaterial.metallicTexture = &rustyMetalMetallic;
-    rustyMetalMaterial.roughnessTexture = &rustyMetalRoughness;
-    rustyMetalMaterial.aoTexture = &rustyMetalAO;
-    rustyMetalMaterial.metallic = 1.0f;
-    rustyMetalMaterial.roughness = 1.0f;
-    rustyMetalMaterial.ao = 1.0f;
-    rustyMetalMaterial.flipNormalY = true;
+    floorMaterial.baseColor = {0.12f, 0.13f, 0.15f, 1.0f};
+    floorMaterial.metallic = 0.0f;
+    floorMaterial.roughness = 0.72f;
 
-    UnlitMaterial &pointLightMarkerMaterial =
-            resourceManager.loadUnlitMaterial(
-                "sandbox/point-light-marker",
-                unlitShader,
-                whiteTexture
-            );
-    pointLightMarkerMaterial.baseColor = {8.0f, 7.2f, 5.5f, 1.0f};
+    PBRMaterial &wallMaterial = resources.loadPBRMaterial(
+        "showcase/studio-wall",
+        pbrShader,
+        whiteTexture
+    );
+    wallMaterial.baseColor = {0.055f, 0.062f, 0.075f, 1.0f};
+    wallMaterial.metallic = 0.0f;
+    wallMaterial.roughness = 0.92f;
 
-    UnlitMaterial &spotLightMarkerMaterial =
-            resourceManager.loadUnlitMaterial(
-                "sandbox/spot-light-marker",
-                unlitShader,
-                whiteTexture
-            );
-    spotLightMarkerMaterial.baseColor = {5.0f, 0.3f, 0.1f, 1.0f};
+    PBRMaterial &pedestalMaterial = resources.loadPBRMaterial(
+        "showcase/pedestal",
+        pbrShader,
+        whiteTexture
+    );
+    pedestalMaterial.baseColor = {0.18f, 0.20f, 0.24f, 1.0f};
+    pedestalMaterial.metallic = 0.15f;
+    pedestalMaterial.roughness = 0.32f;
 
-    const auto createCube = [&scene, &cubeMesh](
-        const char *name,
-        const Transform &transform,
-        const Material &material
+    const auto createMesh = [&](
+        const std::string &name,
+        const Mesh &mesh,
+        const Material &material,
+        const Transform &transform
     ) -> Entity & {
         Entity &entity = scene.createEntity(name);
         entity.getComponent<TransformComponent>().local = transform;
-        MeshRendererComponent &renderer =
-                entity.addComponent<MeshRendererComponent>(
-                    &cubeMesh,
-                    &material
-                );
-        renderer.outlineMode = OutlineMode::ScaleFromPivot;
+        entity.addComponent<MeshRendererComponent>(&mesh, &material);
         return entity;
     };
 
-    const auto createPlane = [&scene, &planeMesh](
-        const char *name,
-        const Transform &transform,
-        const Material &material
-    ) -> Entity & {
-        Entity &entity = scene.createEntity(name);
-        entity.getComponent<TransformComponent>().local = transform;
-        MeshRendererComponent &renderer =
-                entity.addComponent<MeshRendererComponent>(
-                    &planeMesh,
-                    &material
-                );
-        renderer.outlineMode = OutlineMode::ScaleFromPivot;
-        return entity;
-    };
-
-    const auto createSphere = [&scene, &sphereMesh](
-        const char *name,
-        const Transform &transform,
-        const Material &material
-    ) -> Entity & {
-        Entity &entity = scene.createEntity(name);
-        entity.getComponent<TransformComponent>().local = transform;
-        entity.addComponent<MeshRendererComponent>(
-            &sphereMesh,
-            &material
-        );
-        return entity;
-    };
-
-    (void)createPlane(
-        "Ground - SSAO Receiver",
+    (void)createMesh(
+        "Studio Floor",
+        planeMesh,
+        floorMaterial,
         {
-            .position = {0.0f, -0.05f, -1.0f},
+            .position = {0.0f, 0.0f, 0.5f},
             .rotation = {-90.0f, 0.0f, 0.0f},
-            .scale = {30.0f, 24.0f, 1.0f}
-        },
-        floorMaterial
-    );
-    (void)createPlane(
-        "Back Wall - SSAO Corner",
-        {
-            .position = {0.0f, 4.0f, -11.0f},
-            .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {30.0f, 8.0f, 1.0f}
-        },
-        floorMaterial
-    );
-    (void)createPlane(
-        "Left Wall - SSAO Corner",
-        {
-            .position = {-14.0f, 4.0f, -1.0f},
-            .rotation = {0.0f, 90.0f, 0.0f},
-            .scale = {20.0f, 8.0f, 1.0f}
-        },
-        floorMaterial
-    );
-
-    const std::array<std::pair<const char *, PBRMaterial *>, 5>
-            pbrSamples{{
-                {"PBR - Dielectric Smooth", &pbrDielectricSmooth},
-                {"PBR - Dielectric Rough", &pbrDielectricRough},
-                {"PBR - Metal Smooth", &pbrMetalSmooth},
-                {"PBR - Metal Rough", &pbrMetalRough},
-                {"PBR - Textured Rusty Metal", &rustyMetalMaterial}
-            }};
-    for (std::size_t index = 0; index < pbrSamples.size(); ++index) {
-        Entity &sample = createSphere(
-            pbrSamples[index].first,
-            {
-                .position = {
-                    -6.0f + static_cast<float>(index) * 3.0f,
-                    1.05f,
-                    5.2f
-                },
-                .rotation = {0.0f, 0.0f, 0.0f},
-                .scale = {2.0f, 2.0f, 2.0f}
-            },
-            *pbrSamples[index].second
-        );
-        if (index == pbrSamples.size() - 1) {
-            SpinComponent &spin = sample.addComponent<SpinComponent>();
-            spin.degreesPerSecond = {0.0f, 18.0f, 0.0f};
+            .scale = {20.0f, 16.0f, 1.0f}
         }
-    }
-
-    // Three adjacent material samples make the contact darkening along the
-    // floor easy to compare without changing geometry.
-    (void)createCube(
-        "Brick Sample - Flat",
-        {
-            .position = {-3.0f, 0.9f, 2.2f},
-            .rotation = {0.0f, -12.0f, 0.0f},
-            .scale = {1.7f, 1.7f, 1.7f}
-        },
-        flatBrickMaterial
     );
-    (void)createCube(
-        "Brick Sample - Normal Mapped",
+    (void)createMesh(
+        "Studio Backdrop",
+        planeMesh,
+        wallMaterial,
         {
-            .position = {-0.5f, 0.9f, 2.0f},
-            .rotation = {0.0f, -12.0f, 0.0f},
-            .scale = {1.7f, 1.7f, 1.7f}
-        },
-        normalMappedBrickMaterial
-    );
-    (void)createCube(
-        "Brick Sample - Parallax Occlusion",
-        {
-            .position = {2.0f, 0.9f, 1.8f},
-            .rotation = {0.0f, -12.0f, 0.0f},
-            .scale = {1.7f, 1.7f, 1.7f}
-        },
-        parallaxBrickMaterial
-    );
-
-    // The narrow gaps under and between these pieces are deliberately sized
-    // to reveal the SSAO radius and bias controls.
-    (void)createCube(
-        "Arch - Left Pillar",
-        {
-            .position = {3.8f, 1.5f, -4.8f},
+            .position = {0.0f, 4.4f, -2.1f},
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.9f, 3.0f, 0.9f}
-        },
-        warmMaterial
-    );
-    (void)createCube(
-        "Arch - Right Pillar",
-        {
-            .position = {6.4f, 1.5f, -4.8f},
-            .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.9f, 3.0f, 0.9f}
-        },
-        warmMaterial
-    );
-    (void)createCube(
-        "Arch - Top Beam",
-        {
-            .position = {5.1f, 3.35f, -4.8f},
-            .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {3.5f, 0.7f, 0.9f}
-        },
-        mintMaterial
-    );
-    Entity &suspendedBlock = createCube(
-        "Arch - Suspended Block",
-        {
-            .position = {5.1f, 1.45f, -4.8f},
-            .rotation = {12.0f, 28.0f, 5.0f},
-            .scale = {0.9f, 0.9f, 0.9f}
-        },
-        coolMaterial
-    );
-    SpinComponent &suspendedSpin =
-            suspendedBlock.addComponent<SpinComponent>();
-    suspendedSpin.degreesPerSecond = {18.0f, 55.0f, 12.0f};
-    BobComponent &suspendedBob =
-            suspendedBlock.addComponent<BobComponent>();
-    suspendedBob.amplitude = 0.65f;
-    suspendedBob.frequency = 0.42f;
-
-    (void)createCube(
-        "Backpack Display Plinth",
-        {
-            .position = {-6.4f, 0.3f, -4.8f},
-            .rotation = {0.0f, 8.0f, 0.0f},
-            .scale = {3.0f, 0.6f, 3.0f}
-        },
-        mintMaterial
+            .scale = {20.0f, 10.5f, 1.0f}
+        }
     );
 
-    const Model &bagModel =
-            resourceManager.loadModel("models/backpack/backpack.obj", true);
-    const EntityId bagId =
-            scene.instantiateModel(bagModel, floorMaterial, "Upright Backpack");
-    if (Entity *bagEntity = scene.findEntity(bagId)) {
-        bagEntity->getComponent<TransformComponent>().local = {
-            .position = {-6.4f, 0.62f, -4.8f},
-            .rotation = {0.0f, -28.0f, 0.0f},
-            .scale = {0.9f, 0.9f, 0.9f}
-        };
-        SpinComponent &displaySpin =
-                bagEntity->addComponent<SpinComponent>();
-        displaySpin.degreesPerSecond = {0.0f, 16.0f, 0.0f};
-    }
-
-    (void)createCube(
-        "Wide Step - Lower",
-        {
-            .position = {8.8f, 0.25f, 1.6f},
-            .rotation = {0.0f, -8.0f, 0.0f},
-            .scale = {3.8f, 0.5f, 3.2f}
-        },
-        coolMaterial
-    );
-    (void)createCube(
-        "Wide Step - Upper",
-        {
-            .position = {8.7f, 0.85f, 0.9f},
-            .rotation = {0.0f, -8.0f, 0.0f},
-            .scale = {2.7f, 0.7f, 2.2f}
-        },
-        mintMaterial
-    );
-    Entity &environmentSample = createCube(
-        "Environment Mapping Sample",
-        {
-            .position = {8.5f, 2.1f, 0.3f},
-            .rotation = {15.0f, 30.0f, 8.0f},
-            .scale = {1.3f, 1.3f, 1.3f}
-        },
-        boxMaterial
-    );
-    SpinComponent &environmentSpin =
-            environmentSample.addComponent<SpinComponent>();
-    environmentSpin.degreesPerSecond = {12.0f, 32.0f, 6.0f};
-
-    Entity &orbitingCube = createCube(
-        "Orbiting Gallery Cube",
-        {
-            .position = {1.6f, 2.8f, -4.8f},
-            .rotation = {18.0f, 0.0f, 18.0f},
-            .scale = {0.75f, 0.75f, 0.75f}
-        },
-        coolMaterial
-    );
-    OrbitComponent &orbit = orbitingCube.addComponent<OrbitComponent>();
-    orbit.center = {5.1f, 2.8f, -4.8f};
-    orbit.degreesPerSecond = 24.0f;
-    SpinComponent &orbitingSpin = orbitingCube.addComponent<SpinComponent>();
-    orbitingSpin.degreesPerSecond = {35.0f, 60.0f, 20.0f};
-
-    Entity &instancedCubes = scene.createEntity("Instanced Occlusion Row");
-    InstancedMeshRendererComponent &instancedRenderer =
-            instancedCubes.addComponent<InstancedMeshRendererComponent>(
-                &cubeMesh,
-                &warmMaterial
-            );
-    for (int index = 0; index < 11; ++index) {
-        Transform instanceTransform;
-        instanceTransform.position = {
-            -8.5f + static_cast<float>(index) * 1.6f,
-            0.35f + static_cast<float>(index % 3) * 0.12f,
-            -8.6f
-        };
-        instanceTransform.rotation.y = static_cast<float>(index) * 9.0f;
-        instanceTransform.scale = {0.65f, 0.7f, 0.65f};
-        (void)instancedRenderer.addInstance(instanceTransform);
-    }
-
-    Entity &ambientLightEntity = scene.createEntity("Ambient Fill");
-    AmbientLightComponent &ambientLight =
-            ambientLightEntity.addComponent<AmbientLightComponent>();
-    ambientLight.color = {0.42f, 0.46f, 0.58f};
-    ambientLight.intensity = 0.18f;
-
-    Entity &directionalLightEntity = scene.createEntity("Warm Sun Light");
-    directionalLightEntity.getComponent<TransformComponent>().local.rotation =
-            {-52.0f, -28.0f, 0.0f};
-    DirectionalLightComponent &directionalLight =
-            directionalLightEntity.addComponent<DirectionalLightComponent>();
-    directionalLight.color = {1.0f, 0.84f, 0.68f};
-    directionalLight.intensity = 0.48f;
-    directionalLight.castShadows = true;
-
-    // Localized gallery lights make the roughness-dependent PBR highlight
-    // readable without flooding the older Phong samples behind the row.
-    const std::array<glm::vec3, 2> pbrLightPositions{
-        glm::vec3{-3.5f, 4.5f, 10.0f},
-        glm::vec3{4.0f, 4.5f, 10.0f}
-    };
-    for (std::size_t index = 0; index < pbrLightPositions.size(); ++index) {
-        Entity &lightEntity = scene.createEntity(
-            index == 0 ? "PBR Gallery Light - Left"
-                       : "PBR Gallery Light - Right"
+    std::array<PBRMaterial *, ShowcaseMaterials.size()> materials{};
+    for (std::size_t index = 0; index < ShowcaseMaterials.size(); ++index) {
+        const ShowcaseMaterial &source = ShowcaseMaterials[index];
+        const Texture2D &albedo = resources.loadTexture(source.albedoPath);
+        const Texture2D &normal = resources.loadTexture(
+            source.normalPath,
+            TextureColorSpace::Linear
         );
-        lightEntity.getComponent<TransformComponent>().local.position =
-                pbrLightPositions[index];
-        PointLightComponent &galleryLight =
-                lightEntity.addComponent<PointLightComponent>();
-        galleryLight.range = 8.0f;
-        galleryLight.color = index == 0
-                                 ? glm::vec3{1.0f, 0.72f, 0.48f}
-                                 : glm::vec3{0.62f, 0.78f, 1.0f};
-        galleryLight.intensity = 2.5f;
-        galleryLight.castShadows = false;
+        const Texture2D &roughness = resources.loadTexture(
+            source.roughnessPath,
+            TextureColorSpace::Linear
+        );
+
+        PBRMaterial &material = resources.loadPBRMaterial(
+            "showcase/" + std::string(source.name),
+            pbrShader,
+            albedo
+        );
+        material.normalTexture = &normal;
+        material.roughnessTexture = &roughness;
+        material.metallicTexture = nullptr;
+        material.aoTexture = source.aoPath
+                                 ? &resources.loadTexture(
+                                     source.aoPath,
+                                     TextureColorSpace::Linear
+                                   )
+                                 : nullptr;
+        material.baseColor = glm::vec4(1.0f);
+        material.metallic = source.metallic ? 1.0f : 0.0f;
+        material.roughness = 1.0f;
+        material.ao = 1.0f;
+        material.useNormalMapping = true;
+        material.flipNormalY = true;
+        material.normalStrength = source.normalStrength;
+        materials[index] = &material;
     }
 
-    const glm::vec3 pointLightPosition{1.5f, 6.5f, 6.5f};
-    Entity &pointLightEntity = scene.createEntity("HDR Key Light");
-    pointLightEntity.getComponent<TransformComponent>().local.position =
-            pointLightPosition;
-    PointLightComponent &pointLight =
-            pointLightEntity.addComponent<PointLightComponent>();
-    pointLight.range = 18.0f;
-    pointLight.color = {1.0f, 0.94f, 0.82f};
-    pointLight.intensity = 11.0f;
-    pointLight.castShadows = true;
+    constexpr std::array<float, 3> columnPositions{-4.5f, 0.0f, 4.5f};
+    constexpr std::array<float, 3> rowPositions{6.75f, 4.05f, 1.35f};
+    for (std::size_t index = 0; index < materials.size(); ++index) {
+        const std::size_t row = index / columnPositions.size();
+        const std::size_t column = index % columnPositions.size();
+        const float x = columnPositions[column];
+        const float y = rowPositions[row];
 
-    (void)createCube(
-        "HDR Key Light Marker",
-        {
-            .position = pointLightPosition,
-            .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.22f, 0.22f, 0.22f}
-        },
-        pointLightMarkerMaterial
+        (void)createMesh(
+            std::string(ShowcaseMaterials[index].name) + " Pedestal",
+            cubeMesh,
+            pedestalMaterial,
+            {
+                .position = {x, y - 1.27f, 0.0f},
+                .rotation = {0.0f, 0.0f, 0.0f},
+                .scale = {3.05f, 0.42f, 2.1f}
+            }
+        );
+
+        Entity &sphere = createMesh(
+            std::string("Material - ") + ShowcaseMaterials[index].name,
+            sphereMesh,
+            *materials[index],
+            {
+                .position = {x, y, 0.35f},
+                .rotation = {0.0f, static_cast<float>(index) * 19.0f, 0.0f},
+                .scale = {2.2f, 2.2f, 2.2f}
+            }
+        );
+        SpinComponent &spin = sphere.addComponent<SpinComponent>();
+        spin.degreesPerSecond = {
+            0.0f,
+            4.0f + static_cast<float>(index % 3) * 1.5f,
+            0.0f
+        };
+    }
+
+    Entity &ambientEntity = scene.createEntity("Ambient Studio Fill");
+    AmbientLightComponent &ambient =
+            ambientEntity.addComponent<AmbientLightComponent>();
+    ambient.color = {0.24f, 0.28f, 0.36f};
+    ambient.intensity = 0.16f;
+
+    Entity &sunEntity = scene.createEntity("Soft Directional Light");
+    sunEntity.getComponent<TransformComponent>().local.rotation =
+            {-48.0f, -32.0f, 0.0f};
+    DirectionalLightComponent &sun =
+            sunEntity.addComponent<DirectionalLightComponent>();
+    sun.color = {0.82f, 0.88f, 1.0f};
+    sun.intensity = 0.34f;
+    sun.castShadows = true;
+
+    const auto createPointLight = [&](
+        const char *name,
+        const glm::vec3 &position,
+        const glm::vec3 &color,
+        const float intensity,
+        const float range,
+        const bool castShadows
+    ) {
+        Entity &entity = scene.createEntity(name);
+        entity.getComponent<TransformComponent>().local.position = position;
+        PointLightComponent &light =
+                entity.addComponent<PointLightComponent>();
+        light.color = color;
+        light.intensity = intensity;
+        light.range = range;
+        light.castShadows = castShadows;
+    };
+
+    createPointLight(
+        "Warm Key Light",
+        {-5.5f, 8.5f, 10.0f},
+        {1.0f, 0.72f, 0.48f},
+        6.5f,
+        26.0f,
+        true
     );
-
-    const glm::vec3 spotLightPosition{-9.0f, 6.5f, 1.5f};
-    Entity &spotLightEntity = scene.createEntity("Red Gallery Spot");
-    Transform &spotLightTransform =
-            spotLightEntity.getComponent<TransformComponent>().local;
-    spotLightTransform.position = spotLightPosition;
-    spotLightTransform.lookAt({-6.0f, 1.0f, -5.0f});
-    SpotLightComponent &spotLight =
-            spotLightEntity.addComponent<SpotLightComponent>();
-    spotLight.range = 16.0f;
-    spotLight.color = {1.0f, 0.18f, 0.08f};
-    spotLight.intensity = 3.0f;
-    spotLight.innerAngle = 16.0f;
-    spotLight.outerAngle = 28.0f;
-
-    (void)createCube(
-        "Red Gallery Spot Marker",
-        {
-            .position = spotLightPosition,
-            .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = {0.18f, 0.18f, 0.18f}
-        },
-        spotLightMarkerMaterial
+    createPointLight(
+        "Cool Fill Light",
+        {6.5f, 5.0f, 9.0f},
+        {0.46f, 0.68f, 1.0f},
+        4.5f,
+        24.0f,
+        false
+    );
+    createPointLight(
+        "Neutral Front Fill",
+        {0.0f, 4.5f, 13.0f},
+        {1.0f, 0.96f, 0.90f},
+        3.5f,
+        30.0f,
+        false
+    );
+    createPointLight(
+        "Blue Rim Light",
+        {0.0f, 7.5f, -0.5f},
+        {0.30f, 0.52f, 1.0f},
+        6.0f,
+        16.0f,
+        false
     );
 }

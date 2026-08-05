@@ -4,9 +4,5 @@ imgui.ini
 
 assets/*
 !assets/shaders/
-!assets/textures/
-assets/textures/*
-!assets/textures/pbr/
-assets/textures/pbr/*
-!assets/textures/pbr/rusty_metal_04/
-!assets/textures/pbr/rusty_metal_04/**
+assets/textures/
+

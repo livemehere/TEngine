@@ -124,11 +124,11 @@ namespace PrimitiveMeshes {
                     result.indices.end(),
                     {
                         topLeft,
-                        bottomLeft,
-                        topLeft + 1,
                         topLeft + 1,
                         bottomLeft,
-                        bottomLeft + 1
+                        topLeft + 1,
+                        bottomLeft + 1,
+                        bottomLeft
                     }
                 );
             }
