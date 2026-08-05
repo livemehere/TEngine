@@ -48,6 +48,7 @@ out vec4 FragColor;
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
+uniform sampler2D gMaterial;
 uniform sampler2D uSSAO;
 uniform int uSSAOEnabled;
 uniform sampler2D uShadowMap;
@@ -78,6 +79,73 @@ const vec3 pointShadowSampleDirections[20] = vec3[](
     vec3( 0.0,  1.0,  1.0), vec3( 0.0, -1.0,  1.0),
     vec3( 0.0, -1.0, -1.0), vec3( 0.0,  1.0, -1.0)
 );
+
+const float PI = 3.14159265359;
+
+float distributionGGX(vec3 normal, vec3 halfway, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alphaSquared = alpha * alpha;
+    float normalDotHalfway = max(dot(normal, halfway), 0.0);
+    float denominator = normalDotHalfway * normalDotHalfway *
+                        (alphaSquared - 1.0) + 1.0;
+    return alphaSquared /
+           max(PI * denominator * denominator, 0.000001);
+}
+
+float geometrySchlickGGX(float normalDotDirection, float roughness)
+{
+    float value = roughness + 1.0;
+    float k = value * value / 8.0;
+    return normalDotDirection /
+           max(normalDotDirection * (1.0 - k) + k, 0.000001);
+}
+
+float geometrySmith(
+    vec3 normal,
+    vec3 viewDir,
+    vec3 lightDir,
+    float roughness
+)
+{
+    return geometrySchlickGGX(max(dot(normal, viewDir), 0.0), roughness) *
+           geometrySchlickGGX(max(dot(normal, lightDir), 0.0), roughness);
+}
+
+vec3 fresnelSchlick(float cosine, vec3 f0)
+{
+    return f0 + (1.0 - f0) * pow(clamp(1.0 - cosine, 0.0, 1.0), 5.0);
+}
+
+vec3 evaluatePBR(
+    vec3 albedo,
+    float metallic,
+    float roughness,
+    vec3 normal,
+    vec3 viewDir,
+    vec3 lightDir,
+    vec3 radiance
+)
+{
+    vec3 halfway = normalize(viewDir + lightDir);
+    vec3 f0 = mix(vec3(0.04), albedo, metallic);
+    vec3 fresnel = fresnelSchlick(
+        max(dot(halfway, viewDir), 0.0),
+        f0
+    );
+    float distribution = distributionGGX(normal, halfway, roughness);
+    float geometry = geometrySmith(normal, viewDir, lightDir, roughness);
+    float denominator = 4.0 *
+                        max(dot(normal, viewDir), 0.0) *
+                        max(dot(normal, lightDir), 0.0);
+    vec3 specular = distribution * geometry * fresnel /
+                    max(denominator, 0.0001);
+
+    vec3 diffuseWeight = (vec3(1.0) - fresnel) * (1.0 - metallic);
+    float normalDotLight = max(dot(normal, lightDir), 0.0);
+    return (diffuseWeight * albedo / PI + specular) *
+           radiance * normalDotLight;
+}
 
 float calculateSpecularFactor(
     vec3 normal,
@@ -319,12 +387,17 @@ void main()
 
     vec4 normalSample = texture(gNormal, vTexCoord);
     vec4 albedoSpecSample = texture(gAlbedoSpec, vTexCoord);
+    vec4 materialSample = texture(gMaterial, vTexCoord);
     vec3 fragmentPosition = positionSample.xyz;
     vec3 normal = normalize(normalSample.xyz);
     vec3 albedo = albedoSpecSample.rgb;
     float specularMask = albedoSpecSample.a;
     float shininess = max(normalSample.a, 0.0001);
     bool useBlinnPhong = positionSample.a > 1.5;
+    bool usePBR = materialSample.r > 0.5;
+    float metallic = clamp(materialSample.g, 0.0, 1.0);
+    float roughness = clamp(materialSample.b, 0.04, 1.0);
+    float materialAO = clamp(materialSample.a, 0.0, 1.0);
 
     if (debugData.viewMode == 1) {
         float depth = -(camera.view * vec4(fragmentPosition, 1.0)).z;
@@ -371,7 +444,8 @@ void main()
     vec3 result = albedo *
                   lights.ambientLightColorIntensity.rgb *
                   lights.ambientLightColorIntensity.w *
-                  ambientOcclusion;
+                  ambientOcclusion *
+                  (usePBR ? materialAO : 1.0);
     vec3 viewDir = normalize(camera.position.xyz - fragmentPosition);
     int directionalCount = min(
         lights.lightCounts.x,
@@ -381,42 +455,121 @@ void main()
     int spotCount = min(lights.lightCounts.z, MAX_SPOT_LIGHTS);
 
     for (int index = 0; index < directionalCount; ++index) {
-        result += calculateDirectionalLight(
-            index,
-            lights.directionalLights[index],
-            fragmentPosition,
-            albedo,
-            normal,
-            viewDir,
-            shininess,
-            specularMask,
-            useBlinnPhong
-        );
+        if (usePBR) {
+            DirectionalLight light = lights.directionalLights[index];
+            vec3 lightDir = normalize(-light.direction.xyz);
+            vec3 radiance = light.colorIntensity.rgb *
+                            light.colorIntensity.w;
+            float shadow = calculateDirectionalShadow(
+                index,
+                fragmentPosition,
+                normal,
+                lightDir
+            );
+            result += evaluatePBR(
+                albedo,
+                metallic,
+                roughness,
+                normal,
+                viewDir,
+                lightDir,
+                radiance
+            ) * (1.0 - shadow);
+        } else {
+            result += calculateDirectionalLight(
+                index,
+                lights.directionalLights[index],
+                fragmentPosition,
+                albedo,
+                normal,
+                viewDir,
+                shininess,
+                specularMask,
+                useBlinnPhong
+            );
+        }
     }
     for (int index = 0; index < pointCount; ++index) {
-        result += calculatePointLight(
-            index,
-            lights.pointLights[index],
-            fragmentPosition,
-            albedo,
-            normal,
-            viewDir,
-            shininess,
-            specularMask,
-            useBlinnPhong
-        );
+        if (usePBR) {
+            PointLight light = lights.pointLights[index];
+            vec3 toLight = light.positionRange.xyz - fragmentPosition;
+            float distance = length(toLight);
+            if (distance <= light.positionRange.w) {
+                vec3 lightDir = toLight / max(distance, 0.0001);
+                float rangeFade = 1.0 - smoothstep(
+                    0.0,
+                    1.0,
+                    distance / light.positionRange.w
+                );
+                vec3 radiance = light.colorIntensity.rgb *
+                                light.colorIntensity.w * rangeFade;
+                float shadow = calculatePointShadow(index, fragmentPosition);
+                result += evaluatePBR(
+                    albedo,
+                    metallic,
+                    roughness,
+                    normal,
+                    viewDir,
+                    lightDir,
+                    radiance
+                ) * (1.0 - shadow);
+            }
+        } else {
+            result += calculatePointLight(
+                index,
+                lights.pointLights[index],
+                fragmentPosition,
+                albedo,
+                normal,
+                viewDir,
+                shininess,
+                specularMask,
+                useBlinnPhong
+            );
+        }
     }
     for (int index = 0; index < spotCount; ++index) {
-        result += calculateSpotLight(
-            lights.spotLights[index],
-            fragmentPosition,
-            albedo,
-            normal,
-            viewDir,
-            shininess,
-            specularMask,
-            useBlinnPhong
-        );
+        if (usePBR) {
+            SpotLight light = lights.spotLights[index];
+            vec3 toLight = light.positionRange.xyz - fragmentPosition;
+            float distance = length(toLight);
+            if (distance <= light.positionRange.w) {
+                vec3 lightDir = toLight / max(distance, 0.0001);
+                float coneFactor = smoothstep(
+                    light.coneAngles.y,
+                    light.coneAngles.x,
+                    dot(-lightDir, normalize(light.direction.xyz))
+                );
+                float rangeFade = 1.0 - smoothstep(
+                    0.0,
+                    1.0,
+                    distance / light.positionRange.w
+                );
+                vec3 radiance = light.colorIntensity.rgb *
+                                light.colorIntensity.w * coneFactor *
+                                rangeFade;
+                result += evaluatePBR(
+                    albedo,
+                    metallic,
+                    roughness,
+                    normal,
+                    viewDir,
+                    lightDir,
+                    radiance
+                );
+            }
+        } else {
+            result += calculateSpotLight(
+                lights.spotLights[index],
+                fragmentPosition,
+                albedo,
+                normal,
+                viewDir,
+                shininess,
+                specularMask,
+                useBlinnPhong
+            );
+        }
     }
 
     float distanceToCamera = length(

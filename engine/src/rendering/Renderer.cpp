@@ -16,7 +16,6 @@
 #include "Lights.h"
 #include "skybox/SkyboxComponent.h"
 #include "model/InstancedModelRendererComponent.h"
-#include "mesh/materials/PhongMaterial.h"
 
 namespace {
     void applyCullMode(CullMode mode) {
@@ -83,15 +82,11 @@ namespace {
         return forward / std::sqrt(lengthSquared);
     }
 
-    const PhongMaterial* getDeferredMaterial(const Material* material) {
-        const auto* phongMaterial =
-                dynamic_cast<const PhongMaterial*>(material);
-        if (!phongMaterial ||
-            phongMaterial->renderQueue != RenderQueueType::Opaque ||
-            phongMaterial->environmentStrength > 0.0f) {
+    const Material* getDeferredMaterial(const Material* material) {
+        if (!material || !material->supportsDeferred()) {
             return nullptr;
         }
-        return phongMaterial;
+        return material;
     }
 }
 
@@ -113,6 +108,7 @@ namespace {
 
 Renderer::Renderer(ResourceManager &resourceManager)
     : phongShader(resourceManager.getPhongShader()),
+      pbrShader(resourceManager.getPBRShader()),
       outlineShader(resourceManager.getOutlineShader()),
       skyboxShader(resourceManager.getSkyboxShader()),
       normalDebugShader(resourceManager.getNormalDebugShader()),
@@ -157,6 +153,7 @@ Renderer::Renderer(ResourceManager &resourceManager)
     deferredLightingShader.setInt("gPosition", 0);
     deferredLightingShader.setInt("gNormal", 1);
     deferredLightingShader.setInt("gAlbedoSpec", 2);
+    deferredLightingShader.setInt("gMaterial", 6);
     deferredLightingShader.setInt("uSSAO", 5);
     glUseProgram(previousProgram);
 }
@@ -986,7 +983,7 @@ void Renderer::deferredGeometryPass(const RenderQueue& queue) {
     );
 
     for (const RenderItem& item : queue.opaque) {
-        const PhongMaterial* material =
+        const Material* material =
                 getDeferredMaterial(item.meshRenderer->material);
         if (!material) {
             continue;
@@ -1016,7 +1013,7 @@ void Renderer::deferredGeometryPass(const RenderQueue& queue) {
 
     glDisable(GL_STENCIL_TEST);
     for (const InstancedRenderItem& item : queue.instancedOpaque) {
-        const PhongMaterial* material = getDeferredMaterial(item.material);
+        const Material* material = getDeferredMaterial(item.material);
         if (!material) {
             continue;
         }
@@ -1080,7 +1077,7 @@ void Renderer::deferredLightingPass(const FrameBuffer* ssaoTexture) {
     deferredLightingShader.use();
     bindDirectionalShadow(deferredLightingShader);
     bindPointShadow(deferredLightingShader);
-    gBuffer.bindTextures(0, 1, 2);
+    gBuffer.bindTextures(0, 1, 2, 6);
     deferredLightingShader.setInt(
         "uSSAOEnabled",
         ssaoTexture != nullptr ? 1 : 0
@@ -1141,6 +1138,11 @@ void Renderer::frameBufferDebugPass() {
         case FrameBufferDebugView::GBufferAlbedo:
         case FrameBufferDebugView::GBufferSpecular:
             texture2D = gBuffer.getAlbedoSpecTextureId();
+            break;
+        case FrameBufferDebugView::GBufferMetallic:
+        case FrameBufferDebugView::GBufferRoughness:
+        case FrameBufferDebugView::GBufferAO:
+            texture2D = gBuffer.getMaterialTextureId();
             break;
         case FrameBufferDebugView::GBufferDepth:
             texture2D = gBuffer.getDepthStencilTextureId();
@@ -1492,6 +1494,8 @@ void Renderer::render(const Scene &scene, const RenderOptions &options) {
 
     bindDirectionalShadow(phongShader);
     bindPointShadow(phongShader);
+    bindDirectionalShadow(pbrShader);
+    bindPointShadow(pbrShader);
 
     // Deferred-compatible opaque Phong items are already present in the
     // target. The remaining special/transparent items use forward rendering

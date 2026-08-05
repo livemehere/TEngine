@@ -46,6 +46,7 @@ GBuffer::GBuffer(const RenderExtent extent)
     glGenTextures(1, &positionTexture);
     glGenTextures(1, &normalTexture);
     glGenTextures(1, &albedoSpecTexture);
+    glGenTextures(1, &materialTexture);
     glGenTextures(1, &depthStencilTexture);
 
     try {
@@ -55,6 +56,7 @@ GBuffer::GBuffer(const RenderExtent extent)
         glDeleteTextures(1, &positionTexture);
         glDeleteTextures(1, &normalTexture);
         glDeleteTextures(1, &albedoSpecTexture);
+        glDeleteTextures(1, &materialTexture);
         glDeleteTextures(1, &depthStencilTexture);
         throw;
     }
@@ -65,6 +67,7 @@ GBuffer::~GBuffer() {
     glDeleteTextures(1, &positionTexture);
     glDeleteTextures(1, &normalTexture);
     glDeleteTextures(1, &albedoSpecTexture);
+    glDeleteTextures(1, &materialTexture);
     glDeleteTextures(1, &depthStencilTexture);
 }
 
@@ -95,13 +98,20 @@ void GBuffer::allocateAttachments() {
         height,
         GL_COLOR_ATTACHMENT2
     );
+    allocateColorTexture(
+        materialTexture,
+        width,
+        height,
+        GL_COLOR_ATTACHMENT3
+    );
 
     constexpr GLenum attachments[] = {
         GL_COLOR_ATTACHMENT0,
         GL_COLOR_ATTACHMENT1,
-        GL_COLOR_ATTACHMENT2
+        GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3
     };
-    glDrawBuffers(3, attachments);
+    glDrawBuffers(4, attachments);
 
     glBindTexture(GL_TEXTURE_2D, depthStencilTexture);
     glTexImage2D(
@@ -162,13 +172,15 @@ void GBuffer::clear() const {
     glClearBufferfv(GL_COLOR, 0, zero);
     glClearBufferfv(GL_COLOR, 1, zero);
     glClearBufferfv(GL_COLOR, 2, zero);
+    glClearBufferfv(GL_COLOR, 3, zero);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
 }
 
 void GBuffer::bindTextures(
     const GLuint positionSlot,
     const GLuint normalSlot,
-    const GLuint albedoSpecSlot
+    const GLuint albedoSpecSlot,
+    const GLuint materialSlot
 ) const {
     glActiveTexture(GL_TEXTURE0 + positionSlot);
     glBindTexture(GL_TEXTURE_2D, positionTexture);
@@ -176,6 +188,8 @@ void GBuffer::bindTextures(
     glBindTexture(GL_TEXTURE_2D, normalTexture);
     glActiveTexture(GL_TEXTURE0 + albedoSpecSlot);
     glBindTexture(GL_TEXTURE_2D, albedoSpecTexture);
+    glActiveTexture(GL_TEXTURE0 + materialSlot);
+    glBindTexture(GL_TEXTURE_2D, materialTexture);
 }
 
 void GBuffer::blitDepthStencilTo(

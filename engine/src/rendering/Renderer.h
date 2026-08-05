@@ -86,6 +86,7 @@ struct RenderOptions {
 
 class Renderer {
     const Shader &phongShader;
+    const Shader &pbrShader;
     const Shader &outlineShader;
     const Shader &skyboxShader;
     const Shader &normalDebugShader;

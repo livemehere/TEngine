@@ -77,6 +77,8 @@ add_library(TEngine STATIC
     src/rendering/mesh/materials/PhongMaterial.cpp
     src/rendering/mesh/materials/PhongMaterial.h
     src/rendering/mesh/materials/Material.h
+    src/rendering/mesh/materials/PBRMaterial.cpp
+    src/rendering/mesh/materials/PBRMaterial.h
     src/rendering/mesh/materials/UnlitMaterial.cpp
     src/rendering/mesh/materials/UnlitMaterial.h
     src/rendering/mesh/primitives/PrimitiveMeshes.cpp

@@ -14,12 +14,16 @@ in mat3 vTBN;
 layout (location = 0) out vec4 gPosition;
 layout (location = 1) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedoSpec;
+layout (location = 3) out vec4 gMaterial;
 
 struct Material {
     sampler2D albedo;
     sampler2D specular;
     sampler2D normalMap;
     sampler2D depthMap;
+    sampler2D metallicMap;
+    sampler2D roughnessMap;
+    sampler2D aoMap;
     int hasSpecularMap;
     int hasNormalMap;
     int hasDepthMap;
@@ -34,9 +38,27 @@ struct Material {
     int parallaxMinLayers;
     int parallaxMaxLayers;
     int discardParallaxEdges;
+    int workflow;
+    int hasMetallicMap;
+    int hasRoughnessMap;
+    int hasAOMap;
+    int metallicChannel;
+    int roughnessChannel;
+    int aoChannel;
+    float metallic;
+    float roughness;
+    float ao;
 };
 
 uniform Material material;
+
+float channelValue(vec4 value, int channel)
+{
+    if (channel == 1) return value.g;
+    if (channel == 2) return value.b;
+    if (channel == 3) return value.a;
+    return value.r;
+}
 
 vec2 getParallaxTexCoords(vec2 texCoords, vec3 tangentViewDir)
 {
@@ -144,4 +166,33 @@ void main()
         max(material.shininess, 0.0001)
     );
     gAlbedoSpec = vec4(albedo, max(specular, 0.0));
+
+    if (material.workflow == 1) {
+        float metallic = material.hasMetallicMap != 0
+            ? channelValue(
+                texture(material.metallicMap, texCoords),
+                material.metallicChannel
+              ) * material.metallic
+            : material.metallic;
+        float roughness = material.hasRoughnessMap != 0
+            ? channelValue(
+                texture(material.roughnessMap, texCoords),
+                material.roughnessChannel
+              ) * material.roughness
+            : material.roughness;
+        float ao = material.hasAOMap != 0
+            ? channelValue(
+                texture(material.aoMap, texCoords),
+                material.aoChannel
+              ) * material.ao
+            : material.ao;
+        gMaterial = vec4(
+            1.0,
+            clamp(metallic, 0.0, 1.0),
+            clamp(roughness, 0.04, 1.0),
+            clamp(ao, 0.0, 1.0)
+        );
+    } else {
+        gMaterial = vec4(0.0, 0.0, 0.0, 1.0);
+    }
 }

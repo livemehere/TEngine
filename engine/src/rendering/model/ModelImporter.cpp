@@ -14,6 +14,7 @@
 #include "../../common.h"
 #include "../../resources/ResourceManager.h"
 #include "../mesh/materials/PhongMaterial.h"
+#include "../mesh/materials/PBRMaterial.h"
 
 ModelImporter::ModelImporter(
     ResourceManager &resourceManager
@@ -275,6 +276,30 @@ void ModelImporter::processMaterials(
                 scene->mMaterials[materialIndex];
 
         try {
+            float metallicFactor = 0.0f;
+            float roughnessFactor = 0.5f;
+            const bool hasMetallicFactor = sourceMaterial->Get(
+                AI_MATKEY_METALLIC_FACTOR,
+                metallicFactor
+            ) == AI_SUCCESS;
+            const bool hasRoughnessFactor = sourceMaterial->Get(
+                AI_MATKEY_ROUGHNESS_FACTOR,
+                roughnessFactor
+            ) == AI_SUCCESS;
+            const bool hasPBRTextures =
+                    sourceMaterial->GetTextureCount(
+                        aiTextureType_BASE_COLOR
+                    ) > 0 ||
+                    sourceMaterial->GetTextureCount(
+                        aiTextureType_METALNESS
+                    ) > 0 ||
+                    sourceMaterial->GetTextureCount(
+                        aiTextureType_DIFFUSE_ROUGHNESS
+                    ) > 0;
+            const bool usesPBR = hasMetallicFactor ||
+                                 hasRoughnessFactor ||
+                                 hasPBRTextures;
+
             // glTF/PBR
             const Texture2D *albedoTexture =
                     loadMaterialTexture(
@@ -295,6 +320,10 @@ void ModelImporter::processMaterials(
                         );
             }
 
+            if (!albedoTexture && usesPBR) {
+                albedoTexture = &resourceManager.getWhiteTexture();
+            }
+
             // use fallbackMaterial
             if (!albedoTexture) {
                 continue;
@@ -305,13 +334,6 @@ void ModelImporter::processMaterials(
                         "{}#material:{}",
                         modelPath.string(),
                         materialIndex
-                    );
-
-            PhongMaterial &importedMaterial =
-                    resourceManager.loadPhongMaterial(
-                        materialKey,
-                        resourceManager.getPhongShader(),
-                        *albedoTexture
                     );
 
             aiColor4D baseColor{
@@ -331,6 +353,89 @@ void ModelImporter::processMaterials(
                 );
             }
 
+            int twoSided = 0;
+            const bool isTwoSided = sourceMaterial->Get(
+                AI_MATKEY_TWOSIDED,
+                twoSided
+            ) == AI_SUCCESS && twoSided != 0;
+
+            if (usesPBR) {
+                PBRMaterial &importedMaterial =
+                        resourceManager.loadPBRMaterial(
+                            materialKey,
+                            resourceManager.getPBRShader(),
+                            *albedoTexture
+                        );
+                importedMaterial.baseColor = {
+                    baseColor.r,
+                    baseColor.g,
+                    baseColor.b,
+                    baseColor.a
+                };
+                importedMaterial.metallic = hasMetallicFactor
+                                                ? metallicFactor
+                                                : 1.0f;
+                importedMaterial.roughness = hasRoughnessFactor
+                                                 ? roughnessFactor
+                                                 : 1.0f;
+                importedMaterial.ao = 1.0f;
+                importedMaterial.rasterState.cullMode = isTwoSided
+                                                            ? CullMode::None
+                                                            : CullMode::Back;
+                importedMaterial.normalTexture = loadMaterialTexture(
+                    sourceMaterial,
+                    aiTextureType_NORMALS,
+                    scene,
+                    modelPath
+                );
+                if (!importedMaterial.normalTexture) {
+                    importedMaterial.normalTexture = loadMaterialTexture(
+                        sourceMaterial,
+                        aiTextureType_HEIGHT,
+                        scene,
+                        modelPath
+                    );
+                }
+                importedMaterial.metallicTexture = loadMaterialTexture(
+                    sourceMaterial,
+                    aiTextureType_METALNESS,
+                    scene,
+                    modelPath
+                );
+                importedMaterial.roughnessTexture = loadMaterialTexture(
+                    sourceMaterial,
+                    aiTextureType_DIFFUSE_ROUGHNESS,
+                    scene,
+                    modelPath
+                );
+                importedMaterial.aoTexture = loadMaterialTexture(
+                    sourceMaterial,
+                    aiTextureType_AMBIENT_OCCLUSION,
+                    scene,
+                    modelPath
+                );
+
+                if (importedMaterial.metallicTexture &&
+                    importedMaterial.metallicTexture ==
+                        importedMaterial.roughnessTexture) {
+                    importedMaterial.metallicChannel = 2;
+                    importedMaterial.roughnessChannel = 1;
+                } else {
+                    importedMaterial.metallicChannel = 0;
+                    importedMaterial.roughnessChannel = 0;
+                }
+                importedMaterial.aoChannel = 0;
+                model.materials[materialIndex] = &importedMaterial;
+                continue;
+            }
+
+            PhongMaterial &importedMaterial =
+                    resourceManager.loadPhongMaterial(
+                        materialKey,
+                        resourceManager.getPhongShader(),
+                        *albedoTexture
+                    );
+
             importedMaterial.baseColor = {
                 baseColor.r,
                 baseColor.g,
@@ -338,11 +443,7 @@ void ModelImporter::processMaterials(
                 baseColor.a
             };
 
-            int twoSided = 0;
-            if (sourceMaterial->Get(
-                    AI_MATKEY_TWOSIDED,
-                    twoSided
-                ) == AI_SUCCESS && twoSided != 0) {
+            if (isTwoSided) {
                 importedMaterial.rasterState.cullMode = CullMode::None;
             }
 

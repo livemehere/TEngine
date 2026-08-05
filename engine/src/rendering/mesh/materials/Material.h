@@ -31,4 +31,6 @@ public:
 
     virtual void bind () const = 0;
     virtual void bindEnvironment(const CubeMap* environmentMap) const {}
+    [[nodiscard]] virtual bool supportsDeferred() const { return false; }
+    virtual void bindGeometry(const Shader& targetShader) const {}
 };

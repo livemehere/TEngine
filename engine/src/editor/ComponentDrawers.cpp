@@ -7,6 +7,7 @@
 #include <format>
 #include <iterator>
 #include <span>
+#include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
@@ -19,6 +20,7 @@
 #include "../rendering/mesh/MeshRendererComponent.h"
 #include "../rendering/model/InstancedModelRendererComponent.h"
 #include "../rendering/mesh/materials/PhongMaterial.h"
+#include "../rendering/mesh/materials/PBRMaterial.h"
 #include "../rendering/skybox/SkyboxComponent.h"
 #include "../resources/ResourceManager.h"
 #include "../scene/Scene.h"
@@ -309,6 +311,125 @@ namespace {
         }
 
         return result;
+    }
+
+    std::vector<PBRMaterial *> collectPBRMaterials(
+        const std::vector<MeshRendererComponent *> &components,
+        ResourceManager &resources
+    ) {
+        std::vector<PBRMaterial *> result;
+        std::unordered_set<PBRMaterial *> uniqueMaterials;
+        for (const MeshRendererComponent *component : components) {
+            Material *material = resources.findMutableMaterial(
+                component->material
+            );
+            auto *pbrMaterial = dynamic_cast<PBRMaterial *>(material);
+            if (pbrMaterial && uniqueMaterials.insert(pbrMaterial).second) {
+                result.push_back(pbrMaterial);
+            }
+        }
+        return result;
+    }
+
+    void drawPBRMaterialControls(
+        const std::vector<MeshRendererComponent *> &components,
+        ResourceManager &resources
+    ) {
+        const std::vector<PBRMaterial *> materials =
+                collectPBRMaterials(components, resources);
+        if (materials.empty()) {
+            return;
+        }
+
+        ImGui::SeparatorText("PBR Material");
+        glm::vec4 baseColor = materials.front()->baseColor;
+        const bool colorMixed = std::ranges::any_of(
+            materials,
+            [&](const PBRMaterial *material) {
+                return material->baseColor != baseColor;
+            }
+        );
+        if (ImGui::ColorEdit4(
+            colorMixed ? "Base Color (Mixed)" : "Base Color",
+            &baseColor.x
+        )) {
+            for (PBRMaterial *material : materials) {
+                material->baseColor = baseColor;
+            }
+        }
+
+        const auto drawScalar = [&materials](
+            const char *label,
+            float PBRMaterial::*member,
+            float minimum,
+            float maximum
+        ) {
+            float value = materials.front()->*member;
+            const bool mixed = std::ranges::any_of(
+                materials,
+                [&](const PBRMaterial *material) {
+                    return material->*member != value;
+                }
+            );
+            const std::string mixedLabel = std::string(label) + " (Mixed)";
+            if (ImGui::SliderFloat(
+                mixed ? mixedLabel.c_str() : label,
+                &value,
+                minimum,
+                maximum,
+                "%.2f"
+            )) {
+                for (PBRMaterial *material : materials) {
+                    material->*member = value;
+                }
+            }
+        };
+
+        drawScalar("Metallic", &PBRMaterial::metallic, 0.0f, 1.0f);
+        drawScalar("Roughness", &PBRMaterial::roughness, 0.04f, 1.0f);
+        drawScalar("Material AO", &PBRMaterial::ao, 0.0f, 1.0f);
+
+        std::vector<PBRMaterial *> normalMappedMaterials;
+        std::ranges::copy_if(
+            materials,
+            std::back_inserter(normalMappedMaterials),
+            [](const PBRMaterial *material) {
+                return material->normalTexture != nullptr;
+            }
+        );
+        if (!normalMappedMaterials.empty()) {
+            bool enabled = normalMappedMaterials.front()->useNormalMapping;
+            if (ImGui::Checkbox("Normal Mapping", &enabled)) {
+                for (PBRMaterial *material : normalMappedMaterials) {
+                    material->useNormalMapping = enabled;
+                }
+            }
+
+            float strength = normalMappedMaterials.front()->normalStrength;
+            if (ImGui::SliderFloat(
+                "Normal Strength##PBR",
+                &strength,
+                0.0f,
+                2.0f,
+                "%.2f"
+            )) {
+                for (PBRMaterial *material : normalMappedMaterials) {
+                    material->normalStrength = strength;
+                }
+            }
+
+            bool flipY = normalMappedMaterials.front()->flipNormalY;
+            if (ImGui::Checkbox("Flip Green Channel##PBR", &flipY)) {
+                for (PBRMaterial *material : normalMappedMaterials) {
+                    material->flipNormalY = flipY;
+                }
+            }
+        }
+
+        ImGui::TextDisabled(
+            "%zu shared PBR material(s) in this subtree.",
+            materials.size()
+        );
     }
 
     void drawPhongMaterialControls(
@@ -884,6 +1005,7 @@ namespace {
 
         drawGeometryDebugControls(components);
         drawPhongMaterialControls(components, resources);
+        drawPBRMaterialControls(components, resources);
     }
 }
 

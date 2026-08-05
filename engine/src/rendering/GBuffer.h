@@ -9,6 +9,7 @@ class GBuffer {
     GLuint positionTexture = 0;
     GLuint normalTexture = 0;
     GLuint albedoSpecTexture = 0;
+    GLuint materialTexture = 0;
     GLuint depthStencilTexture = 0;
     int width = 0;
     int height = 0;
@@ -38,13 +39,18 @@ public:
         return depthStencilTexture;
     }
 
+    [[nodiscard]] GLuint getMaterialTextureId() const {
+        return materialTexture;
+    }
+
     void resize(RenderExtent extent);
     void bindForGeometry() const;
     void clear() const;
     void bindTextures(
         GLuint positionSlot,
         GLuint normalSlot,
-        GLuint albedoSpecSlot
+        GLuint albedoSpecSlot,
+        GLuint materialSlot
     ) const;
     void blitDepthStencilTo(GLuint destination, RenderExtent extent) const;
 };

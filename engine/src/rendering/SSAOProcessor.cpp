@@ -176,7 +176,9 @@ const FrameBuffer* SSAOProcessor::process(
     ssaoShader.setFloat("uRadius", std::max(settings.ssaoRadius, 0.001f));
     ssaoShader.setFloat("uBias", std::max(settings.ssaoBias, 0.0f));
     ssaoShader.setFloat("uPower", std::max(settings.ssaoPower, 0.01f));
-    gBuffer.bindTextures(0, 1, 2);
+    // The SSAO pass only reads position and normal. Reuse slot 2 for the
+    // unused G-buffer attachments before binding the noise texture there.
+    gBuffer.bindTextures(0, 1, 2, 2);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, noiseTexture);
     glBindVertexArray(vao);

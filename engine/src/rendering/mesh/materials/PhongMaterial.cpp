@@ -64,6 +64,11 @@ void PhongMaterial::bind() const {
     }
 }
 
+bool PhongMaterial::supportsDeferred() const {
+    return renderQueue == RenderQueueType::Opaque &&
+           environmentStrength <= 0.0f;
+}
+
 void PhongMaterial::bindGeometry(const Shader& targetShader) const {
     targetShader.use();
 
@@ -76,6 +81,7 @@ void PhongMaterial::bindGeometry(const Shader& targetShader) const {
         "material.useBlinnPhong",
         useBlinnPhong ? 1 : 0
     );
+    targetShader.setInt("material.workflow", 0);
 
     if (specularTexture) {
         specularTexture->bind(1);

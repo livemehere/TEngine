@@ -65,6 +65,18 @@ void main()
         return;
     }
     if (uMode == 5) {
+        FragColor = vec4(vec3(sampleValue.g), 1.0);
+        return;
+    }
+    if (uMode == 6) {
+        FragColor = vec4(vec3(sampleValue.b), 1.0);
+        return;
+    }
+    if (uMode == 7) {
+        FragColor = vec4(vec3(sampleValue.a), 1.0);
+        return;
+    }
+    if (uMode == 8) {
         float linearDepth = linearizeDepth(sampleValue.r);
         float range = max(uDepthRangeFar - uDepthRangeNear, 0.0001);
         float gray = clamp(
@@ -75,15 +87,15 @@ void main()
         FragColor = vec4(vec3(gray), 1.0);
         return;
     }
-    if (uMode == 6 || uMode == 7) {
+    if (uMode == 9 || uMode == 10) {
         FragColor = vec4(vec3(sampleValue.r), 1.0);
         return;
     }
-    if (uMode == 8) {
+    if (uMode == 11) {
         FragColor = vec4(vec3(pow(sampleValue.r, 24.0)), 1.0);
         return;
     }
-    if (uMode == 9) {
+    if (uMode == 12) {
         float depth = texture(
             uCubeTexture,
             cubeDirection(vTexCoord, uCubeFace)

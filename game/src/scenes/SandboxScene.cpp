@@ -10,6 +10,7 @@
 #include <rendering/mesh/MeshRendererComponent.h>
 #include <rendering/mesh/InstancedMeshRendererComponent.h>
 #include <rendering/mesh/materials/PhongMaterial.h>
+#include <rendering/mesh/materials/PBRMaterial.h>
 #include <rendering/mesh/materials/UnlitMaterial.h>
 #include <rendering/skybox/SkyboxComponent.h>
 #include <resources/ResourceManager.h>
@@ -26,6 +27,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
 
     const Mesh &planeMesh = resourceManager.getPlaneMesh();
     const Mesh &cubeMesh = resourceManager.getCubeMesh();
+    const Mesh &sphereMesh = resourceManager.getSphereMesh();
 
     const Texture2D &whiteTexture = resourceManager.getWhiteTexture();
     const Texture2D &boxTexture =
@@ -47,6 +49,25 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
                 "textures/brick/bricks2_disp.jpg",
                 TextureColorSpace::Linear
             );
+    const Texture2D &rustyMetalAlbedo = resourceManager.loadTexture(
+        "textures/pbr/rusty_metal_04/albedo.jpg"
+    );
+    const Texture2D &rustyMetalNormal = resourceManager.loadTexture(
+        "textures/pbr/rusty_metal_04/normal_gl.jpg",
+        TextureColorSpace::Linear
+    );
+    const Texture2D &rustyMetalMetallic = resourceManager.loadTexture(
+        "textures/pbr/rusty_metal_04/metallic.jpg",
+        TextureColorSpace::Linear
+    );
+    const Texture2D &rustyMetalRoughness = resourceManager.loadTexture(
+        "textures/pbr/rusty_metal_04/roughness.jpg",
+        TextureColorSpace::Linear
+    );
+    const Texture2D &rustyMetalAO = resourceManager.loadTexture(
+        "textures/pbr/rusty_metal_04/ao.jpg",
+        TextureColorSpace::Linear
+    );
     const std::array<std::string, 6> skyboxFaces{
         "textures/skybox/right.jpg",
         "textures/skybox/left.jpg",
@@ -59,6 +80,7 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
             resourceManager.loadCubeMap("defaultSkybox", skyboxFaces);
 
     const Shader &phongShader = resourceManager.getPhongShader();
+    const Shader &pbrShader = resourceManager.getPBRShader();
     const Shader &unlitShader = resourceManager.getUnlitShader();
 
     Entity &skybox = scene.createEntity("Skybox");
@@ -172,6 +194,62 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     mintMaterial.shininess = 32.0f;
     mintMaterial.useBlinnPhong = true;
 
+    const auto makePBRMaterial = [&](
+        const std::string &name,
+        const glm::vec4 &color,
+        const float metallic,
+        const float roughness
+    ) -> PBRMaterial & {
+        PBRMaterial &material = resourceManager.loadPBRMaterial(
+            "sandbox/" + name,
+            pbrShader,
+            whiteTexture
+        );
+        material.baseColor = color;
+        material.metallic = metallic;
+        material.roughness = roughness;
+        material.ao = 1.0f;
+        return material;
+    };
+
+    PBRMaterial &pbrDielectricSmooth = makePBRMaterial(
+        "pbr-dielectric-smooth",
+        {0.72f, 0.06f, 0.04f, 1.0f},
+        0.0f,
+        0.15f
+    );
+    PBRMaterial &pbrDielectricRough = makePBRMaterial(
+        "pbr-dielectric-rough",
+        {0.72f, 0.06f, 0.04f, 1.0f},
+        0.0f,
+        0.8f
+    );
+    PBRMaterial &pbrMetalSmooth = makePBRMaterial(
+        "pbr-metal-smooth",
+        {1.0f, 0.71f, 0.22f, 1.0f},
+        1.0f,
+        0.15f
+    );
+    PBRMaterial &pbrMetalRough = makePBRMaterial(
+        "pbr-metal-rough",
+        {1.0f, 0.71f, 0.22f, 1.0f},
+        1.0f,
+        0.72f
+    );
+    PBRMaterial &rustyMetalMaterial = resourceManager.loadPBRMaterial(
+        "sandbox/pbr-rusty-metal-04",
+        pbrShader,
+        rustyMetalAlbedo
+    );
+    rustyMetalMaterial.normalTexture = &rustyMetalNormal;
+    rustyMetalMaterial.metallicTexture = &rustyMetalMetallic;
+    rustyMetalMaterial.roughnessTexture = &rustyMetalRoughness;
+    rustyMetalMaterial.aoTexture = &rustyMetalAO;
+    rustyMetalMaterial.metallic = 1.0f;
+    rustyMetalMaterial.roughness = 1.0f;
+    rustyMetalMaterial.ao = 1.0f;
+    rustyMetalMaterial.flipNormalY = true;
+
     UnlitMaterial &pointLightMarkerMaterial =
             resourceManager.loadUnlitMaterial(
                 "sandbox/point-light-marker",
@@ -220,6 +298,20 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         return entity;
     };
 
+    const auto createSphere = [&scene, &sphereMesh](
+        const char *name,
+        const Transform &transform,
+        const Material &material
+    ) -> Entity & {
+        Entity &entity = scene.createEntity(name);
+        entity.getComponent<TransformComponent>().local = transform;
+        entity.addComponent<MeshRendererComponent>(
+            &sphereMesh,
+            &material
+        );
+        return entity;
+    };
+
     (void)createPlane(
         "Ground - SSAO Receiver",
         {
@@ -247,6 +339,34 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
         },
         floorMaterial
     );
+
+    const std::array<std::pair<const char *, PBRMaterial *>, 5>
+            pbrSamples{{
+                {"PBR - Dielectric Smooth", &pbrDielectricSmooth},
+                {"PBR - Dielectric Rough", &pbrDielectricRough},
+                {"PBR - Metal Smooth", &pbrMetalSmooth},
+                {"PBR - Metal Rough", &pbrMetalRough},
+                {"PBR - Textured Rusty Metal", &rustyMetalMaterial}
+            }};
+    for (std::size_t index = 0; index < pbrSamples.size(); ++index) {
+        Entity &sample = createSphere(
+            pbrSamples[index].first,
+            {
+                .position = {
+                    -6.0f + static_cast<float>(index) * 3.0f,
+                    1.05f,
+                    5.2f
+                },
+                .rotation = {0.0f, 0.0f, 0.0f},
+                .scale = {2.0f, 2.0f, 2.0f}
+            },
+            *pbrSamples[index].second
+        );
+        if (index == pbrSamples.size() - 1) {
+            SpinComponent &spin = sample.addComponent<SpinComponent>();
+            spin.degreesPerSecond = {0.0f, 18.0f, 0.0f};
+        }
+    }
 
     // Three adjacent material samples make the contact darkening along the
     // floor easy to compare without changing geometry.
@@ -427,6 +547,29 @@ void SandboxScene::build(Scene &scene, ResourceManager &resourceManager) {
     directionalLight.color = {1.0f, 0.84f, 0.68f};
     directionalLight.intensity = 0.48f;
     directionalLight.castShadows = true;
+
+    // Localized gallery lights make the roughness-dependent PBR highlight
+    // readable without flooding the older Phong samples behind the row.
+    const std::array<glm::vec3, 2> pbrLightPositions{
+        glm::vec3{-3.5f, 4.5f, 10.0f},
+        glm::vec3{4.0f, 4.5f, 10.0f}
+    };
+    for (std::size_t index = 0; index < pbrLightPositions.size(); ++index) {
+        Entity &lightEntity = scene.createEntity(
+            index == 0 ? "PBR Gallery Light - Left"
+                       : "PBR Gallery Light - Right"
+        );
+        lightEntity.getComponent<TransformComponent>().local.position =
+                pbrLightPositions[index];
+        PointLightComponent &galleryLight =
+                lightEntity.addComponent<PointLightComponent>();
+        galleryLight.range = 8.0f;
+        galleryLight.color = index == 0
+                                 ? glm::vec3{1.0f, 0.72f, 0.48f}
+                                 : glm::vec3{0.62f, 0.78f, 1.0f};
+        galleryLight.intensity = 2.5f;
+        galleryLight.castShadows = false;
+    }
 
     const glm::vec3 pointLightPosition{1.5f, 6.5f, 6.5f};
     Entity &pointLightEntity = scene.createEntity("HDR Key Light");

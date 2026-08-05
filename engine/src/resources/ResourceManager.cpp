@@ -70,9 +70,19 @@ const Mesh &ResourceManager::getCubeMesh() {
     return *cubeMesh;
 }
 
+const Mesh &ResourceManager::getSphereMesh() {
+    if (!sphereMesh) {
+        auto [vertices, indices] = PrimitiveMeshes::createSphere();
+        sphereMesh = std::make_unique<Mesh>(vertices, indices);
+        registerResource(meshCatalog, "Built-in/Sphere", *sphereMesh);
+    }
+    return *sphereMesh;
+}
+
 std::span<const ResourceEntry<Mesh>> ResourceManager::getMeshResources() {
     getPlaneMesh();
     getCubeMesh();
+    getSphereMesh();
     return meshCatalog;
 }
 
@@ -92,6 +102,12 @@ Material *ResourceManager::findMutableMaterial(const Material *material) {
     }
 
     for (auto &[key, candidate] : phongMaterials) {
+        if (candidate.get() == material) {
+            return candidate.get();
+        }
+    }
+
+    for (auto &[key, candidate] : pbrMaterials) {
         if (candidate.get() == material) {
             return candidate.get();
         }
@@ -129,6 +145,19 @@ const Shader &ResourceManager::getPhongShader() {
         shader->bindUniformBlock("DebugData", UniformBinding::Debug);
     }
     return *phongShader;
+}
+
+const Shader &ResourceManager::getPBRShader() {
+    if (!pbrShader) {
+        pbrShader = std::make_unique<Shader>(
+            resolvePath("shaders/basic.vert"),
+            resolvePath("shaders/pbr.frag")
+        );
+        pbrShader->bindUniformBlock("CameraData", UniformBinding::Camera);
+        pbrShader->bindUniformBlock("LightsData", UniformBinding::Lights);
+        pbrShader->bindUniformBlock("DebugData", UniformBinding::Debug);
+    }
+    return *pbrShader;
 }
 
 const Shader &ResourceManager::getUnlitShader() {
@@ -322,6 +351,26 @@ PhongMaterial &ResourceManager::loadPhongMaterial(const std::string &key, const 
         static_cast<const Material &>(*it->second)
     );
 
+    return *it->second;
+}
+
+PBRMaterial &ResourceManager::loadPBRMaterial(
+    const std::string &key,
+    const Shader &shader,
+    const Texture2D &texture
+) {
+    if (const auto it = pbrMaterials.find(key); it != pbrMaterials.end()) {
+        return *it->second;
+    }
+
+    auto material = std::make_unique<PBRMaterial>(shader, texture);
+    auto [it, inserted] = pbrMaterials.emplace(key, std::move(material));
+
+    registerResource(
+        materialCatalog,
+        "PBR/" + key,
+        static_cast<const Material &>(*it->second)
+    );
     return *it->second;
 }
 
